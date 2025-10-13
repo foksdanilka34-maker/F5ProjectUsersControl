@@ -2,27 +2,44 @@ syntax = "proto3";
 
 package auth;
 
-option go_package = "github.com/danilakovlev/f5-project/gen/go/auth/v1;authv1";
+option go_package = "github.com/foksdanilka34-maker/F5ProjectUsersControl/login/v1;loginv1";
 
 import "google/protobuf/empty.proto";
 
 service LoginService {
     rpc Login(LoginRequest) returns (LoginResponse);
     rpc Logout(LoginRequest) returns (google.protobuf.Empty);
+    rpc Refresh(RefreshRequest) returns (RefreshResponse); 
     rpc CreateCredentials(CreateCredentialsRequest) returns (google.protobuf.Empty);
     
 }
 
 message LoginRequest {
-
+    string login = 1;
+    string password = 2;
+    string user_agent = 3;
+    string ip_address = 4;
 }
 
 message LoginResponse {
-
+    string access_token = 1;
 }
 
 message LogoutRequest {
 
 }
 
-message google.protobuf.Empty {}
+message RefreshRequest {
+  
+}
+
+message RefreshResponse {
+  string access_token = 1;
+}
+
+message CreateCredentialsRequest {
+  string user_id = 1;
+  string login = 2;
+  string password = 3;
+  string role = 4;
+}
