@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "github.com/danilakovlev/f5-project/gen/go/auth/v1;authv1";
+
+import "google/protobuf/empty.proto";
+
+service LoginService {
+    rpc Login(LoginRequest) returns (LoginResponse);
+    rpc Logout(LoginRequest) returns (google.protobuf.Empty);
+    rpc CreateCredentials(CreateCredentialsRequest) returns (google.protobuf.Empty);
+    
+}
+
+message LoginRequest {
+
+}
+
+message LoginResponse {
+
+}
+
+message LogoutRequest {
+
+}
+
+message google.protobuf.Empty {}
