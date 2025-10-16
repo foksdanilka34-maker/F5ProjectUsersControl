@@ -1,7 +1,9 @@
-CREATE TYPE user_role AS ENUM ('employee', 'manager', 'admin', 'director');
+CREATE SCHEMA IF NOT EXISTS auth;
 
-CREATE TABLE IF NOT EXISTS auth (
-    user_id UUID PRIMARY KEY,
+CREATE TYPE auth.user_role AS ENUM ('employee', 'manager', 'admin', 'director');
+
+CREATE TABLE IF NOT EXISTS auth.credentials (
+    user_id UUID UNIQUE PRIMARY KEY,
     role user_role NOT NULL, 
     login VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(72) NOT NULL, 
@@ -10,7 +12,7 @@ CREATE TABLE IF NOT EXISTS auth (
     is_active BOOLEAN NOT NULL DEFAULT true
 );
 
-CREATE TABLE auth_sessions (
+CREATE TABLE auth.sessions (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id       UUID NOT NULL REFERENCES auth(user_id) ON DELETE CASCADE,
     refresh_token VARCHAR(255) UNIQUE NOT NULL,                    
@@ -19,3 +21,5 @@ CREATE TABLE auth_sessions (
     expires_at    TIMESTAMPTZ NOT NULL,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX exp_at ON auth.sessions(expires_at);

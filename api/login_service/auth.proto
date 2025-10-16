@@ -8,8 +8,8 @@ import "google/protobuf/empty.proto";
 
 service LoginService {
     rpc Login(LoginRequest) returns (LoginResponse);
-    rpc Logout(LoginRequest) returns (google.protobuf.Empty);
-    rpc Refresh(RefreshRequest) returns (RefreshResponse); 
+    rpc Logout(google.protobuf.Empty) returns (google.protobuf.Empty);
+    rpc Refresh(google.protobuf.Empty) returns (RefreshResponse); 
     rpc CreateCredentials(CreateCredentialsRequest) returns (google.protobuf.Empty);
     
 }
@@ -23,14 +23,6 @@ message LoginRequest {
 
 message LoginResponse {
     string access_token = 1;
-}
-
-message LogoutRequest {
-
-}
-
-message RefreshRequest {
-  
 }
 
 message RefreshResponse {

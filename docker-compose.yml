@@ -1,0 +1,49 @@
+services:
+
+  auth_db:
+    image: postgres:17-alpine
+    container_name: auth_service_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+      POSTGRES_DB: ${AUTH_DB}
+    ports:
+      - "${AUTH_DB_PORT}:5432"
+    volumes:
+      - ./environment/auth_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CATALOG_DB_USER} -d ${CATALOG_DB}"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app_network
+  
+  redis_sessions:
+    image: redis:7
+    container_name: auth_session_cache
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./environment/redis_sessions:/data
+    networks:
+      - app_network
+
+  migrate_catalog:
+    image: migrate/migrate
+    entrypoint: ["migrate"]
+    depends_on:
+      catalog_db: { condition: service_healthy }
+    volumes:
+      - ./LoginService/migrations:/migrations
+    command: >
+      -path /migrations
+      -database "postgres://${CATALOG_DB_USER}:${CATALOG_DB_PASSWORD}@catalog_db:5432/${CATALOG_DB}?sslmode=disable"
+      up
+    networks: [app_network]
+
+networks:
+  app_network:
+    driver: bridge

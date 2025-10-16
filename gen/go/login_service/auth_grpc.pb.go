@@ -31,8 +31,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LoginServiceClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
-	Logout(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
+	Logout(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Refresh(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*RefreshResponse, error)
 	CreateCredentials(ctx context.Context, in *CreateCredentialsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
@@ -54,7 +54,7 @@ func (c *loginServiceClient) Login(ctx context.Context, in *LoginRequest, opts .
 	return out, nil
 }
 
-func (c *loginServiceClient) Logout(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *loginServiceClient) Logout(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, LoginService_Logout_FullMethodName, in, out, cOpts...)
@@ -64,7 +64,7 @@ func (c *loginServiceClient) Logout(ctx context.Context, in *LoginRequest, opts 
 	return out, nil
 }
 
-func (c *loginServiceClient) Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error) {
+func (c *loginServiceClient) Refresh(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*RefreshResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RefreshResponse)
 	err := c.cc.Invoke(ctx, LoginService_Refresh_FullMethodName, in, out, cOpts...)
@@ -89,8 +89,8 @@ func (c *loginServiceClient) CreateCredentials(ctx context.Context, in *CreateCr
 // for forward compatibility.
 type LoginServiceServer interface {
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
-	Logout(context.Context, *LoginRequest) (*emptypb.Empty, error)
-	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
+	Logout(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	Refresh(context.Context, *emptypb.Empty) (*RefreshResponse, error)
 	CreateCredentials(context.Context, *CreateCredentialsRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedLoginServiceServer()
 }
@@ -105,10 +105,10 @@ type UnimplementedLoginServiceServer struct{}
 func (UnimplementedLoginServiceServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedLoginServiceServer) Logout(context.Context, *LoginRequest) (*emptypb.Empty, error) {
+func (UnimplementedLoginServiceServer) Logout(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
-func (UnimplementedLoginServiceServer) Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error) {
+func (UnimplementedLoginServiceServer) Refresh(context.Context, *emptypb.Empty) (*RefreshResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Refresh not implemented")
 }
 func (UnimplementedLoginServiceServer) CreateCredentials(context.Context, *CreateCredentialsRequest) (*emptypb.Empty, error) {
@@ -154,7 +154,7 @@ func _LoginService_Login_Handler(srv interface{}, ctx context.Context, dec func(
 }
 
 func _LoginService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LoginRequest)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -166,13 +166,13 @@ func _LoginService_Logout_Handler(srv interface{}, ctx context.Context, dec func
 		FullMethod: LoginService_Logout_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LoginServiceServer).Logout(ctx, req.(*LoginRequest))
+		return srv.(LoginServiceServer).Logout(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _LoginService_Refresh_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RefreshRequest)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func _LoginService_Refresh_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: LoginService_Refresh_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LoginServiceServer).Refresh(ctx, req.(*RefreshRequest))
+		return srv.(LoginServiceServer).Refresh(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
