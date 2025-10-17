@@ -9,9 +9,10 @@ import "google/protobuf/empty.proto";
 service LoginService {
     rpc Login(LoginRequest) returns (LoginResponse);
     rpc Logout(google.protobuf.Empty) returns (google.protobuf.Empty);
-    rpc Refresh(google.protobuf.Empty) returns (RefreshResponse); 
+    rpc Refresh(google.protobuf.Empty) returns (RefreshResponse);
     rpc CreateCredentials(CreateCredentialsRequest) returns (google.protobuf.Empty);
-    
+    rpc ChangeUserStatus(ChangeUserStatusRequest) returns (google.protobuf.Empty);
+    rpc ChangePassword(ChangePasswordRequest) returns (google.protobuf.Empty);
 }
 
 message LoginRequest {
@@ -34,4 +35,14 @@ message CreateCredentialsRequest {
   string login = 2;
   string password = 3;
   string role = 4;
+}
+
+message ChangeUserStatusRequest {
+  string user_id = 1;
+  bool is_active = 2;
+}
+
+message ChangePasswordRequest {
+  string user_id = 1;
+  string new_password = 2;
 }
