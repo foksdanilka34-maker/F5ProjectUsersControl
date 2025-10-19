@@ -2,9 +2,10 @@ package session
 
 import (
 	"context"
-    "time"
+	"log"
+	"time"
 
-    auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
+	auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
 )
 
 type CachedSessionStorage struct {
@@ -55,10 +56,18 @@ func (s *CachedSessionStorage) UpdateSession(ctx context.Context, oldTokenHash s
     return updatedSession, nil
 }
 func (s *CachedSessionStorage) DeleteSession(ctx context.Context, token string) error {
+    log.Printf("using deleteSession func")
 	err := s.db.DeleteSession(ctx, token)
-    if err == nil {
-        _ = s.cache.Delete(ctx, token)
-        return nil
+    if err != nil {
+        log.Printf("error deleting session from db: %v", err)
+        return err
     }
-    return err
+    
+    cacheErr := s.cache.Delete(ctx, token)
+    if cacheErr != nil {
+        log.Printf("error deleting session from cache: %v", cacheErr)
+    }
+    
+    log.Printf("session deleted successfully from both db and cache")
+    return nil
 }

@@ -1,4 +1,4 @@
-.PHONY: proto build run clean
+.PHONY: proto build run clean kill-port stop
 
 proto:
 	protoc --proto_path=api \
@@ -13,6 +13,12 @@ build:
 
 run:
 	go run ./LoginService/cmd/login_service/main.go
+
+kill:
+	lsof -i :50051 | grep LISTEN | awk '{print $$2}' | xargs kill -9 2>/dev/null || true
+
+stop:
+	pkill -f "login_service" || true
 
 clean:
 	rm -rf build/

@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -76,15 +77,18 @@ func (s *Storage) DeleteSession(ctx context.Context, token string) error {
 	query := `DELETE FROM auth.sessions WHERE refresh_token = $1`
 	tags, err := s.pgx.Exec(ctx, query, token)
 
+	log.Printf("Delete session method postgres activated")
 	if err != nil {
-		log.Printf("Error during deleteing session, session dont deleted, %v", err)
+		log.Printf("Error during deleting session, session not deleted, %v", err)
 		return err
 	}
 
 	if tags.RowsAffected() == 0 {
-		log.Print("Session dont deleted, zero rows affected")
-		return err
+		log.Print("Session not deleted, zero rows affected")
+		return fmt.Errorf("session not found")
 	}
+
+	log.Printf("Session deleted successfully, rows affected: %d", tags.RowsAffected())
 	return nil
 }
 

@@ -6,9 +6,9 @@ import (
 )
 
 func GetEnv(key, defaultValue string) string {
-    if value := os.Getenv(key); value != "" {
-        return value
-    }
-	log.Printf("unable to use .env value")
-    return defaultValue
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	log.Printf("env: %s not set, using default", key)
+	return defaultValue
 }

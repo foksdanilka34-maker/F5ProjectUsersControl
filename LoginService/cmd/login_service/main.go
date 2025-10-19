@@ -24,16 +24,15 @@ func main() {
 
 	log.Println("Starting auth service...")
 
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
-	}
+	_ = godotenv.Load()
 
 	pgConfig := storage.PostgresConfig{
 		User:     storage.GetEnv("AUTH_DB_USER", "postgres"),
 		Password: storage.GetEnv("AUTH_DB_PASSWORD", ""),
-		Host:     storage.GetEnv("AUTH_DB_HOST", ""),
-		Port:     storage.GetEnv("AUTH_DB_PORT", ""),
-		DBName:   storage.GetEnv("AUTH_DB", ""),
+		
+		Host:   storage.GetEnv("AUTH_DB_HOST", "localhost"),
+		Port:   storage.GetEnv("AUTH_DB_PORT", "5432"),
+		DBName: storage.GetEnv("AUTH_DB", ""),
 	}
 
 	redisAddr := storage.GetEnv("REDIS_ADDR", "localhost:6379")

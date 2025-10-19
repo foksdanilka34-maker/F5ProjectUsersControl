@@ -3,10 +3,9 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
+	"strings"
 
-	authM "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
 	auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/login_service"
 	core "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/core"
 	
@@ -44,7 +43,7 @@ func (s *Server) Login(ctx context.Context, req *auth.LoginRequest) (*auth.Login
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "invalid login or password")
 	}
-	setRefreshTokenCookie(ctx, refreshToken)
+	setRefreshTokenInMetadata(ctx, refreshToken)
 
 	return &auth.LoginResponse{AccessToken: accessToken}, nil
 }
@@ -62,7 +61,7 @@ func (s *Server) Refresh(ctx context.Context, req *emptypb.Empty) (*auth.Refresh
 		return nil, status.Error(codes.Internal, "refresh failed")
 	}
 
-	setRefreshTokenCookie(ctx, newRefreshToken)
+	setRefreshTokenInMetadata(ctx, newRefreshToken)
 
 	return &auth.RefreshResponse{
 		AccessToken: newAccessToken,
@@ -72,14 +71,37 @@ func (s *Server) Refresh(ctx context.Context, req *emptypb.Empty) (*auth.Refresh
 func (s *Server) Logout(ctx context.Context, req *emptypb.Empty) (*emptypb.Empty, error) {
 	refreshToken, err := getRefreshTokenFromMetadata(ctx)
 	if err != nil {
+		log.Printf("error getting authorization header: %v", err)
 		return &emptypb.Empty{}, nil
 	}
 
 	if err := s.core.Logout(ctx, refreshToken); err != nil {
-		log.Printf("error during logout function")
+		log.Printf("error during logout function: %v", err)
 	}
 
-	clearRefreshTokenCookie(ctx)
+	clearRefreshTokenInMetadata(ctx)
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) CreateCredentials(ctx context.Context, req *auth.CreateCredentialsRequest) (*emptypb.Empty, error) {
+	if req.GetUserId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+	if req.GetLogin() == "" {
+		return nil, status.Error(codes.InvalidArgument, "login is required")
+	}
+	if req.GetPassword() == "" {
+		return nil, status.Error(codes.InvalidArgument, "password is required")
+	}
+	if req.GetRole() == "" {
+		return nil, status.Error(codes.InvalidArgument, "role is required")
+	}
+
+	err := s.core.CreateCredentials(ctx, req.GetUserId(), req.GetLogin(), req.GetPassword(), req.GetRole())
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to create credentials")
+	}
 
 	return &emptypb.Empty{}, nil
 }
@@ -113,14 +135,12 @@ func (s *Server) ChangePassword(ctx context.Context, req *auth.ChangePasswordReq
 	return &emptypb.Empty{}, nil
 }
 
-func setRefreshTokenCookie(ctx context.Context, token string) {
-	cookieHeader := fmt.Sprintf("refreshToken=%s; HttpOnly; Max-Age=%d; Path=/", token, int(authM.RefreshTokenLifetime.Seconds()))
-	grpc.SetHeader(ctx, metadata.Pairs("Set-Cookie", cookieHeader))
+func setRefreshTokenInMetadata(ctx context.Context, token string) {
+	grpc.SetHeader(ctx, metadata.Pairs("authorization", "Bearer "+token))
 }
 
-func clearRefreshTokenCookie(ctx context.Context) {
-	cookieHeader := "refreshToken=; HttpOnly; Max-Age=0; Path=/"
-	grpc.SetHeader(ctx, metadata.Pairs("Set-Cookie", cookieHeader))
+func clearRefreshTokenInMetadata(ctx context.Context) {
+	grpc.SetHeader(ctx, metadata.Pairs("authorization", ""))
 }
 
 func getRefreshTokenFromMetadata(ctx context.Context) (string, error) {
@@ -128,12 +148,28 @@ func getRefreshTokenFromMetadata(ctx context.Context) (string, error) {
 	if !ok {
 		return "", errors.New("metadata is not provided")
 	}
-	values := md.Get("x-refresh-token") 
+	
+	values := md.Get("authorization")
 	if len(values) == 0 {
-		return "", errors.New("refresh token is not provided")
+		return "", errors.New("authorization header is not provided")
 	}
 	
-	return values[0], nil
+	authHeader := strings.TrimSpace(values[0])
+	if authHeader == "" {
+		return "", errors.New("authorization header is empty")
+	}
+	
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+		return "", errors.New("invalid authorization header format, expected 'Bearer <token>'")
+	}
+	
+	token := strings.TrimSpace(parts[1])
+	if token == "" {
+		return "", errors.New("refresh token is empty")
+	}
+	
+	return token, nil
 }
 
 func getUserAgentAndIPFromMetadata(ctx context.Context) (userAgent, ipAddress string) {
