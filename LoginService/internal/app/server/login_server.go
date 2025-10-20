@@ -51,6 +51,7 @@ func (s *Server) Login(ctx context.Context, req *auth.LoginRequest) (*auth.Login
 func (s *Server) Refresh(ctx context.Context, req *emptypb.Empty) (*auth.RefreshResponse, error) {
 	refreshToken, err := getRefreshTokenFromMetadata(ctx)
 	if err != nil {
+		log.Printf("error getting refresh token")
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 	

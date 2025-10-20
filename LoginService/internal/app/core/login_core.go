@@ -76,23 +76,28 @@ func (l *loginCore) Refresh(ctx context.Context, oldRefreshToken, userAgent, ipA
 	oldTokenHash := l.authenticator.HashRefreshToken(oldRefreshToken)
 	ses, err := l.sessionStorage.GetSessionByToken(ctx, oldTokenHash)
 	if err != nil {
+		log.Printf("error getting session")
 		return "", "", err
 	}
 	if time.Now().After(ses.ExpiresAt) {
 		_ = l.sessionStorage.DeleteSession(ctx, oldRefreshToken)
+		log.Printf("token is expired")
 		return "", "", err
 	}
 	credentials, err := l.credentialStorage.GetCrendentialsByID(ctx, ses.UserID)
 	if err != nil {
+		log.Printf("error getting credentials")
 		return "", "", err
 	}
 	accToken, refToken, err := l.authenticator.GenerateTokens(credentials.UserID, credentials.Role)
 	if err != nil {
+		log.Printf("error during generation token")
 		return "", "", err
 	}
 	newHashToken := l.authenticator.HashRefreshToken(refToken)
 	_, err = l.sessionStorage.UpdateSession(ctx, oldTokenHash, newHashToken, time.Now().Add(auth.RefreshTokenLifetime))
 	if err != nil {
+		log.Printf("error during updating session")
 		return "", "", err
 	}
 	return accToken, refToken, nil

@@ -48,7 +48,7 @@ func (s *Storage) CreateSession(ctx context.Context, session *auth.RefreshSessio
 
 func (s *Storage) UpdateSession(ctx context.Context, oldTokenHash string, newTokenHash string, newExpiresAt time.Time) (*auth.RefreshSession, error) {
 	query := `UPDATE auth.sessions 
-        	SET refresh_token = $1, expires_at = $2, updated_at = NOW()
+        	SET refresh_token = $1, expires_at = $2
         	WHERE refresh_token = $3
         	RETURNING id, user_id, refresh_token, user_agent, ip_address, expires_at, created_at`
 
@@ -65,8 +65,10 @@ func (s *Storage) UpdateSession(ctx context.Context, oldTokenHash string, newTok
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			log.Printf("error during creating session, session is not created%v", err)
+			log.Printf("error during updating session, session is not updated%v", err)
+			return nil, err
 		}
+		log.Printf("system error during updating session, session is not updated%v", err)
 		return nil, err
 	}
 
