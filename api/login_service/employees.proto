@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package employees;
+
+option go_package = "github.com/foksdanilka34-maker/F5ProjectUsersControl/employess/v1;employesv1";
+
+import "google/protobuf/empty.proto";
+
+service EmployeeService {
+    rpc CreateProfile(CreateProfileRequest) returns (Profile);
+    rpc GetProfile(GetProfileRequest) returns (Profile);
+    rpc ListProfiles(ListProfilesRequest) returns (ListProfilesResponse);
+    rpc UpdateProfile(UpdateProfileRequest) returns (Profile);
+    rpc DeactivateProfile(DeactivateProfileRequest) returns (google.protobuf.Empty);
+
+    rpc CreateDepartment(CreateDepartmentRequest) returns (Department);
+    rpc ListDepartments(ListDepartmentsRequest) returns (ListDepartmentsResponse);
+    rpc UpdateDepartment(UpdateDepartmentRequest) returns (Department);
+    rpc DeleteDepartment(DeleteDepartmentRequest) returns (google.protobuf.Empty);
+
+    rpc CreatePosition(CreatePositionRequest) returns (Position);
+    rpc ListPositions(ListPositionsRequest) returns (ListPositionsResponse);
+    rpc UpdatePosition(UpdatePositionRequest) returns (Position);
+    rpc DeletePosition(DeletePositionRequest) returns (google.protobuf.Empty);
+
+    rpc CreateSkill(CreateSkillRequest) returns (Skill);
+    rpc ListSkills(ListSkillsRequest) returns (ListSkillsResponse);
+
+    rpc AssignSkill(AssignSkillRequest) returns (google.protobuf.Empty);
+    rpc RemoveSkill(RemoveSkillRequest) returns (google.protobuf.Empty);
+    
+    rpc GetProfilesByIDs(GetProfilesByIDsRequest) returns (GetProfilesByIDsResponse);
+}
+
+message Profile {
+    string id = 1;
+    string first_name = 2;
+    string last_name = 3;
+    string position_id = 4;
+    string email = 5;
+    string avatar_url = 6;
+    string hire_date = 7;
+    Department department = 8;
+    repeated Skill skills = 9;
+    string login = 10;
+    string role = 11;
+    string created_at = 12;
+    string updated_at = 13;
+    bool is_active = 14;
+}
+
+message Department {
+    string id = 1;
+    string name = 2;
+}
+
+message Skill {
+    string id = 1;
+    string name = 2;
+}
+
+message CreateProfileRequest {
+    string user_id = 1; 
+    string first_name = 2;
+    string last_name = 3;
+    string position_id = 4;
+    string email = 5;
+    string department_id = 6;
+    string hire_date = 7;
+
+    string login = 8;
+    string password = 9;
+    string role = 10;
+}
+
+message GetProfileRequest {
+    string user_id = 1;
+}
+
+message ListProfilesRequest {
+    int32 page_size = 1;
+    int32 page_number = 2;
+    string department_id = 3;
+    string skill_id = 4;
+}
+
+message ListProfilesResponse {
+    repeated Profile profiles = 1;
+    int32 total_count = 2;
+}
+
+message UpdateProfileRequest {
+    string user_id = 1;
+    optional string first_name = 2;
+    optional string last_name = 3;
+    optional string position_id = 4;
+    optional string email = 5;
+    optional string department_id = 6;
+    optional string avatar_url = 7;
+    optional string hire_date = 8;
+}
+
+message DeactivateProfileRequest {
+    string user_id = 1;
+}
+
+message CreateDepartmentRequest {
+    string name = 1;
+}
+
+message CreatePositionRequest {
+    string name = 1;
+}
+
+message ListPositionsRequest {}
+
+message ListPositionsResponse {
+    repeated Position positions = 1;
+}
+
+message Position {
+    string id = 1;
+    string name = 2;
+}
+
+message DeletePositionRequest {
+    string id = 1;
+}
+
+message UpdatePositionRequest {
+    string id = 1;
+    optional string name = 2;
+}
+
+message ListDepartmentsRequest {}
+
+message ListDepartmentsResponse {
+    repeated Department departments = 1;
+}
+
+message UpdateDepartmentRequest {
+    string id = 1;
+    optional string name = 2;
+}
+
+message DeleteDepartmentRequest {
+    string id = 1;
+}
+
+message CreateSkillRequest {
+    string name = 1;
+}
+
+message ListSkillsRequest {}
+
+message ListSkillsResponse {
+    repeated Skill skills = 1;
+}
+
+message AssignSkillRequest {
+    string user_id = 1;
+    string skill_id = 2;
+}
+
+message RemoveSkillRequest {
+    string user_id = 1;
+    string skill_id = 2;
+}
+
+message GetProfilesByIDsRequest {
+    repeated string user_ids = 1;
+}
+
+message GetProfilesByIDsResponse {
+    map<string, Profile> profiles = 1;
+}
