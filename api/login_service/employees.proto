@@ -12,24 +12,6 @@ service EmployeeService {
     rpc ListProfiles(ListProfilesRequest) returns (ListProfilesResponse);
     rpc UpdateProfile(UpdateProfileRequest) returns (Profile);
     rpc DeactivateProfile(DeactivateProfileRequest) returns (google.protobuf.Empty);
-
-    rpc CreateDepartment(CreateDepartmentRequest) returns (Department);
-    rpc ListDepartments(ListDepartmentsRequest) returns (ListDepartmentsResponse);
-    rpc UpdateDepartment(UpdateDepartmentRequest) returns (Department);
-    rpc DeleteDepartment(DeleteDepartmentRequest) returns (google.protobuf.Empty);
-
-    rpc CreatePosition(CreatePositionRequest) returns (Position);
-    rpc ListPositions(ListPositionsRequest) returns (ListPositionsResponse);
-    rpc UpdatePosition(UpdatePositionRequest) returns (Position);
-    rpc DeletePosition(DeletePositionRequest) returns (google.protobuf.Empty);
-
-    rpc CreateSkill(CreateSkillRequest) returns (Skill);
-    rpc ListSkills(ListSkillsRequest) returns (ListSkillsResponse);
-
-    rpc AssignSkill(AssignSkillRequest) returns (google.protobuf.Empty);
-    rpc RemoveSkill(RemoveSkillRequest) returns (google.protobuf.Empty);
-    
-    rpc GetProfilesByIDs(GetProfilesByIDsRequest) returns (GetProfilesByIDsResponse);
 }
 
 message Profile {
@@ -60,17 +42,16 @@ message Skill {
 }
 
 message CreateProfileRequest {
-    string user_id = 1; 
-    string first_name = 2;
-    string last_name = 3;
-    string position_id = 4;
-    string email = 5;
-    string department_id = 6;
-    string hire_date = 7;
+    string first_name = 1;
+    string last_name = 2;
+    string position_id = 3;
+    string email = 4;
+    optional string department_id = 5;
+    string hire_date = 6;
 
-    string login = 8;
-    string password = 9;
-    string role = 10;
+    string login = 7;
+    string password = 8;
+    string role = 9;
 }
 
 message GetProfileRequest {
@@ -102,75 +83,4 @@ message UpdateProfileRequest {
 
 message DeactivateProfileRequest {
     string user_id = 1;
-}
-
-message CreateDepartmentRequest {
-    string name = 1;
-}
-
-message CreatePositionRequest {
-    string name = 1;
-}
-
-message ListPositionsRequest {}
-
-message ListPositionsResponse {
-    repeated Position positions = 1;
-}
-
-message Position {
-    string id = 1;
-    string name = 2;
-}
-
-message DeletePositionRequest {
-    string id = 1;
-}
-
-message UpdatePositionRequest {
-    string id = 1;
-    optional string name = 2;
-}
-
-message ListDepartmentsRequest {}
-
-message ListDepartmentsResponse {
-    repeated Department departments = 1;
-}
-
-message UpdateDepartmentRequest {
-    string id = 1;
-    optional string name = 2;
-}
-
-message DeleteDepartmentRequest {
-    string id = 1;
-}
-
-message CreateSkillRequest {
-    string name = 1;
-}
-
-message ListSkillsRequest {}
-
-message ListSkillsResponse {
-    repeated Skill skills = 1;
-}
-
-message AssignSkillRequest {
-    string user_id = 1;
-    string skill_id = 2;
-}
-
-message RemoveSkillRequest {
-    string user_id = 1;
-    string skill_id = 2;
-}
-
-message GetProfilesByIDsRequest {
-    repeated string user_ids = 1;
-}
-
-message GetProfilesByIDsResponse {
-    map<string, Profile> profiles = 1;
 }

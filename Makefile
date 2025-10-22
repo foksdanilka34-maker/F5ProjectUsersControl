@@ -7,6 +7,8 @@ proto:
 	protoc --proto_path=api \
 	       --go_out=paths=source_relative:gen/go \
 	       api/login_service/auth.proto
+fmt:
+	go fmt ./...
 
 build:
 	go build -o build/login_service ./LoginService/cmd/login_service

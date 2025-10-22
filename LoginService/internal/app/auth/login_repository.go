@@ -18,6 +18,7 @@ func NewStorage(p *pgxpool.Pool) *Storage {
 		pgx: p,
 	}
 }
+
 type CredentialStorage interface {
 	GetCrendentialsByUser(ctx context.Context, login string) (*auth.Credential, error)
 	GetCrendentialsByID(ctx context.Context, userID string) (*auth.Credential, error)

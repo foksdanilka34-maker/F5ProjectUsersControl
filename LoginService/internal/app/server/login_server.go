@@ -6,9 +6,9 @@ import (
 	"log"
 	"strings"
 
-	auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/login_service"
 	core "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/core"
-	
+	auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/login_service"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -39,7 +39,7 @@ func (s *Server) Login(ctx context.Context, req *auth.LoginRequest) (*auth.Login
 		return nil, status.Error(codes.InvalidArgument, "password is required")
 	}
 	accessToken, refreshToken, err := s.core.Login(ctx, req.GetLogin(), req.GetPassword(),
-		req.GetUserAgent(), req.GetIpAddress())	
+		req.GetUserAgent(), req.GetIpAddress())
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "invalid login or password")
 	}
@@ -54,7 +54,7 @@ func (s *Server) Refresh(ctx context.Context, req *emptypb.Empty) (*auth.Refresh
 		log.Printf("error getting refresh token")
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
-	
+
 	userAgent, ipAddress := getUserAgentAndIPFromMetadata(ctx)
 
 	newAccessToken, newRefreshToken, err := s.core.Refresh(ctx, refreshToken, userAgent, ipAddress)
@@ -149,27 +149,27 @@ func getRefreshTokenFromMetadata(ctx context.Context) (string, error) {
 	if !ok {
 		return "", errors.New("metadata is not provided")
 	}
-	
+
 	values := md.Get("authorization")
 	if len(values) == 0 {
 		return "", errors.New("authorization header is not provided")
 	}
-	
+
 	authHeader := strings.TrimSpace(values[0])
 	if authHeader == "" {
 		return "", errors.New("authorization header is empty")
 	}
-	
+
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
 		return "", errors.New("invalid authorization header format, expected 'Bearer <token>'")
 	}
-	
+
 	token := strings.TrimSpace(parts[1])
 	if token == "" {
 		return "", errors.New("refresh token is empty")
 	}
-	
+
 	return token, nil
 }
 

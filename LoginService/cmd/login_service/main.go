@@ -29,7 +29,7 @@ func main() {
 	pgConfig := storage.PostgresConfig{
 		User:     storage.GetEnv("AUTH_DB_USER", "postgres"),
 		Password: storage.GetEnv("AUTH_DB_PASSWORD", ""),
-		
+
 		Host:   storage.GetEnv("AUTH_DB_HOST", "localhost"),
 		Port:   storage.GetEnv("AUTH_DB_PORT", "5432"),
 		DBName: storage.GetEnv("AUTH_DB", ""),

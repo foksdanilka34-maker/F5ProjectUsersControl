@@ -9,9 +9,9 @@ import (
 )
 
 type RedisConfig struct {
-	Addr     string 
-	Password string 
-	DB       int   
+	Addr     string
+	Password string
+	DB       int
 }
 
 func NewRedisClient(ctx context.Context, cfg RedisConfig) (*redis.Client, error) {

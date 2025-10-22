@@ -37,10 +37,10 @@ func NewAuthenticator(secretKey string) (Authenticator, error) {
 func (a *JWTAuthenticator) GenerateTokens(userID, role string) (accessToken, refreshToken string, err error) {
 	customClaims := &auth.CustomClaims{
 		UserID: userID,
-		Role: role,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(auth.AccessTokenLifetime)),
-			IssuedAt: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, customClaims)
