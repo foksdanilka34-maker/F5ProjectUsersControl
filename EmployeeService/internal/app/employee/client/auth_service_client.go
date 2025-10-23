@@ -38,3 +38,4 @@ func (c *Client) CreateCredentials(ctx context.Context, userID, login, password,
 
 	return nil
 }
+

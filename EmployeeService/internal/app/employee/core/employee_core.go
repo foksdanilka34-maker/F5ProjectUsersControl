@@ -7,14 +7,17 @@ import (
 
 	emp "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee"
 	authClient "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/client"
+	
+	natsclient "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/client/nats"
 	empl "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/repo"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const maxPageSize = 100
+
 type loginCore struct {
-	employee empl.EmployeeStorage
-	client authClient.Client
+	employee  empl.EmployeeStorage
+	client    authClient.Client
+	publisher *natsclient.Publisher
 }
 
 type CoreLogic interface {
@@ -22,17 +25,25 @@ type CoreLogic interface {
 	GetProfile(ctx context.Context, userID string) (*emp.Profile, error)
 	ListProfile(ctx context.Context, pageSize, pageNum int, departmentID, positionID string) ([]*emp.Profile, error)
 	UpdateProfile(ctx context.Context, userID string, updProf *emp.UpdateProfile) (*emp.Profile, error)
-	DeactivateProfile(ctx context.Context) (error)
+	DeactivateProfile(ctx context.Context, userID string) error
 }
 
-func NewCore(employee empl.EmployeeStorage, client authClient.Client) CoreLogic {
+func NewCore(employee empl.EmployeeStorage, client authClient.Client, publisher *natsclient.Publisher) CoreLogic {
 	return &loginCore{
-		employee: employee,
-		client: client,
+		employee:  employee,
+		client:    client,
+		publisher: publisher,
 	}
 }
 
 func (l *loginCore) CreateProfile(ctx context.Context, regProfile *emp.RegisterData) (*emp.Profile, error) {
+	if regProfile == nil {
+		return nil, fmt.Errorf("profile data cannot be nil")
+	}
+	if regProfile.FirstName == "" || regProfile.LastName == "" || regProfile.Email == "" {
+		return nil, fmt.Errorf("first name, last name, and email are required fields")
+	}
+
 	tx, err := l.employee.BeginTransaction(ctx)
 	if err != nil {
 		return nil, err
@@ -69,6 +80,16 @@ func (l *loginCore) GetProfile(ctx context.Context, userID string) (*emp.Profile
 }
 
 func (l *loginCore) ListProfile(ctx context.Context, pageSize, pageNum int, departmentID, positionID string) ([]*emp.Profile, error) {
+	if pageSize <= 0 {
+		pageSize = 10 
+	}
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
+	}
+	if pageNum <= 0 {
+		pageNum = 1 
+	}
+
 	profiles, err := l.employee.ListProfile(ctx, pageSize, pageNum, departmentID, positionID)
 	if err != nil {
 		return nil, err
@@ -77,6 +98,9 @@ func (l *loginCore) ListProfile(ctx context.Context, pageSize, pageNum int, depa
 }
 
 func (l *loginCore) UpdateProfile(ctx context.Context, userID string, updProf *emp.UpdateProfile) (*emp.Profile, error) {
+	if userID == "" {
+		return nil, fmt.Errorf("user ID cannot be empty")
+	}
 	updProfile, err := l.employee.UpdateProfile(ctx, userID, updProf)
 	if err != nil {
 		return nil, err
@@ -84,8 +108,14 @@ func (l *loginCore) UpdateProfile(ctx context.Context, userID string, updProf *e
 	return updProfile, nil
 }
 
-func (l *loginCore) DeactivateProfile(ctx context.Context) (error) {
-	
+func (l *loginCore) DeactivateProfile(ctx context.Context, userID string) error {
+	if userID == "" {
+		return fmt.Errorf("user ID cannot be empty")
+	}
+
+	if err := l.publisher.PublishDeactivateUserCommand(ctx, userID); err != nil {
+		return fmt.Errorf("failed to publish deactivate user command: %w", err)
+	}
+	log.Printf("NATS: Deactivate command for user %s published successfully", userID)
+	return nil
 }
-	
-	

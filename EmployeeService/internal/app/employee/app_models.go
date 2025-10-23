@@ -29,8 +29,8 @@ type RegisterData struct {
 	Position  string
 	Email     string
 	AvatarUrl string
-	HireDate  string
-	Departm   Department
+	HireDate  time.Time
+	Departm   *string
 	Login     string
 	Password  string
 	Role      string

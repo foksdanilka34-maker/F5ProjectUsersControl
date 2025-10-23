@@ -177,3 +177,4 @@ func (s *Storage) UpdateProfile(ctx context.Context, userID string, updProf *emp
 	}
 	return profile, nil
 }
+

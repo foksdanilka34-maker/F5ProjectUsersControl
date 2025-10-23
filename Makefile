@@ -1,12 +1,21 @@
 .PHONY: proto build run clean kill-port stop
 
-proto:
+proto-login:
 	protoc --proto_path=api \
 	       --go-grpc_out=paths=source_relative:gen/go \
 	       api/login_service/auth.proto
 	protoc --proto_path=api \
 	       --go_out=paths=source_relative:gen/go \
 	       api/login_service/auth.proto
+
+proto-empl:
+	protoc --proto_path=api \
+	       --go-grpc_out=paths=source_relative:gen/go \
+	       api/employee_service/employee.proto
+	protoc --proto_path=api \
+	       --go_out=paths=source_relative:gen/go \
+	       api/employee_service/employee.proto
+
 fmt:
 	go fmt ./...
 
