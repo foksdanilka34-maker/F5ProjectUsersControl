@@ -2,6 +2,7 @@ package employee
 
 import (
 	"context"
+	"log"
 
 	loginClient "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/login_service"
 	"google.golang.org/grpc"
@@ -15,7 +16,7 @@ type Client struct {
 	client loginClient.LoginServiceClient
 }
 
-func New(c *grpc.ClientConn) (*Client, error) {
+func NewAuthClient(c *grpc.ClientConn) (*Client, error) {
 	client := loginClient.NewLoginServiceClient(c)
 
 	return &Client{
@@ -33,6 +34,7 @@ func (c *Client) CreateCredentials(ctx context.Context, userID, login, password,
 
 	_, err := c.client.CreateCredentials(ctx, request)
 	if err != nil {
+		log.Printf("error in calling createCredentials method %v", err)
 		return err
 	}
 

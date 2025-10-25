@@ -5,6 +5,7 @@ package employees;
 option go_package = "github.com/foksdanilka34-maker/F5ProjectUsersControl/employeess/v1;employeesv1";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 service EmployeeService {
     rpc CreateProfile(CreateProfileRequest) returns (Profile);
@@ -21,13 +22,13 @@ message Profile {
     string position_id = 4;
     string email = 5;
     string avatar_url = 6;
-    string hire_date = 7;
+    google.protobuf.Timestamp hire_date = 7;
     Department department = 8;
     repeated Skill skills = 9;
     string login = 10;
     string role = 11;
-    string created_at = 12;
-    string updated_at = 13;
+    google.protobuf.Timestamp created_at = 12;
+    google.protobuf.Timestamp updated_at = 13;
     bool is_active = 14;
 }
 
@@ -47,7 +48,7 @@ message CreateProfileRequest {
     string position_id = 3;
     string email = 4;
     optional string department_id = 5;
-    string hire_date = 6;
+    google.protobuf.Timestamp hire_date = 6;
 
     string login = 7;
     string password = 8;
@@ -78,7 +79,6 @@ message UpdateProfileRequest {
     optional string email = 5;
     optional string department_id = 6;
     optional string avatar_url = 7;
-    optional string hire_date = 8;
 }
 
 message DeactivateProfileRequest {

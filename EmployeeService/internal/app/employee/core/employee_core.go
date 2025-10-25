@@ -16,7 +16,7 @@ const maxPageSize = 100
 
 type loginCore struct {
 	employee  empl.EmployeeStorage
-	client    authClient.Client
+	client    *authClient.Client
 	publisher *natsclient.Publisher
 }
 
@@ -28,7 +28,7 @@ type CoreLogic interface {
 	DeactivateProfile(ctx context.Context, userID string) error
 }
 
-func NewCore(employee empl.EmployeeStorage, client authClient.Client, publisher *natsclient.Publisher) CoreLogic {
+func NewCore(employee empl.EmployeeStorage, client *authClient.Client, publisher *natsclient.Publisher) CoreLogic {
 	return &loginCore{
 		employee:  employee,
 		client:    client,
@@ -49,13 +49,13 @@ func (l *loginCore) CreateProfile(ctx context.Context, regProfile *emp.RegisterD
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
-	newUser, err := l.employee.CreateProfile(ctx, regProfile)
+	newUser, err := l.employee.CreateProfile(ctx, tx, regProfile)
 	if err != nil {
 		return nil, err
 	}
-	authCred := l.client.CreateCredentials(ctx, newUser.UserID, newUser.Login, newUser.Password, newUser.Role)
-
+	authCred := l.client.CreateCredentials(ctx, newUser.UserID, regProfile.Login, regProfile.Password, regProfile.Role)
 	if authCred != nil {
+		log.Println(authCred)
 		return nil, err
 	}
 	
@@ -63,7 +63,7 @@ func (l *loginCore) CreateProfile(ctx context.Context, regProfile *emp.RegisterD
 		log.Printf("Transaction is not completed, error %v", err)
 		return nil, err
 	}
-
+	
 	return newUser, nil
 }
 

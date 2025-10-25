@@ -11,7 +11,7 @@ type Profile struct {
 	PositionId string
 	Email      string
 	AvatarUrl  string
-	HireDate   string
+	HireDate   time.Time
 	Departm    Department
 	Login      string
 	Password   string
@@ -53,7 +53,7 @@ type UpdateProfile struct {
 	Email      *string
 	AvatarUrl  *string
 	HireDate   *string
-	Departm    *Department
+	DepartmID  *string
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

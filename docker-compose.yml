@@ -43,6 +43,53 @@ services:
       up
     networks: [app_network]
 
+  employee_db:
+    image: postgres:17-alpine
+    container_name: employee_service_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${EMPL_DB_USER}
+      POSTGRES_PASSWORD: ${EMPL_DB_PASSWORD}
+      POSTGRES_DB: ${EMPL_DB}
+    ports:
+      - "${EMPL_DB_PORT}:5432"
+    volumes:
+      - ./environment/empl_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${EMPL_DB_USER} -d ${EMPL_DB}"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app_network
+    
+  migrate_employee:
+      image: migrate/migrate
+      entrypoint: ["migrate"]
+      depends_on:
+        employee_db: { condition: service_healthy }
+      volumes:
+        - ./EmployeeService/migrations:/migrations
+      command: >
+        -path /migrations
+        -database "postgres://${EMPL_DB_USER}:${EMPL_DB_PASSWORD}@employee_db:5432/${EMPL_DB}?sslmode=disable"
+        up
+      networks: [app_network]
+  
+  nats:
+    image: nats:2.10-alpine
+    container_name: nats
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["--js", "--sd=/data", "--http_port=8222"]
+    volumes:
+      - nats-data:/data
+    restart: unless-stopped
+
+volumes:
+  nats-data:
+
 networks:
   app_network:
     driver: bridge

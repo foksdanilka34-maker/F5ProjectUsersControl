@@ -2,18 +2,22 @@ package main
 
 import (
 	"context"
-	"fmt"
+
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
-	appAuth "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/auth"
-	appCore "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/core"
-	appServer "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/server"
-	appSession "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/session"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/storage"
+	employeeClient "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/client"
+	natsclient "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/client/nats"
+	employeeCore "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/core"
+	employee "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/repo"
+	employeeServer "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/server"
+
+	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/storage"
 
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
@@ -22,22 +26,20 @@ import (
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	log.Println("Starting auth service...")
+	log.Println("Starting employee service...")
 
 	_ = godotenv.Load()
 
 	pgConfig := storage.PostgresConfig{
-		User:     storage.GetEnv("AUTH_DB_USER", "postgres"),
-		Password: storage.GetEnv("AUTH_DB_PASSWORD", ""),
-		
-		Host:   storage.GetEnv("AUTH_DB_HOST", "localhost"),
-		Port:   storage.GetEnv("AUTH_DB_PORT", "5432"),
-		DBName: storage.GetEnv("AUTH_DB", ""),
+		User:     storage.GetEnv("EMPL_DB_USER", "postgres"),
+		Password: storage.GetEnv("EMPL_DB_PASSWORD", ""),
+
+		Host:   storage.GetEnv("EMPL_DB_HOST", "localhost"),
+		Port:   storage.GetEnv("EMPL_DB_PORT", "5433"),
+		DBName: storage.GetEnv("EMPL_DB", ""),
 	}
 
-	redisAddr := storage.GetEnv("REDIS_ADDR", "localhost:6379")
-	jwtSecret := storage.GetEnv("JWT_SECRET", "")
-	listenAddr := storage.GetEnv("GRPC_LISTEN_ADDR", "0.0.0.0:50051")
+	listenAddr := storage.GetEnv("GRPC_EMPL_LISTEN_ADDR", "0.0.0.0:50052")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -49,38 +51,33 @@ func main() {
 	defer pgPool.Close()
 	log.Println("Postgres connected")
 
-	redisPassword := storage.GetEnv("REDIS_PASSWORD", "")
-	redisDB := storage.GetEnv("REDIS_DB", "0")
-	redisDBInt := 0
-	if redisDB != "" {
-		fmt.Sscanf(redisDB, "%d", &redisDBInt)
+	employeeStorage := employee.NewStorage(pgPool)
+	natsConfig := &storage.NatsConfig{
+		URL: storage.GetEnv("NATS_URL", "nats://localhost:4222"),
 	}
-
-	redisConfig := storage.RedisConfig{
-		Addr:     redisAddr,
-		Password: redisPassword,
-		DB:       redisDBInt,
-	}
-	redisClient, err := storage.NewRedisClient(ctx, redisConfig)
+	natsClient, err := storage.NewNATSConnection(*natsConfig)
 	if err != nil {
-		log.Fatalf("redis connection error: %v", err)
+		log.Fatalf("nats connection error: %v", err)
 	}
-	defer redisClient.Close()
-	log.Println("Redis connected")
+	publisher := natsclient.NewPublisher(natsClient)
 
-	credentialStorage := appAuth.NewStorage(pgPool)
-	sessionStorage := appSession.NewStorage(pgPool)
-	redisCache := appSession.NewRedisCache(redisClient)
-	cachedSessionStorage := appSession.NewCachedSessionStorage(sessionStorage, redisCache)
+	loginServiceConn, err := grpc.NewClient(
+		storage.GetEnv("LOGIN_SERVICE_GRPC_ADDR", "localhost:50051"),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
 
-	authenticator, err := appSession.NewAuthenticator(jwtSecret)
 	if err != nil {
-		log.Fatalf("failed to create authenticator: %v", err)
+		log.Fatalf("Login service client creation error: %v", err)
+	}
+	defer loginServiceConn.Close()
+
+	employeeClien, err := employeeClient.NewAuthClient(loginServiceConn)
+	if err != nil {
+		log.Fatalf("failed to create login service client: %v", err)
 	}
 
-	authCore := appCore.NewCore(credentialStorage, cachedSessionStorage, authenticator)
-
-	grpcServerImpl := appServer.NewAuthServer(authCore)
+	employeeCpre := employeeCore.NewCore(employeeStorage, employeeClien, publisher)
+	grpcServerImpl := employeeServer.NewEmployeeServer(employeeCpre)
 
 	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
@@ -102,7 +99,7 @@ func main() {
 
 	<-stop
 
-	log.Println("Shutting down gRPC server...")
+	log.Println("Shutting down gRPC employee server...")
 	grpcServer.GracefulStop()
 
 	log.Println("Server gracefully stopped")

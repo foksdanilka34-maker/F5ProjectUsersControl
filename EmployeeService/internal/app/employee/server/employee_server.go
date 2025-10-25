@@ -7,6 +7,7 @@ import (
 	core "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/core"
 	models "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee"
 	
+	"log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -47,7 +48,9 @@ func (s *Server) CreateProfile(ctx context.Context, req *employee.CreateProfileR
 	}
 
 	newProfile, err := s.core.CreateProfile(ctx, coreReq)
+	log.Println(newProfile, "sosi hyi")
 	if err != nil {
+		log.Printf("failed to create profile %v", err)
 		return nil, status.Error(codes.Internal, "failed to create profile")
 	}
 
@@ -56,11 +59,13 @@ func (s *Server) CreateProfile(ctx context.Context, req *employee.CreateProfileR
 
 func (s *Server) GetProfile(ctx context.Context, req *employee.GetProfileRequest) (*employee.Profile, error) {
 	if req.GetUserId() == "" {
+		log.Printf("id is requred")
 		return nil, status.Error(codes.InvalidArgument, "ID is required")
 	}
 
 	profile, err := s.core.GetProfile(ctx, req.UserId)
 	if err != nil {
+		log.Printf("failed to get profile: %v", err)
 		return nil, status.Error(codes.Internal, "failed to get profile")
 	}
 
@@ -68,8 +73,9 @@ func (s *Server) GetProfile(ctx context.Context, req *employee.GetProfileRequest
 }
 
 func (s *Server) ListProfiles(ctx context.Context, req *employee.ListProfilesRequest) (*employee.ListProfilesResponse, error) {
-	profiles, err := s.core.ListProfile(ctx, int(req.GetPageSize()), int(req.GetPageNumber()), req.GetDepartmentId(), req.GetSkillId())
+	profiles, err := s.core.ListProfile(ctx, int(req.GetPageSize()), int(req.GetPageNumber()), req.GetDepartmentId(), req.GetPositionId())
 	if err != nil {
+		log.Printf("failed to list profile: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list profiles")
 	}
 
@@ -82,7 +88,8 @@ func (s *Server) ListProfiles(ctx context.Context, req *employee.ListProfilesReq
 }
 
 func (s *Server) UpdateProfile(ctx context.Context, req *employee.UpdateProfileRequest) (*employee.Profile, error) {
-	if req.GetId() == "" {
+	if req.GetUserId() == "" {
+		log.Printf("faile to updated profile, id is required")
 		return nil, status.Error(codes.InvalidArgument, "ID is required")
 	}
 
@@ -91,13 +98,13 @@ func (s *Server) UpdateProfile(ctx context.Context, req *employee.UpdateProfileR
 		LastName:   req.LastName,
 		PositionId: req.PositionId,
 		Email:      req.Email,
-		Departm:    req.DepartmentId,
+		DepartmID:  req.DepartmentId,
 		AvatarUrl:  req.AvatarUrl,
-		HireDate:   req.HireDate.AsTime(),
 	}
 
-	updatedProfile, err := s.core.UpdateProfile(ctx, req.GetId(), coreReq)
+	updatedProfile, err := s.core.UpdateProfile(ctx, req.GetUserId(), coreReq)
 	if err != nil {
+		log.Printf("failed to update profile %v", err)
 		return nil, status.Error(codes.Internal, "failed to update profile")
 	}
 
@@ -105,29 +112,33 @@ func (s *Server) UpdateProfile(ctx context.Context, req *employee.UpdateProfileR
 }
 
 func (s *Server) DeactivateProfile(ctx context.Context, req *employee.DeactivateProfileRequest) (*emptypb.Empty, error) {
-	if req.GetId() == "" {
+	if req.GetUserId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "ID is required")
 	}
 
-	if err := s.core.DeactivateProfile(ctx, req.GetId()); err != nil {
+	if err := s.core.DeactivateProfile(ctx, req.GetUserId()); err != nil {
+		log.Printf("failed to deactivate profile: %v", err)
 		return nil, status.Error(codes.Internal, "failed to deactivate profile")
 	}
 
 	return &emptypb.Empty{}, nil
 }
 
-// convertCoreProfileToProto converts the internal Profile model to the protobuf model.
 func convertCoreProfileToProto(p *models.Profile) *employee.Profile {
 	if p == nil {
 		return nil
 	}
+	
 	return &employee.Profile{
 		Id:           p.UserID,
 		FirstName:    p.FirstName,
 		LastName:     p.LastName,
 		PositionId:   p.PositionId,
 		Email:        p.Email,
-		DepartmentId: p.Departm.ID,
+		Department: &employee.Department{
+			Id:   p.Departm.ID,
+			Name: p.Departm.Name,
+		},
 		AvatarUrl:    p.AvatarUrl,
 		HireDate:     timestamppb.New(p.HireDate),
 		CreatedAt:    timestamppb.New(p.CreatedAt),

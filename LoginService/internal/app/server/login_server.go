@@ -86,6 +86,8 @@ func (s *Server) Logout(ctx context.Context, req *emptypb.Empty) (*emptypb.Empty
 }
 
 func (s *Server) CreateCredentials(ctx context.Context, req *auth.CreateCredentialsRequest) (*emptypb.Empty, error) {
+	log.Printf(`calling Create credentails methods with 
+				values UserID:%s Login:%s Password%s, Role %s`, req.UserId, req.Login, req.Password, req.Role)
 	if req.GetUserId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}

@@ -3,7 +3,6 @@ package employee
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 
 	emp "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee"
@@ -22,7 +21,7 @@ func NewStorage(p *pgxpool.Pool) *Storage {
 }
 
 type EmployeeStorage interface {
-	CreateProfile(ctx context.Context, regData *emp.RegisterData) (*emp.Profile, error)
+	CreateProfile(ctx context.Context, tx pgx.Tx, regData *emp.RegisterData) (*emp.Profile, error)
 	GetProfile(ctx context.Context, userID string) (*emp.Profile, error)
 	ListProfile(ctx context.Context, pageSize, pageNum int, departmentID, positionID string) ([]*emp.Profile, error)
 	UpdateProfile(ctx context.Context, userID string, updProf *emp.UpdateProfile) (*emp.Profile, error)
@@ -35,18 +34,13 @@ func (s *Storage) BeginTransaction(ctx context.Context) (pgx.Tx, error) {
 }
 
 func (s *Storage) CreateProfile(ctx context.Context, tx pgx.Tx, regData *emp.RegisterData) (*emp.Profile, error) {
-	tx, err := s.pgx.Begin(ctx)
-	if err != nil {
-		log.Printf("transaction err %v", err)
-		return nil, fmt.Errorf("transaction err %v", err)
-	}
 	query := `INSERT INTO employees.profiles (first_name, last_name, position_id, email, department_id, avatar_url, hire_date)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
 			RETURNING id, first_name, last_name, position_id, email, department_id, avatar_url, hire_date, created_at, updated_at`
 	profile := &emp.Profile{}
 
-	err = tx.QueryRow(ctx, query, regData.FirstName, regData.LastName,
-		regData.Position, regData.Email, regData.Departm.ID, regData.AvatarUrl,
+	err := tx.QueryRow(ctx, query, regData.FirstName, regData.LastName,
+		regData.Position, regData.Email, regData.Departm, regData.AvatarUrl,
 		regData.HireDate).Scan(
 		&profile.UserID,
 		&profile.FirstName,
@@ -154,7 +148,7 @@ func (s *Storage) UpdateProfile(ctx context.Context, userID string, updProf *emp
 
 	profile := &emp.Profile{}
 	err := s.pgx.QueryRow(ctx, query, updProf.FirstName, updProf.LastName, updProf.PositionId, updProf.Email,
-		updProf.Departm.ID, updProf.AvatarUrl, updProf.HireDate, userID).Scan(
+		updProf.DepartmID, updProf.AvatarUrl, updProf.HireDate, userID).Scan(
 		&profile.UserID,
 		&profile.FirstName,
 		&profile.LastName,
