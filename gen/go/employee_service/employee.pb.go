@@ -691,6 +691,706 @@ func (x *DeactivateProfileRequest) GetStatus() bool {
 	return false
 }
 
+type Position struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Position) Reset() {
+	*x = Position{}
+	mi := &file_employee_service_employee_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Position) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Position) ProtoMessage() {}
+
+func (x *Position) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Position.ProtoReflect.Descriptor instead.
+func (*Position) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *Position) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Position) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type CreateDepartmentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateDepartmentRequest) Reset() {
+	*x = CreateDepartmentRequest{}
+	mi := &file_employee_service_employee_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateDepartmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateDepartmentRequest) ProtoMessage() {}
+
+func (x *CreateDepartmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateDepartmentRequest.ProtoReflect.Descriptor instead.
+func (*CreateDepartmentRequest) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *CreateDepartmentRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type GetDepartmentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDepartmentRequest) Reset() {
+	*x = GetDepartmentRequest{}
+	mi := &file_employee_service_employee_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDepartmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDepartmentRequest) ProtoMessage() {}
+
+func (x *GetDepartmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDepartmentRequest.ProtoReflect.Descriptor instead.
+func (*GetDepartmentRequest) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetDepartmentRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type ListDepartmentsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Departments   []*Department          `protobuf:"bytes,1,rep,name=departments,proto3" json:"departments,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDepartmentsResponse) Reset() {
+	*x = ListDepartmentsResponse{}
+	mi := &file_employee_service_employee_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDepartmentsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDepartmentsResponse) ProtoMessage() {}
+
+func (x *ListDepartmentsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDepartmentsResponse.ProtoReflect.Descriptor instead.
+func (*ListDepartmentsResponse) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ListDepartmentsResponse) GetDepartments() []*Department {
+	if x != nil {
+		return x.Departments
+	}
+	return nil
+}
+
+type UpdateDepartmentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateDepartmentRequest) Reset() {
+	*x = UpdateDepartmentRequest{}
+	mi := &file_employee_service_employee_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateDepartmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateDepartmentRequest) ProtoMessage() {}
+
+func (x *UpdateDepartmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateDepartmentRequest.ProtoReflect.Descriptor instead.
+func (*UpdateDepartmentRequest) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *UpdateDepartmentRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateDepartmentRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type DeleteDepartmentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteDepartmentRequest) Reset() {
+	*x = DeleteDepartmentRequest{}
+	mi := &file_employee_service_employee_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteDepartmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteDepartmentRequest) ProtoMessage() {}
+
+func (x *DeleteDepartmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteDepartmentRequest.ProtoReflect.Descriptor instead.
+func (*DeleteDepartmentRequest) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *DeleteDepartmentRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type CreatePositionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreatePositionRequest) Reset() {
+	*x = CreatePositionRequest{}
+	mi := &file_employee_service_employee_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreatePositionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePositionRequest) ProtoMessage() {}
+
+func (x *CreatePositionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePositionRequest.ProtoReflect.Descriptor instead.
+func (*CreatePositionRequest) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *CreatePositionRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type GetPositionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPositionRequest) Reset() {
+	*x = GetPositionRequest{}
+	mi := &file_employee_service_employee_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPositionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPositionRequest) ProtoMessage() {}
+
+func (x *GetPositionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPositionRequest.ProtoReflect.Descriptor instead.
+func (*GetPositionRequest) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GetPositionRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type ListPositionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Positions     []*Position            `protobuf:"bytes,1,rep,name=positions,proto3" json:"positions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPositionsResponse) Reset() {
+	*x = ListPositionsResponse{}
+	mi := &file_employee_service_employee_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPositionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPositionsResponse) ProtoMessage() {}
+
+func (x *ListPositionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPositionsResponse.ProtoReflect.Descriptor instead.
+func (*ListPositionsResponse) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListPositionsResponse) GetPositions() []*Position {
+	if x != nil {
+		return x.Positions
+	}
+	return nil
+}
+
+type UpdatePositionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePositionRequest) Reset() {
+	*x = UpdatePositionRequest{}
+	mi := &file_employee_service_employee_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePositionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePositionRequest) ProtoMessage() {}
+
+func (x *UpdatePositionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePositionRequest.ProtoReflect.Descriptor instead.
+func (*UpdatePositionRequest) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *UpdatePositionRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdatePositionRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type DeletePositionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeletePositionRequest) Reset() {
+	*x = DeletePositionRequest{}
+	mi := &file_employee_service_employee_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePositionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePositionRequest) ProtoMessage() {}
+
+func (x *DeletePositionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeletePositionRequest.ProtoReflect.Descriptor instead.
+func (*DeletePositionRequest) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *DeletePositionRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type CreateSkillRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateSkillRequest) Reset() {
+	*x = CreateSkillRequest{}
+	mi := &file_employee_service_employee_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateSkillRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSkillRequest) ProtoMessage() {}
+
+func (x *CreateSkillRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSkillRequest.ProtoReflect.Descriptor instead.
+func (*CreateSkillRequest) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *CreateSkillRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type ListSkillsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Skills        []*Skill               `protobuf:"bytes,1,rep,name=skills,proto3" json:"skills,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSkillsResponse) Reset() {
+	*x = ListSkillsResponse{}
+	mi := &file_employee_service_employee_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSkillsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSkillsResponse) ProtoMessage() {}
+
+func (x *ListSkillsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSkillsResponse.ProtoReflect.Descriptor instead.
+func (*ListSkillsResponse) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *ListSkillsResponse) GetSkills() []*Skill {
+	if x != nil {
+		return x.Skills
+	}
+	return nil
+}
+
+type AddSkillToEmployeeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EmployeeId    string                 `protobuf:"bytes,1,opt,name=employee_id,json=employeeId,proto3" json:"employee_id,omitempty"`
+	SkillId       string                 `protobuf:"bytes,2,opt,name=skill_id,json=skillId,proto3" json:"skill_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddSkillToEmployeeRequest) Reset() {
+	*x = AddSkillToEmployeeRequest{}
+	mi := &file_employee_service_employee_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddSkillToEmployeeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddSkillToEmployeeRequest) ProtoMessage() {}
+
+func (x *AddSkillToEmployeeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddSkillToEmployeeRequest.ProtoReflect.Descriptor instead.
+func (*AddSkillToEmployeeRequest) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *AddSkillToEmployeeRequest) GetEmployeeId() string {
+	if x != nil {
+		return x.EmployeeId
+	}
+	return ""
+}
+
+func (x *AddSkillToEmployeeRequest) GetSkillId() string {
+	if x != nil {
+		return x.SkillId
+	}
+	return ""
+}
+
+type RemoveSkillFromEmployeeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EmployeeId    string                 `protobuf:"bytes,1,opt,name=employee_id,json=employeeId,proto3" json:"employee_id,omitempty"`
+	SkillId       string                 `protobuf:"bytes,2,opt,name=skill_id,json=skillId,proto3" json:"skill_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveSkillFromEmployeeRequest) Reset() {
+	*x = RemoveSkillFromEmployeeRequest{}
+	mi := &file_employee_service_employee_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveSkillFromEmployeeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveSkillFromEmployeeRequest) ProtoMessage() {}
+
+func (x *RemoveSkillFromEmployeeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_employee_service_employee_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveSkillFromEmployeeRequest.ProtoReflect.Descriptor instead.
+func (*RemoveSkillFromEmployeeRequest) Descriptor() ([]byte, []int) {
+	return file_employee_service_employee_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *RemoveSkillFromEmployeeRequest) GetEmployeeId() string {
+	if x != nil {
+		return x.EmployeeId
+	}
+	return ""
+}
+
+func (x *RemoveSkillFromEmployeeRequest) GetSkillId() string {
+	if x != nil {
+		return x.SkillId
+	}
+	return ""
+}
+
 var File_employee_service_employee_proto protoreflect.FileDescriptor
 
 const file_employee_service_employee_proto_rawDesc = "" +
@@ -772,14 +1472,66 @@ const file_employee_service_employee_proto_rawDesc = "" +
 	"\v_avatar_url\"K\n" +
 	"\x18DeactivateProfileRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\bR\x06status2\x86\x03\n" +
+	"\x06status\x18\x02 \x01(\bR\x06status\".\n" +
+	"\bPosition\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"-\n" +
+	"\x17CreateDepartmentRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"&\n" +
+	"\x14GetDepartmentRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"R\n" +
+	"\x17ListDepartmentsResponse\x127\n" +
+	"\vdepartments\x18\x01 \x03(\v2\x15.employees.DepartmentR\vdepartments\"=\n" +
+	"\x17UpdateDepartmentRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\")\n" +
+	"\x17DeleteDepartmentRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"+\n" +
+	"\x15CreatePositionRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"$\n" +
+	"\x12GetPositionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"J\n" +
+	"\x15ListPositionsResponse\x121\n" +
+	"\tpositions\x18\x01 \x03(\v2\x13.employees.PositionR\tpositions\";\n" +
+	"\x15UpdatePositionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"'\n" +
+	"\x15DeletePositionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"(\n" +
+	"\x12CreateSkillRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\">\n" +
+	"\x12ListSkillsResponse\x12(\n" +
+	"\x06skills\x18\x01 \x03(\v2\x10.employees.SkillR\x06skills\"W\n" +
+	"\x19AddSkillToEmployeeRequest\x12\x1f\n" +
+	"\vemployee_id\x18\x01 \x01(\tR\n" +
+	"employeeId\x12\x19\n" +
+	"\bskill_id\x18\x02 \x01(\tR\askillId\"\\\n" +
+	"\x1eRemoveSkillFromEmployeeRequest\x12\x1f\n" +
+	"\vemployee_id\x18\x01 \x01(\tR\n" +
+	"employeeId\x12\x19\n" +
+	"\bskill_id\x18\x02 \x01(\tR\askillId2\xaf\v\n" +
 	"\x0fEmployeeService\x12D\n" +
 	"\rCreateProfile\x12\x1f.employees.CreateProfileRequest\x1a\x12.employees.Profile\x12>\n" +
 	"\n" +
 	"GetProfile\x12\x1c.employees.GetProfileRequest\x1a\x12.employees.Profile\x12O\n" +
 	"\fListProfiles\x12\x1e.employees.ListProfilesRequest\x1a\x1f.employees.ListProfilesResponse\x12D\n" +
 	"\rUpdateProfile\x12\x1f.employees.UpdateProfileRequest\x1a\x12.employees.Profile\x12V\n" +
-	"\x17ChangeUserStatusProfile\x12#.employees.DeactivateProfileRequest\x1a\x16.google.protobuf.EmptyBPZNgithub.com/foksdanilka34-maker/F5ProjectUsersControl/employeess/v1;employeesv1b\x06proto3"
+	"\x17ChangeUserStatusProfile\x12#.employees.DeactivateProfileRequest\x1a\x16.google.protobuf.Empty\x12M\n" +
+	"\x10CreateDepartment\x12\".employees.CreateDepartmentRequest\x1a\x15.employees.Department\x12G\n" +
+	"\rGetDepartment\x12\x1f.employees.GetDepartmentRequest\x1a\x15.employees.Department\x12M\n" +
+	"\x0fListDepartments\x12\x16.google.protobuf.Empty\x1a\".employees.ListDepartmentsResponse\x12M\n" +
+	"\x10UpdateDepartment\x12\".employees.UpdateDepartmentRequest\x1a\x15.employees.Department\x12N\n" +
+	"\x10DeleteDepartment\x12\".employees.DeleteDepartmentRequest\x1a\x16.google.protobuf.Empty\x12G\n" +
+	"\x0eCreatePosition\x12 .employees.CreatePositionRequest\x1a\x13.employees.Position\x12A\n" +
+	"\vGetPosition\x12\x1d.employees.GetPositionRequest\x1a\x13.employees.Position\x12I\n" +
+	"\rListPositions\x12\x16.google.protobuf.Empty\x1a .employees.ListPositionsResponse\x12G\n" +
+	"\x0eUpdatePosition\x12 .employees.UpdatePositionRequest\x1a\x13.employees.Position\x12J\n" +
+	"\x0eDeletePosition\x12 .employees.DeletePositionRequest\x1a\x16.google.protobuf.Empty\x12>\n" +
+	"\vCreateSkill\x12\x1d.employees.CreateSkillRequest\x1a\x10.employees.Skill\x12C\n" +
+	"\n" +
+	"ListSkills\x12\x16.google.protobuf.Empty\x1a\x1d.employees.ListSkillsResponse\x12R\n" +
+	"\x12AddSkillToEmployee\x12$.employees.AddSkillToEmployeeRequest\x1a\x16.google.protobuf.Empty\x12\\\n" +
+	"\x17RemoveSkillFromEmployee\x12).employees.RemoveSkillFromEmployeeRequest\x1a\x16.google.protobuf.EmptyBPZNgithub.com/foksdanilka34-maker/F5ProjectUsersControl/employeess/v1;employeesv1b\x06proto3"
 
 var (
 	file_employee_service_employee_proto_rawDescOnce sync.Once
@@ -793,43 +1545,89 @@ func file_employee_service_employee_proto_rawDescGZIP() []byte {
 	return file_employee_service_employee_proto_rawDescData
 }
 
-var file_employee_service_employee_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_employee_service_employee_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_employee_service_employee_proto_goTypes = []any{
-	(*Profile)(nil),                  // 0: employees.Profile
-	(*Department)(nil),               // 1: employees.Department
-	(*Skill)(nil),                    // 2: employees.Skill
-	(*CreateProfileRequest)(nil),     // 3: employees.CreateProfileRequest
-	(*GetProfileRequest)(nil),        // 4: employees.GetProfileRequest
-	(*ListProfilesRequest)(nil),      // 5: employees.ListProfilesRequest
-	(*ListProfilesResponse)(nil),     // 6: employees.ListProfilesResponse
-	(*UpdateProfileRequest)(nil),     // 7: employees.UpdateProfileRequest
-	(*DeactivateProfileRequest)(nil), // 8: employees.DeactivateProfileRequest
-	(*timestamppb.Timestamp)(nil),    // 9: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),            // 10: google.protobuf.Empty
+	(*Profile)(nil),                        // 0: employees.Profile
+	(*Department)(nil),                     // 1: employees.Department
+	(*Skill)(nil),                          // 2: employees.Skill
+	(*CreateProfileRequest)(nil),           // 3: employees.CreateProfileRequest
+	(*GetProfileRequest)(nil),              // 4: employees.GetProfileRequest
+	(*ListProfilesRequest)(nil),            // 5: employees.ListProfilesRequest
+	(*ListProfilesResponse)(nil),           // 6: employees.ListProfilesResponse
+	(*UpdateProfileRequest)(nil),           // 7: employees.UpdateProfileRequest
+	(*DeactivateProfileRequest)(nil),       // 8: employees.DeactivateProfileRequest
+	(*Position)(nil),                       // 9: employees.Position
+	(*CreateDepartmentRequest)(nil),        // 10: employees.CreateDepartmentRequest
+	(*GetDepartmentRequest)(nil),           // 11: employees.GetDepartmentRequest
+	(*ListDepartmentsResponse)(nil),        // 12: employees.ListDepartmentsResponse
+	(*UpdateDepartmentRequest)(nil),        // 13: employees.UpdateDepartmentRequest
+	(*DeleteDepartmentRequest)(nil),        // 14: employees.DeleteDepartmentRequest
+	(*CreatePositionRequest)(nil),          // 15: employees.CreatePositionRequest
+	(*GetPositionRequest)(nil),             // 16: employees.GetPositionRequest
+	(*ListPositionsResponse)(nil),          // 17: employees.ListPositionsResponse
+	(*UpdatePositionRequest)(nil),          // 18: employees.UpdatePositionRequest
+	(*DeletePositionRequest)(nil),          // 19: employees.DeletePositionRequest
+	(*CreateSkillRequest)(nil),             // 20: employees.CreateSkillRequest
+	(*ListSkillsResponse)(nil),             // 21: employees.ListSkillsResponse
+	(*AddSkillToEmployeeRequest)(nil),      // 22: employees.AddSkillToEmployeeRequest
+	(*RemoveSkillFromEmployeeRequest)(nil), // 23: employees.RemoveSkillFromEmployeeRequest
+	(*timestamppb.Timestamp)(nil),          // 24: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                  // 25: google.protobuf.Empty
 }
 var file_employee_service_employee_proto_depIdxs = []int32{
-	9,  // 0: employees.Profile.hire_date:type_name -> google.protobuf.Timestamp
+	24, // 0: employees.Profile.hire_date:type_name -> google.protobuf.Timestamp
 	1,  // 1: employees.Profile.department:type_name -> employees.Department
 	2,  // 2: employees.Profile.skills:type_name -> employees.Skill
-	9,  // 3: employees.Profile.created_at:type_name -> google.protobuf.Timestamp
-	9,  // 4: employees.Profile.updated_at:type_name -> google.protobuf.Timestamp
-	9,  // 5: employees.CreateProfileRequest.hire_date:type_name -> google.protobuf.Timestamp
+	24, // 3: employees.Profile.created_at:type_name -> google.protobuf.Timestamp
+	24, // 4: employees.Profile.updated_at:type_name -> google.protobuf.Timestamp
+	24, // 5: employees.CreateProfileRequest.hire_date:type_name -> google.protobuf.Timestamp
 	0,  // 6: employees.ListProfilesResponse.profiles:type_name -> employees.Profile
-	3,  // 7: employees.EmployeeService.CreateProfile:input_type -> employees.CreateProfileRequest
-	4,  // 8: employees.EmployeeService.GetProfile:input_type -> employees.GetProfileRequest
-	5,  // 9: employees.EmployeeService.ListProfiles:input_type -> employees.ListProfilesRequest
-	7,  // 10: employees.EmployeeService.UpdateProfile:input_type -> employees.UpdateProfileRequest
-	8,  // 11: employees.EmployeeService.ChangeUserStatusProfile:input_type -> employees.DeactivateProfileRequest
-	0,  // 12: employees.EmployeeService.CreateProfile:output_type -> employees.Profile
-	0,  // 13: employees.EmployeeService.GetProfile:output_type -> employees.Profile
-	6,  // 14: employees.EmployeeService.ListProfiles:output_type -> employees.ListProfilesResponse
-	0,  // 15: employees.EmployeeService.UpdateProfile:output_type -> employees.Profile
-	10, // 16: employees.EmployeeService.ChangeUserStatusProfile:output_type -> google.protobuf.Empty
-	12, // [12:17] is the sub-list for method output_type
-	7,  // [7:12] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	1,  // 7: employees.ListDepartmentsResponse.departments:type_name -> employees.Department
+	9,  // 8: employees.ListPositionsResponse.positions:type_name -> employees.Position
+	2,  // 9: employees.ListSkillsResponse.skills:type_name -> employees.Skill
+	3,  // 10: employees.EmployeeService.CreateProfile:input_type -> employees.CreateProfileRequest
+	4,  // 11: employees.EmployeeService.GetProfile:input_type -> employees.GetProfileRequest
+	5,  // 12: employees.EmployeeService.ListProfiles:input_type -> employees.ListProfilesRequest
+	7,  // 13: employees.EmployeeService.UpdateProfile:input_type -> employees.UpdateProfileRequest
+	8,  // 14: employees.EmployeeService.ChangeUserStatusProfile:input_type -> employees.DeactivateProfileRequest
+	10, // 15: employees.EmployeeService.CreateDepartment:input_type -> employees.CreateDepartmentRequest
+	11, // 16: employees.EmployeeService.GetDepartment:input_type -> employees.GetDepartmentRequest
+	25, // 17: employees.EmployeeService.ListDepartments:input_type -> google.protobuf.Empty
+	13, // 18: employees.EmployeeService.UpdateDepartment:input_type -> employees.UpdateDepartmentRequest
+	14, // 19: employees.EmployeeService.DeleteDepartment:input_type -> employees.DeleteDepartmentRequest
+	15, // 20: employees.EmployeeService.CreatePosition:input_type -> employees.CreatePositionRequest
+	16, // 21: employees.EmployeeService.GetPosition:input_type -> employees.GetPositionRequest
+	25, // 22: employees.EmployeeService.ListPositions:input_type -> google.protobuf.Empty
+	18, // 23: employees.EmployeeService.UpdatePosition:input_type -> employees.UpdatePositionRequest
+	19, // 24: employees.EmployeeService.DeletePosition:input_type -> employees.DeletePositionRequest
+	20, // 25: employees.EmployeeService.CreateSkill:input_type -> employees.CreateSkillRequest
+	25, // 26: employees.EmployeeService.ListSkills:input_type -> google.protobuf.Empty
+	22, // 27: employees.EmployeeService.AddSkillToEmployee:input_type -> employees.AddSkillToEmployeeRequest
+	23, // 28: employees.EmployeeService.RemoveSkillFromEmployee:input_type -> employees.RemoveSkillFromEmployeeRequest
+	0,  // 29: employees.EmployeeService.CreateProfile:output_type -> employees.Profile
+	0,  // 30: employees.EmployeeService.GetProfile:output_type -> employees.Profile
+	6,  // 31: employees.EmployeeService.ListProfiles:output_type -> employees.ListProfilesResponse
+	0,  // 32: employees.EmployeeService.UpdateProfile:output_type -> employees.Profile
+	25, // 33: employees.EmployeeService.ChangeUserStatusProfile:output_type -> google.protobuf.Empty
+	1,  // 34: employees.EmployeeService.CreateDepartment:output_type -> employees.Department
+	1,  // 35: employees.EmployeeService.GetDepartment:output_type -> employees.Department
+	12, // 36: employees.EmployeeService.ListDepartments:output_type -> employees.ListDepartmentsResponse
+	1,  // 37: employees.EmployeeService.UpdateDepartment:output_type -> employees.Department
+	25, // 38: employees.EmployeeService.DeleteDepartment:output_type -> google.protobuf.Empty
+	9,  // 39: employees.EmployeeService.CreatePosition:output_type -> employees.Position
+	9,  // 40: employees.EmployeeService.GetPosition:output_type -> employees.Position
+	17, // 41: employees.EmployeeService.ListPositions:output_type -> employees.ListPositionsResponse
+	9,  // 42: employees.EmployeeService.UpdatePosition:output_type -> employees.Position
+	25, // 43: employees.EmployeeService.DeletePosition:output_type -> google.protobuf.Empty
+	2,  // 44: employees.EmployeeService.CreateSkill:output_type -> employees.Skill
+	21, // 45: employees.EmployeeService.ListSkills:output_type -> employees.ListSkillsResponse
+	25, // 46: employees.EmployeeService.AddSkillToEmployee:output_type -> google.protobuf.Empty
+	25, // 47: employees.EmployeeService.RemoveSkillFromEmployee:output_type -> google.protobuf.Empty
+	29, // [29:48] is the sub-list for method output_type
+	10, // [10:29] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_employee_service_employee_proto_init() }
@@ -845,7 +1643,7 @@ func file_employee_service_employee_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_employee_service_employee_proto_rawDesc), len(file_employee_service_employee_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

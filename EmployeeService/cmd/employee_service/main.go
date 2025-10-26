@@ -37,6 +37,12 @@ func main() {
 		DBName: storage.GetEnv("EMPL_DB", ""),
 	}
 
+	redisConfig := storage.RedisConfig{
+		Addr:     storage.GetEnv("EMPL_REDIS_ADDR", "localhost:6380"),
+		Password: storage.GetEnv("EMPL_REDIS_PASSWORD", ""),
+		DB:       1, 
+	}
+
 	listenAddr := storage.GetEnv("GRPC_EMPL_LISTEN_ADDR", "0.0.0.0:50052")
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -49,7 +55,16 @@ func main() {
 	defer pgPool.Close()
 	storage.Logger.Info("Postgres connected")
 
+	redisClient, err := storage.NewRedisClient(ctx, redisConfig)
+	if err != nil {
+		storage.Logger.Fatal("redis connection error", zap.Error(err))
+	}
+	defer redisClient.Close()
+	storage.Logger.Info("Redis connected for employee service")
+
 	employeeStorage := employee.NewStorage(pgPool)
+	referenceCache := employee.NewReferenceCache(redisClient)
+	cachedEmployeeStorage := employee.NewCachedEmployeeStorage(employeeStorage, referenceCache)
 	natsConfig := &storage.NatsConfig{
 		URL: storage.GetEnv("NATS_URL", "nats://localhost:4222"),
 	}
@@ -74,7 +89,7 @@ func main() {
 		storage.Logger.Fatal("failed to create login service client", zap.Error(err))
 	}
 
-	employeeCpre := employeeCore.NewCore(employeeStorage, employeeClien, publisher)
+	employeeCpre := employeeCore.NewCore(cachedEmployeeStorage, employeeClien, publisher)
 	grpcServerImpl := employeeServer.NewEmployeeServer(employeeCpre)
 
 	lis, err := net.Listen("tcp", listenAddr)

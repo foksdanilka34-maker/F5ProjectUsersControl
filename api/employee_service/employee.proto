@@ -13,6 +13,23 @@ service EmployeeService {
     rpc ListProfiles(ListProfilesRequest) returns (ListProfilesResponse);
     rpc UpdateProfile(UpdateProfileRequest) returns (Profile);
     rpc ChangeUserStatusProfile(DeactivateProfileRequest) returns (google.protobuf.Empty);
+
+    rpc CreateDepartment(CreateDepartmentRequest) returns (Department);
+    rpc GetDepartment(GetDepartmentRequest) returns (Department);
+    rpc ListDepartments(google.protobuf.Empty) returns (ListDepartmentsResponse);
+    rpc UpdateDepartment(UpdateDepartmentRequest) returns (Department);
+    rpc DeleteDepartment(DeleteDepartmentRequest) returns (google.protobuf.Empty);
+
+    rpc CreatePosition(CreatePositionRequest) returns (Position);
+    rpc GetPosition(GetPositionRequest) returns (Position);
+    rpc ListPositions(google.protobuf.Empty) returns (ListPositionsResponse);
+    rpc UpdatePosition(UpdatePositionRequest) returns (Position);
+    rpc DeletePosition(DeletePositionRequest) returns (google.protobuf.Empty);
+
+    rpc CreateSkill(CreateSkillRequest) returns (Skill);
+    rpc ListSkills(google.protobuf.Empty) returns (ListSkillsResponse);
+    rpc AddSkillToEmployee(AddSkillToEmployeeRequest) returns (google.protobuf.Empty);
+    rpc RemoveSkillFromEmployee(RemoveSkillFromEmployeeRequest) returns (google.protobuf.Empty);
 }
 
 message Profile {
@@ -84,4 +101,69 @@ message UpdateProfileRequest {
 message DeactivateProfileRequest {
     string user_id = 1;
     bool status = 2;
+}
+
+message Position {
+    string id = 1;
+    string name = 2;
+}
+
+message CreateDepartmentRequest {
+    string name = 1;
+}
+
+message GetDepartmentRequest {
+    string id = 1;
+}
+
+message ListDepartmentsResponse {
+    repeated Department departments = 1;
+}
+
+message UpdateDepartmentRequest {
+    string id = 1;
+    string name = 2;
+}
+
+message DeleteDepartmentRequest {
+    string id = 1;
+}
+
+message CreatePositionRequest {
+    string name = 1;
+}
+
+message GetPositionRequest {
+    string id = 1;
+}
+
+message ListPositionsResponse {
+    repeated Position positions = 1;
+}
+
+message UpdatePositionRequest {
+    string id = 1;
+    string name = 2;
+}
+
+message DeletePositionRequest {
+    string id = 1;
+}
+
+message CreateSkillRequest {
+    string name = 1;
+}
+
+message ListSkillsResponse {
+    repeated Skill skills = 1;
+}
+
+message AddSkillToEmployeeRequest {
+    string employee_id = 1;
+    string skill_id = 2;
+}
+
+message RemoveSkillFromEmployeeRequest {
+    string employee_id = 1;
+    string skill_id = 2;
 }

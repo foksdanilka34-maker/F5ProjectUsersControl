@@ -46,6 +46,11 @@ type Skill struct {
 	Name string
 }
 
+type Position struct {
+	ID   string
+	Name string
+}
+
 type UpdateProfile struct {
 	FirstName  *string
 	LastName   *string
