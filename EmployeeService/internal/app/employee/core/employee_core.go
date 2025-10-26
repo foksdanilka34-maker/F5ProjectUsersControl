@@ -26,7 +26,7 @@ type CoreLogic interface {
 	GetProfile(ctx context.Context, userID string) (*emp.Profile, error)
 	ListProfile(ctx context.Context, pageSize, pageNum int, departmentID, positionID string) ([]*emp.Profile, error)
 	UpdateProfile(ctx context.Context, userID string, updProf *emp.UpdateProfile) (*emp.Profile, error)
-	DeactivateProfile(ctx context.Context, userID string) error
+	DeactivateProfile(ctx context.Context, userID string, status bool) error
 }
 
 func NewCore(employee empl.EmployeeStorage, client *authClient.Client, publisher *natsclient.Publisher) CoreLogic {
@@ -116,13 +116,13 @@ func (l *loginCore) UpdateProfile(ctx context.Context, userID string, updProf *e
 	return updProfile, nil
 }
 
-func (l *loginCore) DeactivateProfile(ctx context.Context, userID string) error {
+func (l *loginCore) DeactivateProfile(ctx context.Context, userID string, status bool) error {
 	storage.Logger.Info("DeactivateProfile called", zap.String("userID", userID))
 	if userID == "" {
 		return fmt.Errorf("user ID cannot be empty")
 	}
 
-	if err := l.publisher.PublishDeactivateUserCommand(ctx, userID); err != nil {
+	if err := l.publisher.PublishDeactivateUserCommand(ctx, userID, status); err != nil {
 		return fmt.Errorf("failed to publish deactivate user command: %w", err)
 	}
 	storage.Logger.Info("NATS: deactivate command published", zap.String("userID", userID))

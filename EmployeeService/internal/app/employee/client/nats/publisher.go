@@ -16,6 +16,7 @@ type Publisher struct {
 
 type DeactivareUserCommand struct {
 	UserID string `json:"user_id"`
+	Status bool   `json:"user_status"`
 }
 
 func NewPublisher(conn *nats.Conn) *Publisher {
@@ -24,9 +25,10 @@ func NewPublisher(conn *nats.Conn) *Publisher {
 	}
 }
 
-func (p *Publisher) PublishDeactivateUserCommand(ctx context.Context, userID string) error {
+func (p *Publisher) PublishDeactivateUserCommand(ctx context.Context, userID string, status bool) error {
 	cmd := DeactivareUserCommand{
 		UserID: userID,
+		Status: status,
 	}
 
 	payload, err := json.Marshal(cmd)

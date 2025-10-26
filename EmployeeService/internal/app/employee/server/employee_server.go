@@ -116,15 +116,15 @@ func (s *Server) UpdateProfile(ctx context.Context, req *employee.UpdateProfileR
 	return convertCoreProfileToProto(updatedProfile), nil
 }
 
-func (s *Server) DeactivateProfile(ctx context.Context, req *employee.DeactivateProfileRequest) (*emptypb.Empty, error) {
-	storage.Logger.Info("RPC DeactivateProfile called", zap.String("userID", req.UserId))
+func (s *Server) ChangeUserStatusProfile(ctx context.Context, req *employee.DeactivateProfileRequest) (*emptypb.Empty, error) {
+	storage.Logger.Info("RPC ChangeUserStatusProfile called", zap.String("userID", req.UserId))
 	if req.GetUserId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "ID is required")
 	}
 
-	if err := s.core.DeactivateProfile(ctx, req.GetUserId()); err != nil {
-		storage.Logger.Error("failed to deactivate profile", zap.Error(err))
-		return nil, status.Error(codes.Internal, "failed to deactivate profile")
+	if err := s.core.DeactivateProfile(ctx, req.GetUserId(), req.GetStatus()); err != nil {
+		storage.Logger.Error("failed to change profile status", zap.Error(err))
+		return nil, status.Error(codes.Internal, "failed to change profile status")
 	}
 
 	return &emptypb.Empty{}, nil

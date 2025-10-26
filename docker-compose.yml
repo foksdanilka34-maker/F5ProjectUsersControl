@@ -85,7 +85,7 @@ services:
     command: ["--js", "--sd=/data", "--http_port=8222"]
     volumes:
       - nats-data:/data
-    restart: unless-stopped
+    restart: always
 
 volumes:
   nats-data:

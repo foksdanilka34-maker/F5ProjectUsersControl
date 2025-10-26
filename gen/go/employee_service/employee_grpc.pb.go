@@ -20,11 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	EmployeeService_CreateProfile_FullMethodName     = "/employees.EmployeeService/CreateProfile"
-	EmployeeService_GetProfile_FullMethodName        = "/employees.EmployeeService/GetProfile"
-	EmployeeService_ListProfiles_FullMethodName      = "/employees.EmployeeService/ListProfiles"
-	EmployeeService_UpdateProfile_FullMethodName     = "/employees.EmployeeService/UpdateProfile"
-	EmployeeService_DeactivateProfile_FullMethodName = "/employees.EmployeeService/DeactivateProfile"
+	EmployeeService_CreateProfile_FullMethodName           = "/employees.EmployeeService/CreateProfile"
+	EmployeeService_GetProfile_FullMethodName              = "/employees.EmployeeService/GetProfile"
+	EmployeeService_ListProfiles_FullMethodName            = "/employees.EmployeeService/ListProfiles"
+	EmployeeService_UpdateProfile_FullMethodName           = "/employees.EmployeeService/UpdateProfile"
+	EmployeeService_ChangeUserStatusProfile_FullMethodName = "/employees.EmployeeService/ChangeUserStatusProfile"
 )
 
 // EmployeeServiceClient is the client API for EmployeeService service.
@@ -35,7 +35,7 @@ type EmployeeServiceClient interface {
 	GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*Profile, error)
 	ListProfiles(ctx context.Context, in *ListProfilesRequest, opts ...grpc.CallOption) (*ListProfilesResponse, error)
 	UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*Profile, error)
-	DeactivateProfile(ctx context.Context, in *DeactivateProfileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ChangeUserStatusProfile(ctx context.Context, in *DeactivateProfileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type employeeServiceClient struct {
@@ -86,10 +86,10 @@ func (c *employeeServiceClient) UpdateProfile(ctx context.Context, in *UpdatePro
 	return out, nil
 }
 
-func (c *employeeServiceClient) DeactivateProfile(ctx context.Context, in *DeactivateProfileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *employeeServiceClient) ChangeUserStatusProfile(ctx context.Context, in *DeactivateProfileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, EmployeeService_DeactivateProfile_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, EmployeeService_ChangeUserStatusProfile_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ type EmployeeServiceServer interface {
 	GetProfile(context.Context, *GetProfileRequest) (*Profile, error)
 	ListProfiles(context.Context, *ListProfilesRequest) (*ListProfilesResponse, error)
 	UpdateProfile(context.Context, *UpdateProfileRequest) (*Profile, error)
-	DeactivateProfile(context.Context, *DeactivateProfileRequest) (*emptypb.Empty, error)
+	ChangeUserStatusProfile(context.Context, *DeactivateProfileRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedEmployeeServiceServer()
 }
 
@@ -127,8 +127,8 @@ func (UnimplementedEmployeeServiceServer) ListProfiles(context.Context, *ListPro
 func (UnimplementedEmployeeServiceServer) UpdateProfile(context.Context, *UpdateProfileRequest) (*Profile, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateProfile not implemented")
 }
-func (UnimplementedEmployeeServiceServer) DeactivateProfile(context.Context, *DeactivateProfileRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeactivateProfile not implemented")
+func (UnimplementedEmployeeServiceServer) ChangeUserStatusProfile(context.Context, *DeactivateProfileRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangeUserStatusProfile not implemented")
 }
 func (UnimplementedEmployeeServiceServer) mustEmbedUnimplementedEmployeeServiceServer() {}
 func (UnimplementedEmployeeServiceServer) testEmbeddedByValue()                         {}
@@ -223,20 +223,20 @@ func _EmployeeService_UpdateProfile_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _EmployeeService_DeactivateProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _EmployeeService_ChangeUserStatusProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeactivateProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(EmployeeServiceServer).DeactivateProfile(ctx, in)
+		return srv.(EmployeeServiceServer).ChangeUserStatusProfile(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: EmployeeService_DeactivateProfile_FullMethodName,
+		FullMethod: EmployeeService_ChangeUserStatusProfile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EmployeeServiceServer).DeactivateProfile(ctx, req.(*DeactivateProfileRequest))
+		return srv.(EmployeeServiceServer).ChangeUserStatusProfile(ctx, req.(*DeactivateProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -265,8 +265,8 @@ var EmployeeService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _EmployeeService_UpdateProfile_Handler,
 		},
 		{
-			MethodName: "DeactivateProfile",
-			Handler:    _EmployeeService_DeactivateProfile_Handler,
+			MethodName: "ChangeUserStatusProfile",
+			Handler:    _EmployeeService_ChangeUserStatusProfile_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

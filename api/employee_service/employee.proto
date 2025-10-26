@@ -12,7 +12,7 @@ service EmployeeService {
     rpc GetProfile(GetProfileRequest) returns (Profile);
     rpc ListProfiles(ListProfilesRequest) returns (ListProfilesResponse);
     rpc UpdateProfile(UpdateProfileRequest) returns (Profile);
-    rpc DeactivateProfile(DeactivateProfileRequest) returns (google.protobuf.Empty);
+    rpc ChangeUserStatusProfile(DeactivateProfileRequest) returns (google.protobuf.Empty);
 }
 
 message Profile {
@@ -83,4 +83,5 @@ message UpdateProfileRequest {
 
 message DeactivateProfileRequest {
     string user_id = 1;
+    bool status = 2;
 }

@@ -642,6 +642,7 @@ func (x *UpdateProfileRequest) GetAvatarUrl() string {
 type DeactivateProfileRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Status        bool                   `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -681,6 +682,13 @@ func (x *DeactivateProfileRequest) GetUserId() string {
 		return x.UserId
 	}
 	return ""
+}
+
+func (x *DeactivateProfileRequest) GetStatus() bool {
+	if x != nil {
+		return x.Status
+	}
+	return false
 }
 
 var File_employee_service_employee_proto protoreflect.FileDescriptor
@@ -761,16 +769,17 @@ const file_employee_service_employee_proto_rawDesc = "" +
 	"\f_position_idB\b\n" +
 	"\x06_emailB\x10\n" +
 	"\x0e_department_idB\r\n" +
-	"\v_avatar_url\"3\n" +
+	"\v_avatar_url\"K\n" +
 	"\x18DeactivateProfileRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId2\x80\x03\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\bR\x06status2\x86\x03\n" +
 	"\x0fEmployeeService\x12D\n" +
 	"\rCreateProfile\x12\x1f.employees.CreateProfileRequest\x1a\x12.employees.Profile\x12>\n" +
 	"\n" +
 	"GetProfile\x12\x1c.employees.GetProfileRequest\x1a\x12.employees.Profile\x12O\n" +
 	"\fListProfiles\x12\x1e.employees.ListProfilesRequest\x1a\x1f.employees.ListProfilesResponse\x12D\n" +
-	"\rUpdateProfile\x12\x1f.employees.UpdateProfileRequest\x1a\x12.employees.Profile\x12P\n" +
-	"\x11DeactivateProfile\x12#.employees.DeactivateProfileRequest\x1a\x16.google.protobuf.EmptyBPZNgithub.com/foksdanilka34-maker/F5ProjectUsersControl/employeess/v1;employeesv1b\x06proto3"
+	"\rUpdateProfile\x12\x1f.employees.UpdateProfileRequest\x1a\x12.employees.Profile\x12V\n" +
+	"\x17ChangeUserStatusProfile\x12#.employees.DeactivateProfileRequest\x1a\x16.google.protobuf.EmptyBPZNgithub.com/foksdanilka34-maker/F5ProjectUsersControl/employeess/v1;employeesv1b\x06proto3"
 
 var (
 	file_employee_service_employee_proto_rawDescOnce sync.Once
@@ -810,12 +819,12 @@ var file_employee_service_employee_proto_depIdxs = []int32{
 	4,  // 8: employees.EmployeeService.GetProfile:input_type -> employees.GetProfileRequest
 	5,  // 9: employees.EmployeeService.ListProfiles:input_type -> employees.ListProfilesRequest
 	7,  // 10: employees.EmployeeService.UpdateProfile:input_type -> employees.UpdateProfileRequest
-	8,  // 11: employees.EmployeeService.DeactivateProfile:input_type -> employees.DeactivateProfileRequest
+	8,  // 11: employees.EmployeeService.ChangeUserStatusProfile:input_type -> employees.DeactivateProfileRequest
 	0,  // 12: employees.EmployeeService.CreateProfile:output_type -> employees.Profile
 	0,  // 13: employees.EmployeeService.GetProfile:output_type -> employees.Profile
 	6,  // 14: employees.EmployeeService.ListProfiles:output_type -> employees.ListProfilesResponse
 	0,  // 15: employees.EmployeeService.UpdateProfile:output_type -> employees.Profile
-	10, // 16: employees.EmployeeService.DeactivateProfile:output_type -> google.protobuf.Empty
+	10, // 16: employees.EmployeeService.ChangeUserStatusProfile:output_type -> google.protobuf.Empty
 	12, // [12:17] is the sub-list for method output_type
 	7,  // [7:12] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name

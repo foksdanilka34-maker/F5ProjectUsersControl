@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	appAuth "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/auth"
+	natsAuth "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/client/nats"
 	appCore "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/core"
 	appServer "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/server"
 	appSession "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/session"
@@ -77,6 +78,17 @@ func main() {
 	}
 
 	authCore := appCore.NewCore(credentialStorage, cachedSessionStorage, authenticator)
+
+	natsConfig := &storage.NatsConfig{
+		URL: storage.GetEnv("NATS_URL", "nats://localhost:4222"),
+	}
+
+	natsClient, err := storage.NewNATSConnection(*natsConfig)
+	if err != nil {
+		storage.Logger.Fatal("nats connection error", zap.Error(err))
+	}
+	natsConnection := natsAuth.NewNatsConn(natsClient, authCore)
+	go natsConnection.Start()
 
 	grpcServerImpl := appServer.NewAuthServer(authCore)
 
