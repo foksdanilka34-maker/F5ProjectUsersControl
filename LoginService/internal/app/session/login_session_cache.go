@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/storage"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 type StorageCache struct {
@@ -33,16 +34,16 @@ func buildKey(token string) string {
 }
 
 func (r *StorageCache) Set(ctx context.Context, session *auth.RefreshSession) error {
-	data, err := json.Marshal(session)
+	payload, err := json.Marshal(session)
 	if err != nil {
-		log.Printf("error in setting cache value, marshal error %v", err)
+		storage.Logger.Error("error in setting cache value, marshal error", zap.Error(err))
 		return err
 	}
 	ttl := time.Until(session.ExpiresAt)
 	if ttl < time.Second {
 		return fmt.Errorf("error, session expired")
 	}
-	return r.redis.Set(ctx, buildKey(session.RefreshToken), data, ttl).Err()
+	return r.redis.Set(ctx, buildKey(session.RefreshToken), payload, ttl).Err()
 }
 
 func (r *StorageCache) Get(ctx context.Context, refreshToken string) (*auth.RefreshSession, error) {
@@ -52,7 +53,7 @@ func (r *StorageCache) Get(ctx context.Context, refreshToken string) (*auth.Refr
 		if errors.Is(err, redis.Nil) {
 			return nil, fmt.Errorf("key not exist")
 		}
-		log.Printf("error during getting key, %v", err)
+		storage.Logger.Error("error during getting key", zap.Error(err))
 		return nil, err
 	}
 	session := &auth.RefreshSession{}

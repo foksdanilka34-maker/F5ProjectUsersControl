@@ -2,9 +2,10 @@ package employee
 
 import (
 	"context"
-	"log"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/storage"
 	loginClient "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/login_service"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -26,18 +27,17 @@ func NewAuthClient(c *grpc.ClientConn) (*Client, error) {
 
 func (c *Client) CreateCredentials(ctx context.Context, userID, login, password, role string) error {
 	request := &loginClient.CreateCredentialsRequest{
-		UserId: userID,
-		Login: login,
+		UserId:   userID,
+		Login:    login,
 		Password: password,
-		Role: role,
+		Role:     role,
 	}
 
 	_, err := c.client.CreateCredentials(ctx, request)
 	if err != nil {
-		log.Printf("error in calling createCredentials method %v", err)
+		storage.Logger.Error("error calling createCredentials", zap.Error(err))
 		return err
 	}
 
 	return nil
 }
-

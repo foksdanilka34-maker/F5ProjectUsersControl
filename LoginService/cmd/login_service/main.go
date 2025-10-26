@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -16,13 +15,12 @@ import (
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/storage"
 
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
-	log.Println("Starting auth service...")
+	storage.Logger.Info("Starting auth service")
 
 	_ = godotenv.Load()
 
@@ -44,10 +42,10 @@ func main() {
 
 	pgPool, err := storage.NewPostgresPool(ctx, pgConfig)
 	if err != nil {
-		log.Fatalf("postgres connection error: %v", err)
+		storage.Logger.Fatal("postgres connection error", zap.Error(err))
 	}
 	defer pgPool.Close()
-	log.Println("Postgres connected")
+	storage.Logger.Info("Postgres connected")
 
 	redisPassword := storage.GetEnv("REDIS_PASSWORD", "")
 	redisDB := storage.GetEnv("REDIS_DB", "0")
@@ -63,10 +61,10 @@ func main() {
 	}
 	redisClient, err := storage.NewRedisClient(ctx, redisConfig)
 	if err != nil {
-		log.Fatalf("redis connection error: %v", err)
+		storage.Logger.Fatal("redis connection error", zap.Error(err))
 	}
 	defer redisClient.Close()
-	log.Println("Redis connected")
+	storage.Logger.Info("Redis connected")
 
 	credentialStorage := appAuth.NewStorage(pgPool)
 	sessionStorage := appSession.NewStorage(pgPool)
@@ -75,7 +73,7 @@ func main() {
 
 	authenticator, err := appSession.NewAuthenticator(jwtSecret)
 	if err != nil {
-		log.Fatalf("failed to create authenticator: %v", err)
+		storage.Logger.Fatal("failed to create authenticator", zap.Error(err))
 	}
 
 	authCore := appCore.NewCore(credentialStorage, cachedSessionStorage, authenticator)
@@ -84,16 +82,16 @@ func main() {
 
 	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		storage.Logger.Fatal("failed to listen", zap.Error(err))
 	}
 
 	grpcServer := grpc.NewServer()
 	grpcServerImpl.Register(grpcServer)
 
 	go func() {
-		log.Printf("gRPC server listening at %v", lis.Addr())
+		storage.Logger.Info("gRPC server listening", zap.String("addr", lis.Addr().String()))
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("failed to serve gRPC: %v", err)
+			storage.Logger.Fatal("failed to serve gRPC", zap.Error(err))
 		}
 	}()
 
@@ -102,8 +100,8 @@ func main() {
 
 	<-stop
 
-	log.Println("Shutting down gRPC server...")
+	storage.Logger.Info("Shutting down gRPC server...")
 	grpcServer.GracefulStop()
 
-	log.Println("Server gracefully stopped")
+	storage.Logger.Info("Server gracefully stopped")
 }

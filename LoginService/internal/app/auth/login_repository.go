@@ -2,11 +2,12 @@ package auth
 
 import (
 	"context"
-	"log"
 
 	auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/storage"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 type Storage struct {
@@ -31,20 +32,9 @@ func (s *Storage) GetCrendentialsByUser(ctx context.Context, login string) (*aut
 	result := &auth.Credential{}
 	query := `SELECT user_id, login, password_hash, role, created_at, updated_at, is_active
 			  FROM auth.credentials WHERE login = $1`
-	err := s.pgx.QueryRow(ctx, query, login).Scan(
-		&result.UserID,
-		&result.Login,
-		&result.Password,
-		&result.Role,
-		&result.CreatedAt,
-		&result.UpdatedAt,
-		&result.IsActive,
-	)
+	err := s.pgx.QueryRow(ctx, query, login).Scan(&result.UserID, &result.Login, &result.Password, &result.Role, &result.IsActive)
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, pgx.ErrNoRows
-		}
-		log.Printf("error during sql expression at method GetCrendentialsByUser, %v", err)
+		storage.Logger.Error("error during sql expression at method GetCredentialsByUser", zap.Error(err))
 		return nil, err
 	}
 	return result, nil
@@ -67,7 +57,7 @@ func (s *Storage) GetCrendentialsByID(ctx context.Context, userID string) (*auth
 		if err == pgx.ErrNoRows {
 			return nil, pgx.ErrNoRows
 		}
-		log.Printf("error during sql expression at method GetCrendentialsByID, %v", err)
+		storage.Logger.Error("error during sql expression at method GetCredentialsByID", zap.Error(err))
 		return nil, err
 	}
 	return result, nil
@@ -77,7 +67,7 @@ func (s *Storage) ChangeUserStatus(ctx context.Context, userID string, isActive 
 	query := `UPDATE auth.credentials SET is_active = $1 WHERE user_id = $2`
 	_, err := s.pgx.Exec(ctx, query, isActive, userID)
 	if err != nil {
-		log.Printf("error during sql expression at method ChangeUserStatus, %v", err)
+		storage.Logger.Error("error during sql expression at method ChangeUserStatus", zap.Error(err))
 		return err
 	}
 	return nil
@@ -88,11 +78,11 @@ func (s *Storage) CreateCredentials(ctx context.Context, cr *auth.Credential) er
 				VALUES ($1, $2, $3, $4)`
 	tags, err := s.pgx.Exec(ctx, query, cr.UserID, cr.Role, cr.Login, cr.Password)
 	if err != nil {
-		log.Printf("error during sql expression at method CreateCredentials, %v", err)
+		storage.Logger.Error("error during sql expression at method CreateCredentials", zap.Error(err))
 		return err
 	}
 	if tags.RowsAffected() == 0 {
-		log.Printf("unable to insert data at method CreateCredentials, %v", err)
+		storage.Logger.Error("unable to insert data at method CreateCredentials")
 		return err
 	}
 	return nil
@@ -102,7 +92,7 @@ func (s *Storage) PasswordHashUpdate(ctx context.Context, passwordHash string, u
 	query := `UPDATE auth.credentials SET password_hash = $1 WHERE user_id = $2`
 	_, err := s.pgx.Exec(ctx, query, passwordHash, userID)
 	if err != nil {
-		log.Printf("error during sql expression at method PasswordHashUpdate, %v", err)
+		storage.Logger.Error("error during sql expression at method PasswordHashUpdate", zap.Error(err))
 		return err
 	}
 	return nil

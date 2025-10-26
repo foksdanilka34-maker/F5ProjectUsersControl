@@ -3,11 +3,12 @@ package employee
 import (
 	"context"
 	"errors"
-	"log"
 
 	emp "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/storage"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 )
 
 type Storage struct {
@@ -55,7 +56,7 @@ func (s *Storage) CreateProfile(ctx context.Context, tx pgx.Tx, regData *emp.Reg
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			log.Printf("error in sql expression CreateProfile, data was not returned: %v", err)
+			storage.Logger.Error("no data returned from CreateProfile", zap.Error(err))
 		}
 		return nil, err
 	}
@@ -80,7 +81,7 @@ func (s *Storage) GetProfile(ctx context.Context, userID string) (*emp.Profile, 
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			log.Printf("no data found with profile id %s", userID)
+			storage.Logger.Warn("no profile found", zap.String("userID", userID))
 		}
 		return nil, err
 	}
@@ -96,7 +97,7 @@ func (s *Storage) ListProfile(ctx context.Context, pageSize, pageNum int, depart
 	rows, err := s.pgx.Query(ctx, query, departmentID, positionID, pageSize, (pageNum-1)*pageSize)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			log.Printf("data not found in List method %v", err)
+			storage.Logger.Warn("no profiles found in ListProfile")
 		}
 		return nil, err
 	}
@@ -118,14 +119,14 @@ func (s *Storage) ListProfile(ctx context.Context, pageSize, pageNum int, depart
 			&profile.UpdatedAt,
 		)
 		if err != nil {
-			log.Printf("error scanning profile row: %v", err)
+			storage.Logger.Error("error scanning profile row", zap.Error(err))
 			return nil, err
 		}
 		data = append(data, profile)
 	}
 
 	if err = rows.Err(); err != nil {
-		log.Printf("error iterating rows: %v", err)
+		storage.Logger.Error("error iterating rows", zap.Error(err))
 		return nil, err
 	}
 
@@ -163,12 +164,11 @@ func (s *Storage) UpdateProfile(ctx context.Context, userID string, updProf *emp
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			log.Printf("profile %s is not updated: %v", userID, err)
+			storage.Logger.Warn("profile not updated", zap.String("userID", userID), zap.Error(err))
 		} else {
-			log.Printf("system error duting updating profile, %v", err)
+			storage.Logger.Error("system error updating profile", zap.Error(err))
 		}
 		return nil, err
 	}
 	return profile, nil
 }
-

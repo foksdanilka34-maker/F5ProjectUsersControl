@@ -1,14 +1,15 @@
 package storage
 
 import (
-	"log"
 	"os"
+
+	"go.uber.org/zap"
 )
 
 func GetEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
-	log.Printf("env: %s not set, using default", key)
+	Logger.Info("env not set, using default", zap.String("key", key), zap.String("default", defaultValue))
 	return defaultValue
 }

@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/storage"
 	"github.com/nats-io/nats.go"
+	"go.uber.org/zap"
 )
 
 type Publisher struct {
@@ -27,7 +28,7 @@ func (p *Publisher) PublishDeactivateUserCommand(ctx context.Context, userID str
 	cmd := DeactivareUserCommand{
 		UserID: userID,
 	}
-	
+
 	payload, err := json.Marshal(cmd)
 	if err != nil {
 		return fmt.Errorf("fail in marshal deactiv command %v", err)
@@ -39,7 +40,7 @@ func (p *Publisher) PublishDeactivateUserCommand(ctx context.Context, userID str
 	}
 
 	if err := p.conn.PublishMsg(msg); err != nil {
-		log.Printf("NATS: error publishung deactivated command %v", err)
+		storage.Logger.Error("NATS: error publishing deactivate command", zap.Error(err))
 		return fmt.Errorf("error publishing deactivate command %v", err)
 	}
 
