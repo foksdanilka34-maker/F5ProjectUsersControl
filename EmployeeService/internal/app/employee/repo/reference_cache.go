@@ -6,7 +6,7 @@ import (
 	"time"
 
 	emp "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/storage"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
@@ -46,7 +46,7 @@ func (c *ReferenceCache) SetDepartmentsList(ctx context.Context, departments []*
 
 	_, err := pipe.Exec(ctx)
 	if err != nil {
-		storage.Logger.Error("error setting departments hash", zap.Error(err))
+		app.Logger.Error("error setting departments hash", zap.Error(err))
 		return err
 	}
 	return nil
@@ -121,7 +121,7 @@ func (c *ReferenceCache) SetPositionsList(ctx context.Context, positions []*emp.
 
 	_, err := pipe.Exec(ctx)
 	if err != nil {
-		storage.Logger.Error("error setting positions hash", zap.Error(err))
+		app.Logger.Error("error setting positions hash", zap.Error(err))
 		return err
 	}
 	return nil
@@ -194,7 +194,7 @@ func (c *ReferenceCache) SetSkillsList(ctx context.Context, skills []*emp.Skill)
 
 	_, err := pipe.Exec(ctx)
 	if err != nil {
-		storage.Logger.Error("error setting skills hash", zap.Error(err))
+		app.Logger.Error("error setting skills hash", zap.Error(err))
 		return err
 	}
 	return nil

@@ -16,6 +16,14 @@ proto-empl:
 	       --go_out=paths=source_relative:gen/go \
 	       api/employee_service/employee.proto
 
+proto-proj:
+	protoc --proto_path=api \
+	       --go-grpc_out=paths=source_relative:gen/go \
+	       api/project_service/project.proto
+	protoc --proto_path=api \
+	       --go_out=paths=source_relative:gen/go \
+	       api/project_service/project.proto
+
 fmt:
 	go fmt ./...
 
@@ -26,6 +34,8 @@ run-ls:
 	go run ./LoginService/cmd/login_service/main.go
 run-es:
 	go run ./EmployeeService/cmd/employee_service/main.go
+run-ps:
+	go run ./ProjectService/cmd/project_service/main.go
 
 kill:
 	lsof -i :50051 | grep LISTEN | awk '{print $$2}' | xargs kill -9 2>/dev/null || true

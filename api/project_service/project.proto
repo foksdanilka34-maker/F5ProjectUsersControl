@@ -84,7 +84,7 @@ message ProjectMember {
 
 message CreateProjectRequest {
     string name = 1;
-    string description = 2;
+    optional string description = 2;
     string manager_id = 3;
     optional google.protobuf.Timestamp due_date = 4;
 }

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/storage"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
@@ -36,7 +36,7 @@ func buildKey(token string) string {
 func (r *StorageCache) Set(ctx context.Context, session *auth.RefreshSession) error {
 	payload, err := json.Marshal(session)
 	if err != nil {
-		storage.Logger.Error("error in setting cache value, marshal error", zap.Error(err))
+		app.Logger.Error("error in setting cache value, marshal error", zap.Error(err))
 		return err
 	}
 	ttl := time.Until(session.ExpiresAt)
@@ -53,7 +53,7 @@ func (r *StorageCache) Get(ctx context.Context, refreshToken string) (*auth.Refr
 		if errors.Is(err, redis.Nil) {
 			return nil, fmt.Errorf("key not exist")
 		}
-		storage.Logger.Error("error during getting key", zap.Error(err))
+		app.Logger.Error("error during getting key", zap.Error(err))
 		return nil, err
 	}
 	session := &auth.RefreshSession{}

@@ -13,43 +13,52 @@ import (
 	appCore "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/core"
 	appServer "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/server"
 	appSession "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/session"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/storage"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/logger"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/storage"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
+var log *zap.Logger
+
 func main() {
-	storage.Logger.Info("Starting auth service")
+	var err error
+	log, err = logger.New("login-service")
+	if err != nil {
+		panic("failed to initialize logger: " + err.Error())
+	}
+
+	log.Info("Starting auth service")
 
 	_ = godotenv.Load()
 
 	pgConfig := storage.PostgresConfig{
-		User:     storage.GetEnv("AUTH_DB_USER", "postgres"),
-		Password: storage.GetEnv("AUTH_DB_PASSWORD", ""),
+		User:     storage.GetEnv(log, "AUTH_DB_USER", "postgres"),
+		Password: storage.GetEnv(log, "AUTH_DB_PASSWORD", ""),
 
-		Host:   storage.GetEnv("AUTH_DB_HOST", "localhost"),
-		Port:   storage.GetEnv("AUTH_DB_PORT", "5432"),
-		DBName: storage.GetEnv("AUTH_DB", ""),
+		Host:   storage.GetEnv(log, "AUTH_DB_HOST", "localhost"),
+		Port:   storage.GetEnv(log, "AUTH_DB_PORT", "5432"),
+		DBName: storage.GetEnv(log, "AUTH_DB", ""),
 	}
 
-	redisAddr := storage.GetEnv("REDIS_ADDR", "localhost:6379")
-	jwtSecret := storage.GetEnv("JWT_SECRET", "")
-	listenAddr := storage.GetEnv("GRPC_LISTEN_ADDR", "0.0.0.0:50051")
+	redisAddr := storage.GetEnv(log, "REDIS_ADDR", "localhost:6379")
+	jwtSecret := storage.GetEnv(log, "JWT_SECRET", "")
+	listenAddr := storage.GetEnv(log, "GRPC_LISTEN_ADDR", "0.0.0.0:50051")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	pgPool, err := storage.NewPostgresPool(ctx, pgConfig)
 	if err != nil {
-		storage.Logger.Fatal("postgres connection error", zap.Error(err))
+		log.Fatal("postgres connection error", zap.Error(err))
 	}
 	defer pgPool.Close()
-	storage.Logger.Info("Postgres connected")
+	log.Info("Postgres connected")
 
-	redisPassword := storage.GetEnv("REDIS_PASSWORD", "")
-	redisDB := storage.GetEnv("REDIS_DB", "0")
+	redisPassword := storage.GetEnv(log, "REDIS_PASSWORD", "")
+	redisDB := storage.GetEnv(log, "REDIS_DB", "0")
 	redisDBInt := 0
 	if redisDB != "" {
 		fmt.Sscanf(redisDB, "%d", &redisDBInt)
@@ -62,10 +71,10 @@ func main() {
 	}
 	redisClient, err := storage.NewRedisClient(ctx, redisConfig)
 	if err != nil {
-		storage.Logger.Fatal("redis connection error", zap.Error(err))
+		log.Fatal("redis connection error", zap.Error(err))
 	}
 	defer redisClient.Close()
-	storage.Logger.Info("Redis connected")
+	log.Info("Redis connected")
 
 	credentialStorage := appAuth.NewStorage(pgPool)
 	sessionStorage := appSession.NewStorage(pgPool)
@@ -74,18 +83,18 @@ func main() {
 
 	authenticator, err := appSession.NewAuthenticator(jwtSecret)
 	if err != nil {
-		storage.Logger.Fatal("failed to create authenticator", zap.Error(err))
+		log.Fatal("failed to create authenticator", zap.Error(err))
 	}
 
 	authCore := appCore.NewCore(credentialStorage, cachedSessionStorage, authenticator)
 
 	natsConfig := &storage.NatsConfig{
-		URL: storage.GetEnv("NATS_URL", "nats://localhost:4222"),
+		URL: storage.GetEnv(log, "NATS_URL", "nats://localhost:4222"),
 	}
 
 	natsClient, err := storage.NewNATSConnection(*natsConfig)
 	if err != nil {
-		storage.Logger.Fatal("nats connection error", zap.Error(err))
+		log.Fatal("nats connection error", zap.Error(err))
 	}
 	natsConnection := natsAuth.NewNatsConn(natsClient, authCore)
 	go natsConnection.Start()
@@ -94,16 +103,16 @@ func main() {
 
 	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
-		storage.Logger.Fatal("failed to listen", zap.Error(err))
+		log.Fatal("failed to listen", zap.Error(err))
 	}
 
 	grpcServer := grpc.NewServer()
 	grpcServerImpl.Register(grpcServer)
 
 	go func() {
-		storage.Logger.Info("gRPC server listening", zap.String("addr", lis.Addr().String()))
+		log.Info("gRPC server listening", zap.String("addr", lis.Addr().String()))
 		if err := grpcServer.Serve(lis); err != nil {
-			storage.Logger.Fatal("failed to serve gRPC", zap.Error(err))
+			log.Fatal("failed to serve gRPC", zap.Error(err))
 		}
 	}()
 
@@ -112,8 +121,8 @@ func main() {
 
 	<-stop
 
-	storage.Logger.Info("Shutting down gRPC server...")
+	log.Info("Shutting down gRPC server...")
 	grpcServer.GracefulStop()
 
-	storage.Logger.Info("Server gracefully stopped")
+	log.Info("Server gracefully stopped")
 }

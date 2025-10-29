@@ -3,7 +3,7 @@ package employee
 import (
 	"context"
 
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/storage"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
 	loginClient "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/login_service"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -35,7 +35,7 @@ func (c *Client) CreateCredentials(ctx context.Context, userID, login, password,
 
 	_, err := c.client.CreateCredentials(ctx, request)
 	if err != nil {
-		storage.Logger.Error("error calling createCredentials", zap.Error(err))
+		app.Logger.Error("error calling createCredentials", zap.Error(err))
 		return err
 	}
 

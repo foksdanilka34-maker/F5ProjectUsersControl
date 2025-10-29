@@ -284,7 +284,7 @@ type ProjectMember struct {
 
 type CreateProjectRequest struct {
 	Name        string
-	Description string
+	Description *string
 	ManagerID   string
 	DueDate     *time.Time
 }

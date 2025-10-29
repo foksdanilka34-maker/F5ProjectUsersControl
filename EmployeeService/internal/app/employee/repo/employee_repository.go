@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	emp "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/storage"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -73,7 +73,7 @@ func (s *Storage) CreateProfile(ctx context.Context, tx pgx.Tx, regData *emp.Reg
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			storage.Logger.Error("no data returned from CreateProfile", zap.Error(err))
+			app.Logger.Error("no data returned from CreateProfile", zap.Error(err))
 		}
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (s *Storage) GetProfile(ctx context.Context, userID string) (*emp.Profile, 
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			storage.Logger.Warn("no profile found", zap.String("userID", userID))
+			app.Logger.Warn("no profile found", zap.String("userID", userID))
 		}
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func (s *Storage) ListProfile(ctx context.Context, pageSize, pageNum int, depart
 	rows, err := s.pgx.Query(ctx, query, departmentID, positionID, pageSize, (pageNum-1)*pageSize)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			storage.Logger.Warn("no profiles found in ListProfile")
+			app.Logger.Warn("no profiles found in ListProfile")
 		}
 		return nil, err
 	}
@@ -136,14 +136,14 @@ func (s *Storage) ListProfile(ctx context.Context, pageSize, pageNum int, depart
 			&profile.UpdatedAt,
 		)
 		if err != nil {
-			storage.Logger.Error("error scanning profile row", zap.Error(err))
+			app.Logger.Error("error scanning profile row", zap.Error(err))
 			return nil, err
 		}
 		data = append(data, profile)
 	}
 
 	if err = rows.Err(); err != nil {
-		storage.Logger.Error("error iterating rows", zap.Error(err))
+		app.Logger.Error("error iterating rows", zap.Error(err))
 		return nil, err
 	}
 
@@ -181,9 +181,9 @@ func (s *Storage) UpdateProfile(ctx context.Context, userID string, updProf *emp
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			storage.Logger.Warn("profile not updated", zap.String("userID", userID), zap.Error(err))
+			app.Logger.Warn("profile not updated", zap.String("userID", userID), zap.Error(err))
 		} else {
-			storage.Logger.Error("system error updating profile", zap.Error(err))
+			app.Logger.Error("system error updating profile", zap.Error(err))
 		}
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (s *Storage) CreateDepartment(ctx context.Context, name string) (*emp.Depar
 	department := &emp.Department{}
 	err := s.pgx.QueryRow(ctx, query, name).Scan(&department.ID, &department.Name)
 	if err != nil {
-		storage.Logger.Error("error creating department", zap.Error(err))
+		app.Logger.Error("error creating department", zap.Error(err))
 		return nil, err
 	}
 	return department, nil
@@ -207,9 +207,9 @@ func (s *Storage) GetDepartment(ctx context.Context, id string) (*emp.Department
 	err := s.pgx.QueryRow(ctx, query, id).Scan(&department.ID, &department.Name)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			storage.Logger.Warn("department not found", zap.String("id", id))
+			app.Logger.Warn("department not found", zap.String("id", id))
 		} else {
-			storage.Logger.Error("error getting department", zap.Error(err))
+			app.Logger.Error("error getting department", zap.Error(err))
 		}
 		return nil, err
 	}
@@ -220,7 +220,7 @@ func (s *Storage) ListDepartments(ctx context.Context) ([]*emp.Department, error
 	query := `SELECT id, name FROM employees.departments ORDER BY name`
 	rows, err := s.pgx.Query(ctx, query)
 	if err != nil {
-		storage.Logger.Error("error listing departments", zap.Error(err))
+		app.Logger.Error("error listing departments", zap.Error(err))
 		return nil, err
 	}
 	defer rows.Close()
@@ -229,14 +229,14 @@ func (s *Storage) ListDepartments(ctx context.Context) ([]*emp.Department, error
 	for rows.Next() {
 		department := &emp.Department{}
 		if err := rows.Scan(&department.ID, &department.Name); err != nil {
-			storage.Logger.Error("error scanning department row", zap.Error(err))
+			app.Logger.Error("error scanning department row", zap.Error(err))
 			return nil, err
 		}
 		departments = append(departments, department)
 	}
 
 	if err = rows.Err(); err != nil {
-		storage.Logger.Error("error iterating department rows", zap.Error(err))
+		app.Logger.Error("error iterating department rows", zap.Error(err))
 		return nil, err
 	}
 
@@ -249,9 +249,9 @@ func (s *Storage) UpdateDepartment(ctx context.Context, id, name string) (*emp.D
 	err := s.pgx.QueryRow(ctx, query, name, id).Scan(&department.ID, &department.Name)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			storage.Logger.Warn("department not found for update", zap.String("id", id))
+			app.Logger.Warn("department not found for update", zap.String("id", id))
 		} else {
-			storage.Logger.Error("error updating department", zap.Error(err))
+			app.Logger.Error("error updating department", zap.Error(err))
 		}
 		return nil, err
 	}
@@ -262,11 +262,11 @@ func (s *Storage) DeleteDepartment(ctx context.Context, id string) error {
 	query := `DELETE FROM employees.departments WHERE id = $1`
 	cmdTag, err := s.pgx.Exec(ctx, query, id)
 	if err != nil {
-		storage.Logger.Error("error deleting department", zap.Error(err))
+		app.Logger.Error("error deleting department", zap.Error(err))
 		return err
 	}
 	if cmdTag.RowsAffected() == 0 {
-		storage.Logger.Warn("department not found for deletion", zap.String("id", id))
+		app.Logger.Warn("department not found for deletion", zap.String("id", id))
 		return pgx.ErrNoRows
 	}
 	return nil
@@ -277,7 +277,7 @@ func (s *Storage) CreatePosition(ctx context.Context, name string) (*emp.Positio
 	position := &emp.Position{}
 	err := s.pgx.QueryRow(ctx, query, name).Scan(&position.ID, &position.Name)
 	if err != nil {
-		storage.Logger.Error("error creating position", zap.Error(err))
+		app.Logger.Error("error creating position", zap.Error(err))
 		return nil, err
 	}
 	return position, nil
@@ -289,9 +289,9 @@ func (s *Storage) GetPosition(ctx context.Context, id string) (*emp.Position, er
 	err := s.pgx.QueryRow(ctx, query, id).Scan(&position.ID, &position.Name)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			storage.Logger.Warn("position not found", zap.String("id", id))
+			app.Logger.Warn("position not found", zap.String("id", id))
 		} else {
-			storage.Logger.Error("error getting position", zap.Error(err))
+			app.Logger.Error("error getting position", zap.Error(err))
 		}
 		return nil, err
 	}
@@ -302,7 +302,7 @@ func (s *Storage) ListPositions(ctx context.Context) ([]*emp.Position, error) {
 	query := `SELECT id, name FROM employees.positions ORDER BY name`
 	rows, err := s.pgx.Query(ctx, query)
 	if err != nil {
-		storage.Logger.Error("error listing positions", zap.Error(err))
+		app.Logger.Error("error listing positions", zap.Error(err))
 		return nil, err
 	}
 	defer rows.Close()
@@ -311,14 +311,14 @@ func (s *Storage) ListPositions(ctx context.Context) ([]*emp.Position, error) {
 	for rows.Next() {
 		position := &emp.Position{}
 		if err := rows.Scan(&position.ID, &position.Name); err != nil {
-			storage.Logger.Error("error scanning position row", zap.Error(err))
+			app.Logger.Error("error scanning position row", zap.Error(err))
 			return nil, err
 		}
 		positions = append(positions, position)
 	}
 
 	if err = rows.Err(); err != nil {
-		storage.Logger.Error("error iterating position rows", zap.Error(err))
+		app.Logger.Error("error iterating position rows", zap.Error(err))
 		return nil, err
 	}
 
@@ -331,9 +331,9 @@ func (s *Storage) UpdatePosition(ctx context.Context, id, name string) (*emp.Pos
 	err := s.pgx.QueryRow(ctx, query, name, id).Scan(&position.ID, &position.Name)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			storage.Logger.Warn("position not found for update", zap.String("id", id))
+			app.Logger.Warn("position not found for update", zap.String("id", id))
 		} else {
-			storage.Logger.Error("error updating position", zap.Error(err))
+			app.Logger.Error("error updating position", zap.Error(err))
 		}
 		return nil, err
 	}
@@ -344,11 +344,11 @@ func (s *Storage) DeletePosition(ctx context.Context, id string) error {
 	query := `DELETE FROM employees.positions WHERE id = $1`
 	cmdTag, err := s.pgx.Exec(ctx, query, id)
 	if err != nil {
-		storage.Logger.Error("error deleting position", zap.Error(err))
+		app.Logger.Error("error deleting position", zap.Error(err))
 		return err
 	}
 	if cmdTag.RowsAffected() == 0 {
-		storage.Logger.Warn("position not found for deletion", zap.String("id", id))
+		app.Logger.Warn("position not found for deletion", zap.String("id", id))
 		return pgx.ErrNoRows
 	}
 	return nil
@@ -359,7 +359,7 @@ func (s *Storage) CreateSkill(ctx context.Context, name string) (*emp.Skill, err
 	skill := &emp.Skill{}
 	err := s.pgx.QueryRow(ctx, query, name).Scan(&skill.ID, &skill.Name)
 	if err != nil {
-		storage.Logger.Error("error creating skill", zap.Error(err))
+		app.Logger.Error("error creating skill", zap.Error(err))
 		return nil, err
 	}
 	return skill, nil
@@ -369,7 +369,7 @@ func (s *Storage) ListSkills(ctx context.Context) ([]*emp.Skill, error) {
 	query := `SELECT id, name FROM employees.skills ORDER BY name`
 	rows, err := s.pgx.Query(ctx, query)
 	if err != nil {
-		storage.Logger.Error("error listing skills", zap.Error(err))
+		app.Logger.Error("error listing skills", zap.Error(err))
 		return nil, err
 	}
 	defer rows.Close()
@@ -378,14 +378,14 @@ func (s *Storage) ListSkills(ctx context.Context) ([]*emp.Skill, error) {
 	for rows.Next() {
 		skill := &emp.Skill{}
 		if err := rows.Scan(&skill.ID, &skill.Name); err != nil {
-			storage.Logger.Error("error scanning skill row", zap.Error(err))
+			app.Logger.Error("error scanning skill row", zap.Error(err))
 			return nil, err
 		}
 		skills = append(skills, skill)
 	}
 
 	if err = rows.Err(); err != nil {
-		storage.Logger.Error("error iterating skill rows", zap.Error(err))
+		app.Logger.Error("error iterating skill rows", zap.Error(err))
 		return nil, err
 	}
 
@@ -396,11 +396,11 @@ func (s *Storage) AddSkillToEmployee(ctx context.Context, employeeID, skillID st
 	query := `INSERT INTO employees.employee_skills (employee_id, skill_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
 	cmdTag, err := s.pgx.Exec(ctx, query, employeeID, skillID)
 	if err != nil {
-		storage.Logger.Error("error adding skill to employee", zap.String("employeeID", employeeID), zap.String("skillID", skillID), zap.Error(err))
+		app.Logger.Error("error adding skill to employee", zap.String("employeeID", employeeID), zap.String("skillID", skillID), zap.Error(err))
 		return err
 	}
 	if cmdTag.RowsAffected() == 0 {
-		storage.Logger.Info("skill already assigned to employee", zap.String("employeeID", employeeID), zap.String("skillID", skillID))
+		app.Logger.Info("skill already assigned to employee", zap.String("employeeID", employeeID), zap.String("skillID", skillID))
 	}
 	return nil
 }
@@ -409,11 +409,11 @@ func (s *Storage) RemoveSkillFromEmployee(ctx context.Context, employeeID, skill
 	query := `DELETE FROM employees.employee_skills WHERE employee_id = $1 AND skill_id = $2`
 	cmdTag, err := s.pgx.Exec(ctx, query, employeeID, skillID)
 	if err != nil {
-		storage.Logger.Error("error removing skill from employee", zap.String("employeeID", employeeID), zap.String("skillID", skillID), zap.Error(err))
+		app.Logger.Error("error removing skill from employee", zap.String("employeeID", employeeID), zap.String("skillID", skillID), zap.Error(err))
 		return err
 	}
 	if cmdTag.RowsAffected() == 0 {
-		storage.Logger.Warn("skill not found for employee", zap.String("employeeID", employeeID), zap.String("skillID", skillID))
+		app.Logger.Warn("skill not found for employee", zap.String("employeeID", employeeID), zap.String("skillID", skillID))
 		return pgx.ErrNoRows
 	}
 	return nil

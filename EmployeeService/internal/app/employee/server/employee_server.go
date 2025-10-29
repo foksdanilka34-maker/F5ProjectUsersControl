@@ -7,7 +7,7 @@ import (
 	core "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/core"
 	employee "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/employee_service"
 
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/storage"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -32,7 +32,7 @@ func (s *Server) Register(gRPC *grpc.Server) {
 }
 
 func (s *Server) CreateProfile(ctx context.Context, req *employee.CreateProfileRequest) (*employee.Profile, error) {
-	storage.Logger.Info("RPC CreateProfile called", zap.String("firstName", req.FirstName), zap.String("lastName", req.LastName), zap.String("email", req.Email))
+	app.Logger.Info("RPC CreateProfile called", zap.String("firstName", req.FirstName), zap.String("lastName", req.LastName), zap.String("email", req.Email))
 	if req.GetFirstName() == "" || req.GetLastName() == "" || req.GetEmail() == "" {
 		return nil, status.Error(codes.InvalidArgument, "FirstName, LastName, and Email are required")
 	}
@@ -50,9 +50,9 @@ func (s *Server) CreateProfile(ctx context.Context, req *employee.CreateProfileR
 	}
 
 	newProfile, err := s.core.CreateProfile(ctx, coreReq)
-	storage.Logger.Debug("created profile", zap.Any("profile", newProfile))
+	app.Logger.Debug("created profile", zap.Any("profile", newProfile))
 	if err != nil {
-		storage.Logger.Error("failed to create profile", zap.Error(err))
+		app.Logger.Error("failed to create profile", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to create profile")
 	}
 
@@ -60,15 +60,15 @@ func (s *Server) CreateProfile(ctx context.Context, req *employee.CreateProfileR
 }
 
 func (s *Server) GetProfile(ctx context.Context, req *employee.GetProfileRequest) (*employee.Profile, error) {
-	storage.Logger.Info("RPC GetProfile called", zap.String("userID", req.UserId))
+	app.Logger.Info("RPC GetProfile called", zap.String("userID", req.UserId))
 	if req.GetUserId() == "" {
-		storage.Logger.Warn("RPC GetProfile: user ID required")
+		app.Logger.Warn("RPC GetProfile: user ID required")
 		return nil, status.Error(codes.InvalidArgument, "ID is required")
 	}
 
 	profile, err := s.core.GetProfile(ctx, req.UserId)
 	if err != nil {
-		storage.Logger.Error("failed to get profile", zap.Error(err))
+		app.Logger.Error("failed to get profile", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to get profile")
 	}
 
@@ -76,10 +76,10 @@ func (s *Server) GetProfile(ctx context.Context, req *employee.GetProfileRequest
 }
 
 func (s *Server) ListProfiles(ctx context.Context, req *employee.ListProfilesRequest) (*employee.ListProfilesResponse, error) {
-	storage.Logger.Info("RPC ListProfiles called", zap.Int32("pageSize", req.PageSize), zap.Int32("pageNumber", req.PageNumber))
+	app.Logger.Info("RPC ListProfiles called", zap.Int32("pageSize", req.PageSize), zap.Int32("pageNumber", req.PageNumber))
 	profiles, err := s.core.ListProfile(ctx, int(req.GetPageSize()), int(req.GetPageNumber()), req.GetDepartmentId(), req.GetPositionId())
 	if err != nil {
-		storage.Logger.Error("failed to list profiles", zap.Error(err))
+		app.Logger.Error("failed to list profiles", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to list profiles")
 	}
 
@@ -92,9 +92,9 @@ func (s *Server) ListProfiles(ctx context.Context, req *employee.ListProfilesReq
 }
 
 func (s *Server) UpdateProfile(ctx context.Context, req *employee.UpdateProfileRequest) (*employee.Profile, error) {
-	storage.Logger.Info("RPC UpdateProfile called", zap.String("userID", req.UserId))
+	app.Logger.Info("RPC UpdateProfile called", zap.String("userID", req.UserId))
 	if req.GetUserId() == "" {
-		storage.Logger.Warn("RPC UpdateProfile: user ID required")
+		app.Logger.Warn("RPC UpdateProfile: user ID required")
 		return nil, status.Error(codes.InvalidArgument, "ID is required")
 	}
 
@@ -109,7 +109,7 @@ func (s *Server) UpdateProfile(ctx context.Context, req *employee.UpdateProfileR
 
 	updatedProfile, err := s.core.UpdateProfile(ctx, req.GetUserId(), coreReq)
 	if err != nil {
-		storage.Logger.Error("failed to update profile", zap.Error(err))
+		app.Logger.Error("failed to update profile", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to update profile")
 	}
 
@@ -117,13 +117,13 @@ func (s *Server) UpdateProfile(ctx context.Context, req *employee.UpdateProfileR
 }
 
 func (s *Server) ChangeUserStatusProfile(ctx context.Context, req *employee.DeactivateProfileRequest) (*emptypb.Empty, error) {
-	storage.Logger.Info("RPC ChangeUserStatusProfile called", zap.String("userID", req.UserId))
+	app.Logger.Info("RPC ChangeUserStatusProfile called", zap.String("userID", req.UserId))
 	if req.GetUserId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "ID is required")
 	}
 
 	if err := s.core.DeactivateProfile(ctx, req.GetUserId(), req.GetStatus()); err != nil {
-		storage.Logger.Error("failed to change profile status", zap.Error(err))
+		app.Logger.Error("failed to change profile status", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to change profile status")
 	}
 
@@ -153,15 +153,15 @@ func convertCoreProfileToProto(p *models.Profile) *employee.Profile {
 }
 
 func (s *Server) CreateDepartment(ctx context.Context, req *employee.CreateDepartmentRequest) (*employee.Department, error) {
-	storage.Logger.Info("RPC CreateDepartment called", zap.String("name", req.Name))
+	app.Logger.Info("RPC CreateDepartment called", zap.String("name", req.Name))
 	if req.GetName() == "" {
-		storage.Logger.Warn("RPC CreateDepartment: name is required")
+		app.Logger.Warn("RPC CreateDepartment: name is required")
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
 	department, err := s.core.CreateDepartment(ctx, req.GetName())
 	if err != nil {
-		storage.Logger.Error("failed to create department", zap.Error(err))
+		app.Logger.Error("failed to create department", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to create department")
 	}
 
@@ -172,15 +172,15 @@ func (s *Server) CreateDepartment(ctx context.Context, req *employee.CreateDepar
 }
 
 func (s *Server) GetDepartment(ctx context.Context, req *employee.GetDepartmentRequest) (*employee.Department, error) {
-	storage.Logger.Info("RPC GetDepartment called", zap.String("id", req.Id))
+	app.Logger.Info("RPC GetDepartment called", zap.String("id", req.Id))
 	if req.GetId() == "" {
-		storage.Logger.Warn("RPC GetDepartment: id is required")
+		app.Logger.Warn("RPC GetDepartment: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
 	department, err := s.core.GetDepartment(ctx, req.GetId())
 	if err != nil {
-		storage.Logger.Error("failed to get department", zap.Error(err))
+		app.Logger.Error("failed to get department", zap.Error(err))
 		return nil, status.Error(codes.NotFound, "department not found")
 	}
 
@@ -191,10 +191,10 @@ func (s *Server) GetDepartment(ctx context.Context, req *employee.GetDepartmentR
 }
 
 func (s *Server) ListDepartments(ctx context.Context, req *emptypb.Empty) (*employee.ListDepartmentsResponse, error) {
-	storage.Logger.Info("RPC ListDepartments called")
+	app.Logger.Info("RPC ListDepartments called")
 	departments, err := s.core.ListDepartments(ctx)
 	if err != nil {
-		storage.Logger.Error("failed to list departments", zap.Error(err))
+		app.Logger.Error("failed to list departments", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to list departments")
 	}
 
@@ -210,19 +210,19 @@ func (s *Server) ListDepartments(ctx context.Context, req *emptypb.Empty) (*empl
 }
 
 func (s *Server) UpdateDepartment(ctx context.Context, req *employee.UpdateDepartmentRequest) (*employee.Department, error) {
-	storage.Logger.Info("RPC UpdateDepartment called", zap.String("id", req.Id), zap.String("name", req.Name))
+	app.Logger.Info("RPC UpdateDepartment called", zap.String("id", req.Id), zap.String("name", req.Name))
 	if req.GetId() == "" {
-		storage.Logger.Warn("RPC UpdateDepartment: id is required")
+		app.Logger.Warn("RPC UpdateDepartment: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 	if req.GetName() == "" {
-		storage.Logger.Warn("RPC UpdateDepartment: name is required")
+		app.Logger.Warn("RPC UpdateDepartment: name is required")
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
 	department, err := s.core.UpdateDepartment(ctx, req.GetId(), req.GetName())
 	if err != nil {
-		storage.Logger.Error("failed to update department", zap.Error(err))
+		app.Logger.Error("failed to update department", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to update department")
 	}
 
@@ -233,15 +233,15 @@ func (s *Server) UpdateDepartment(ctx context.Context, req *employee.UpdateDepar
 }
 
 func (s *Server) DeleteDepartment(ctx context.Context, req *employee.DeleteDepartmentRequest) (*emptypb.Empty, error) {
-	storage.Logger.Info("RPC DeleteDepartment called", zap.String("id", req.Id))
+	app.Logger.Info("RPC DeleteDepartment called", zap.String("id", req.Id))
 	if req.GetId() == "" {
-		storage.Logger.Warn("RPC DeleteDepartment: id is required")
+		app.Logger.Warn("RPC DeleteDepartment: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
 	err := s.core.DeleteDepartment(ctx, req.GetId())
 	if err != nil {
-		storage.Logger.Error("failed to delete department", zap.Error(err))
+		app.Logger.Error("failed to delete department", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to delete department")
 	}
 
@@ -249,15 +249,15 @@ func (s *Server) DeleteDepartment(ctx context.Context, req *employee.DeleteDepar
 }
 
 func (s *Server) CreatePosition(ctx context.Context, req *employee.CreatePositionRequest) (*employee.Position, error) {
-	storage.Logger.Info("RPC CreatePosition called", zap.String("name", req.Name))
+	app.Logger.Info("RPC CreatePosition called", zap.String("name", req.Name))
 	if req.GetName() == "" {
-		storage.Logger.Warn("RPC CreatePosition: name is required")
+		app.Logger.Warn("RPC CreatePosition: name is required")
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
 	position, err := s.core.CreatePosition(ctx, req.GetName())
 	if err != nil {
-		storage.Logger.Error("failed to create position", zap.Error(err))
+		app.Logger.Error("failed to create position", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to create position")
 	}
 
@@ -268,15 +268,15 @@ func (s *Server) CreatePosition(ctx context.Context, req *employee.CreatePositio
 }
 
 func (s *Server) GetPosition(ctx context.Context, req *employee.GetPositionRequest) (*employee.Position, error) {
-	storage.Logger.Info("RPC GetPosition called", zap.String("id", req.Id))
+	app.Logger.Info("RPC GetPosition called", zap.String("id", req.Id))
 	if req.GetId() == "" {
-		storage.Logger.Warn("RPC GetPosition: id is required")
+		app.Logger.Warn("RPC GetPosition: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
 	position, err := s.core.GetPosition(ctx, req.GetId())
 	if err != nil {
-		storage.Logger.Error("failed to get position", zap.Error(err))
+		app.Logger.Error("failed to get position", zap.Error(err))
 		return nil, status.Error(codes.NotFound, "position not found")
 	}
 
@@ -287,10 +287,10 @@ func (s *Server) GetPosition(ctx context.Context, req *employee.GetPositionReque
 }
 
 func (s *Server) ListPositions(ctx context.Context, req *emptypb.Empty) (*employee.ListPositionsResponse, error) {
-	storage.Logger.Info("RPC ListPositions called")
+	app.Logger.Info("RPC ListPositions called")
 	positions, err := s.core.ListPositions(ctx)
 	if err != nil {
-		storage.Logger.Error("failed to list positions", zap.Error(err))
+		app.Logger.Error("failed to list positions", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to list positions")
 	}
 
@@ -306,19 +306,19 @@ func (s *Server) ListPositions(ctx context.Context, req *emptypb.Empty) (*employ
 }
 
 func (s *Server) UpdatePosition(ctx context.Context, req *employee.UpdatePositionRequest) (*employee.Position, error) {
-	storage.Logger.Info("RPC UpdatePosition called", zap.String("id", req.Id), zap.String("name", req.Name))
+	app.Logger.Info("RPC UpdatePosition called", zap.String("id", req.Id), zap.String("name", req.Name))
 	if req.GetId() == "" {
-		storage.Logger.Warn("RPC UpdatePosition: id is required")
+		app.Logger.Warn("RPC UpdatePosition: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 	if req.GetName() == "" {
-		storage.Logger.Warn("RPC UpdatePosition: name is required")
+		app.Logger.Warn("RPC UpdatePosition: name is required")
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
 	position, err := s.core.UpdatePosition(ctx, req.GetId(), req.GetName())
 	if err != nil {
-		storage.Logger.Error("failed to update position", zap.Error(err))
+		app.Logger.Error("failed to update position", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to update position")
 	}
 
@@ -329,15 +329,15 @@ func (s *Server) UpdatePosition(ctx context.Context, req *employee.UpdatePositio
 }
 
 func (s *Server) DeletePosition(ctx context.Context, req *employee.DeletePositionRequest) (*emptypb.Empty, error) {
-	storage.Logger.Info("RPC DeletePosition called", zap.String("id", req.Id))
+	app.Logger.Info("RPC DeletePosition called", zap.String("id", req.Id))
 	if req.GetId() == "" {
-		storage.Logger.Warn("RPC DeletePosition: id is required")
+		app.Logger.Warn("RPC DeletePosition: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
 	err := s.core.DeletePosition(ctx, req.GetId())
 	if err != nil {
-		storage.Logger.Error("failed to delete position", zap.Error(err))
+		app.Logger.Error("failed to delete position", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to delete position")
 	}
 
@@ -345,15 +345,15 @@ func (s *Server) DeletePosition(ctx context.Context, req *employee.DeletePositio
 }
 
 func (s *Server) CreateSkill(ctx context.Context, req *employee.CreateSkillRequest) (*employee.Skill, error) {
-	storage.Logger.Info("RPC CreateSkill called", zap.String("name", req.Name))
+	app.Logger.Info("RPC CreateSkill called", zap.String("name", req.Name))
 	if req.GetName() == "" {
-		storage.Logger.Warn("RPC CreateSkill: name is required")
+		app.Logger.Warn("RPC CreateSkill: name is required")
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
 	skill, err := s.core.CreateSkill(ctx, req.GetName())
 	if err != nil {
-		storage.Logger.Error("failed to create skill", zap.Error(err))
+		app.Logger.Error("failed to create skill", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to create skill")
 	}
 
@@ -364,10 +364,10 @@ func (s *Server) CreateSkill(ctx context.Context, req *employee.CreateSkillReque
 }
 
 func (s *Server) ListSkills(ctx context.Context, req *emptypb.Empty) (*employee.ListSkillsResponse, error) {
-	storage.Logger.Info("RPC ListSkills called")
+	app.Logger.Info("RPC ListSkills called")
 	skills, err := s.core.ListSkills(ctx)
 	if err != nil {
-		storage.Logger.Error("failed to list skills", zap.Error(err))
+		app.Logger.Error("failed to list skills", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to list skills")
 	}
 
@@ -383,19 +383,19 @@ func (s *Server) ListSkills(ctx context.Context, req *emptypb.Empty) (*employee.
 }
 
 func (s *Server) AddSkillToEmployee(ctx context.Context, req *employee.AddSkillToEmployeeRequest) (*emptypb.Empty, error) {
-	storage.Logger.Info("RPC AddSkillToEmployee called", zap.String("employeeID", req.EmployeeId), zap.String("skillID", req.SkillId))
+	app.Logger.Info("RPC AddSkillToEmployee called", zap.String("employeeID", req.EmployeeId), zap.String("skillID", req.SkillId))
 	if req.GetEmployeeId() == "" {
-		storage.Logger.Warn("RPC AddSkillToEmployee: employee_id is required")
+		app.Logger.Warn("RPC AddSkillToEmployee: employee_id is required")
 		return nil, status.Error(codes.InvalidArgument, "employee_id is required")
 	}
 	if req.GetSkillId() == "" {
-		storage.Logger.Warn("RPC AddSkillToEmployee: skill_id is required")
+		app.Logger.Warn("RPC AddSkillToEmployee: skill_id is required")
 		return nil, status.Error(codes.InvalidArgument, "skill_id is required")
 	}
 
 	err := s.core.AddSkillToEmployee(ctx, req.GetEmployeeId(), req.GetSkillId())
 	if err != nil {
-		storage.Logger.Error("failed to add skill to employee", zap.Error(err))
+		app.Logger.Error("failed to add skill to employee", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to add skill to employee")
 	}
 
@@ -403,19 +403,19 @@ func (s *Server) AddSkillToEmployee(ctx context.Context, req *employee.AddSkillT
 }
 
 func (s *Server) RemoveSkillFromEmployee(ctx context.Context, req *employee.RemoveSkillFromEmployeeRequest) (*emptypb.Empty, error) {
-	storage.Logger.Info("RPC RemoveSkillFromEmployee called", zap.String("employeeID", req.EmployeeId), zap.String("skillID", req.SkillId))
+	app.Logger.Info("RPC RemoveSkillFromEmployee called", zap.String("employeeID", req.EmployeeId), zap.String("skillID", req.SkillId))
 	if req.GetEmployeeId() == "" {
-		storage.Logger.Warn("RPC RemoveSkillFromEmployee: employee_id is required")
+		app.Logger.Warn("RPC RemoveSkillFromEmployee: employee_id is required")
 		return nil, status.Error(codes.InvalidArgument, "employee_id is required")
 	}
 	if req.GetSkillId() == "" {
-		storage.Logger.Warn("RPC RemoveSkillFromEmployee: skill_id is required")
+		app.Logger.Warn("RPC RemoveSkillFromEmployee: skill_id is required")
 		return nil, status.Error(codes.InvalidArgument, "skill_id is required")
 	}
 
 	err := s.core.RemoveSkillFromEmployee(ctx, req.GetEmployeeId(), req.GetSkillId())
 	if err != nil {
-		storage.Logger.Error("failed to remove skill from employee", zap.Error(err))
+		app.Logger.Error("failed to remove skill from employee", zap.Error(err))
 		return nil, status.Error(codes.Internal, "failed to remove skill from employee")
 	}
 

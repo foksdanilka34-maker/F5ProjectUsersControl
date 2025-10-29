@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	methods "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/core"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/storage"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 )
@@ -30,31 +30,31 @@ type DeactivateUserCommand struct {
 func (s *NatsConn) Start() {
 	_, err := s.n.Subscribe(DeactivateUserCommandSubject, s.handleChangeUserStatus)
 	if err != nil {
-		storage.Logger.Error("NATS: Failed to subscribe to", zap.Error(err))
+		app.Logger.Error("NATS: Failed to subscribe to", zap.Error(err))
 	}
-	storage.Logger.Info("NATS: Subscribed to", zap.String("dUser", DeactivateUserCommandSubject))
+	app.Logger.Info("NATS: Subscribed to", zap.String("dUser", DeactivateUserCommandSubject))
 
 	select {}
 }
 
 func (s *NatsConn) handleChangeUserStatus(msg *nats.Msg) {
-	storage.Logger.Info("NATS RECEIVE: Subject=", zap.String("Subject", msg.Subject))
+	app.Logger.Info("NATS RECEIVE: Subject=", zap.String("Subject", msg.Subject))
 
 	var command DeactivateUserCommand
 	if err := json.Unmarshal(msg.Data, &command); err != nil {
-		storage.Logger.Error("NATS ERROR: Failed to unmarshal DeactivateUserCommand:", zap.Error(err))
+		app.Logger.Error("NATS ERROR: Failed to unmarshal DeactivateUserCommand:", zap.Error(err))
 		return
 	}
 
 	if command.UserID == "" {
-		storage.Logger.Error("NATS ERROR: Received DeactivateUserCommand with empty user_id")
+		app.Logger.Error("NATS ERROR: Received DeactivateUserCommand with empty user_id")
 		return
 	}
 
 	err := s.core.ChangeUserStatus(context.Background(), command.UserID, command.Status)
 	if err != nil {
-		storage.Logger.Error("NATS ERROR: Failed to process deactivate command for user", zap.String("deactiv", command.UserID), zap.Error(err))
+		app.Logger.Error("NATS ERROR: Failed to process deactivate command for user", zap.String("deactiv", command.UserID), zap.Error(err))
 	} else {
-		storage.Logger.Info("NATS: Successfully processed deactivate command for user", zap.String("user", command.UserID))
+		app.Logger.Info("NATS: Successfully processed deactivate command for user", zap.String("user", command.UserID))
 	}
 }
