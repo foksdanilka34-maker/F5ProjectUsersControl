@@ -3,12 +3,11 @@ package employee
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	emp "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app"
 	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
 )
 
 const (
@@ -46,7 +45,7 @@ func (c *ReferenceCache) SetDepartmentsList(ctx context.Context, departments []*
 
 	_, err := pipe.Exec(ctx)
 	if err != nil {
-		app.Logger.Error("error setting departments hash", zap.Error(err))
+		log.Printf("error setting departments hash: %v", err)
 		return err
 	}
 	return nil
@@ -121,7 +120,7 @@ func (c *ReferenceCache) SetPositionsList(ctx context.Context, positions []*emp.
 
 	_, err := pipe.Exec(ctx)
 	if err != nil {
-		app.Logger.Error("error setting positions hash", zap.Error(err))
+		log.Printf("error setting positions hash: %v", err)
 		return err
 	}
 	return nil
@@ -194,7 +193,7 @@ func (c *ReferenceCache) SetSkillsList(ctx context.Context, skills []*emp.Skill)
 
 	_, err := pipe.Exec(ctx)
 	if err != nil {
-		app.Logger.Error("error setting skills hash", zap.Error(err))
+		log.Printf("error setting skills hash: %v", err)
 		return err
 	}
 	return nil

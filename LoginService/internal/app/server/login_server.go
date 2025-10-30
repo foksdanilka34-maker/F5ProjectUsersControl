@@ -3,13 +3,12 @@ package auth
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
 	core "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/core"
 	auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/login_service"
 
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -33,31 +32,31 @@ func (s *Server) Register(gRPC *grpc.Server) {
 }
 
 func (s *Server) Login(ctx context.Context, req *auth.LoginRequest) (*auth.LoginResponse, error) {
-	app.Logger.Info("Login server called", zap.String("login", req.GetLogin()), zap.String("userAgent", req.GetUserAgent()), zap.String("ipAddress", req.GetIpAddress()))
+	log.Printf("Login server called: login=%s, userAgent=%s, ipAddress=%s", req.GetLogin(), req.GetUserAgent(), req.GetIpAddress())
 	if req.GetLogin() == "" {
-		app.Logger.Warn("Login: login is required")
+		log.Printf("Login: login is required")
 		return nil, status.Error(codes.InvalidArgument, "login is required")
 	}
 	if req.GetPassword() == "" {
-		app.Logger.Warn("Login: password is required")
+		log.Printf("Login: password is required")
 		return nil, status.Error(codes.InvalidArgument, "password is required")
 	}
 	accessToken, refreshToken, err := s.core.Login(ctx, req.GetLogin(), req.GetPassword(),
 		req.GetUserAgent(), req.GetIpAddress())
 	if err != nil {
-		app.Logger.Error("Login failed", zap.Error(err))
+		log.Printf("Login failed: %v", err)
 		return nil, status.Error(codes.Unauthenticated, "invalid login or password")
 	}
 	setRefreshTokenInMetadata(ctx, refreshToken)
-	app.Logger.Info("Login server successful", zap.String("login", req.GetLogin()))
+	log.Printf("Login server successful: login=%s", req.GetLogin())
 	return &auth.LoginResponse{AccessToken: accessToken}, nil
 }
 
 func (s *Server) Refresh(ctx context.Context, req *emptypb.Empty) (*auth.RefreshResponse, error) {
-	app.Logger.Info("Refresh server called")
+	log.Printf("Refresh server called")
 	refreshToken, err := getRefreshTokenFromMetadata(ctx)
 	if err != nil {
-		app.Logger.Error("Refresh: error getting refresh token", zap.Error(err))
+		log.Printf("Refresh: error getting refresh token: %v", err)
 		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
@@ -65,95 +64,95 @@ func (s *Server) Refresh(ctx context.Context, req *emptypb.Empty) (*auth.Refresh
 
 	newAccessToken, newRefreshToken, err := s.core.Refresh(ctx, refreshToken, userAgent, ipAddress)
 	if err != nil {
-		app.Logger.Error("Refresh failed", zap.Error(err))
+		log.Printf("Refresh failed: %v", err)
 		return nil, status.Error(codes.Internal, "refresh failed")
 	}
 
 	setRefreshTokenInMetadata(ctx, newRefreshToken)
-	app.Logger.Info("Refresh server successful")
+	log.Printf("Refresh server successful")
 	return &auth.RefreshResponse{
 		AccessToken: newAccessToken,
 	}, nil
 }
 
 func (s *Server) Logout(ctx context.Context, req *emptypb.Empty) (*emptypb.Empty, error) {
-	app.Logger.Info("Logout server called")
+	log.Printf("Logout server called")
 	refreshToken, err := getRefreshTokenFromMetadata(ctx)
 	if err != nil {
-		app.Logger.Error("Logout: error getting authorization header", zap.Error(err))
+		log.Printf("Logout: error getting authorization header: %v", err)
 		return &emptypb.Empty{}, nil
 	}
 
 	if err := s.core.Logout(ctx, refreshToken); err != nil {
-		app.Logger.Error("Logout: error during logout function", zap.Error(err))
+		log.Printf("Logout: error during logout function: %v", err)
 	}
 
 	clearRefreshTokenInMetadata(ctx)
-	app.Logger.Info("Logout server successful")
+	log.Printf("Logout server successful")
 	return &emptypb.Empty{}, nil
 }
 
 func (s *Server) CreateCredentials(ctx context.Context, req *auth.CreateCredentialsRequest) (*emptypb.Empty, error) {
-	app.Logger.Info("CreateCredentials server called", zap.String("userID", req.GetUserId()), zap.String("login", req.GetLogin()), zap.String("role", req.GetRole()))
+	log.Printf("CreateCredentials server called: userID=%s, login=%s, role=%s", req.GetUserId(), req.GetLogin(), req.GetRole())
 	if req.GetUserId() == "" {
-		app.Logger.Warn("CreateCredentials: user_id is required")
+		log.Printf("CreateCredentials: user_id is required")
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
 	if req.GetLogin() == "" {
-		app.Logger.Warn("CreateCredentials: login is required")
+		log.Printf("CreateCredentials: login is required")
 		return nil, status.Error(codes.InvalidArgument, "login is required")
 	}
 	if req.GetPassword() == "" {
-		app.Logger.Warn("CreateCredentials: password is required")
+		log.Printf("CreateCredentials: password is required")
 		return nil, status.Error(codes.InvalidArgument, "password is required")
 	}
 	if req.GetRole() == "" {
-		app.Logger.Warn("CreateCredentials: role is required")
+		log.Printf("CreateCredentials: role is required")
 		return nil, status.Error(codes.InvalidArgument, "role is required")
 	}
 
 	err := s.core.CreateCredentials(ctx, req.GetUserId(), req.GetLogin(), req.GetPassword(), req.GetRole())
 	if err != nil {
-		app.Logger.Error("CreateCredentials failed", zap.Error(err))
+		log.Printf("CreateCredentials failed: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create credentials")
 	}
-	app.Logger.Info("CreateCredentials server successful", zap.String("userID", req.GetUserId()), zap.String("login", req.GetLogin()))
+	log.Printf("CreateCredentials server successful: userID=%s, login=%s", req.GetUserId(), req.GetLogin())
 	return &emptypb.Empty{}, nil
 }
 
 func (s *Server) ChangeUserStatus(ctx context.Context, req *auth.ChangeUserStatusRequest) (*emptypb.Empty, error) {
-	app.Logger.Info("ChangeUserStatus server called", zap.String("userID", req.GetUserId()), zap.Bool("isActive", req.GetIsActive()))
+	log.Printf("ChangeUserStatus server called: userID=%s, isActive=%t", req.GetUserId(), req.GetIsActive())
 	if req.GetUserId() == "" {
-		app.Logger.Warn("ChangeUserStatus: user_id is required")
+		log.Printf("ChangeUserStatus: user_id is required")
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
 
 	err := s.core.ChangeUserStatus(ctx, req.GetUserId(), req.GetIsActive())
 	if err != nil {
-		app.Logger.Error("ChangeUserStatus failed", zap.Error(err))
+		log.Printf("ChangeUserStatus failed: %v", err)
 		return nil, status.Error(codes.Internal, "failed to change user status")
 	}
-	app.Logger.Info("ChangeUserStatus server successful", zap.String("userID", req.GetUserId()), zap.Bool("isActive", req.GetIsActive()))
+	log.Printf("ChangeUserStatus server successful: userID=%s, isActive=%t", req.GetUserId(), req.GetIsActive())
 	return &emptypb.Empty{}, nil
 }
 
 func (s *Server) ChangePassword(ctx context.Context, req *auth.ChangePasswordRequest) (*emptypb.Empty, error) {
-	app.Logger.Info("ChangePassword server called", zap.String("userID", req.GetUserId()))
+	log.Printf("ChangePassword server called: userID=%s", req.GetUserId())
 	if req.GetUserId() == "" {
-		app.Logger.Warn("ChangePassword: user_id is required")
+		log.Printf("ChangePassword: user_id is required")
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
 	if req.GetNewPassword() == "" {
-		app.Logger.Warn("ChangePassword: new_password is required")
+		log.Printf("ChangePassword: new_password is required")
 		return nil, status.Error(codes.InvalidArgument, "new_password is required")
 	}
 
 	err := s.core.ChangePassword(ctx, req.GetUserId(), req.GetNewPassword())
 	if err != nil {
-		app.Logger.Error("ChangePassword failed", zap.Error(err))
+		log.Printf("ChangePassword failed: %v", err)
 		return nil, status.Error(codes.Internal, "failed to change password")
 	}
-	app.Logger.Info("ChangePassword server successful", zap.String("userID", req.GetUserId()))
+	log.Printf("ChangePassword server successful: userID=%s", req.GetUserId())
 	return &emptypb.Empty{}, nil
 }
 

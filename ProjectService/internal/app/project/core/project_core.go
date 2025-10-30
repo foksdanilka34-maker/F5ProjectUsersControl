@@ -3,42 +3,52 @@ package employee
 import (
 	"context"
 	"fmt"
+	"log"
 
-	repo "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/repo"
 	models "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app"
-	"go.uber.org/zap"
+	repo "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/repo"
 )
-
 
 type projectCore struct {
 	project repo.ProjectStorage
 }
 
-type CoreLogic interface {	
+type CoreLogic interface {
 	CreateProject(ctx context.Context, regProfile *models.CreateProjectRequest) (*models.Project, error)
+	GetProject(ctx context.Context, projectID string) (*models.Project, error)
 }
 
 func NewCore(project repo.ProjectStorage) CoreLogic {
 	return &projectCore{
-		project:  project,
+		project: project,
 	}
 }
 
 func (p *projectCore) CreateProject(ctx context.Context, regProfile *models.CreateProjectRequest) (*models.Project, error) {
 	if regProfile == nil {
-		app.Logger.Info("empty data provided")
+		log.Printf("empty data provided")
 		return nil, fmt.Errorf("provided empty data")
 	}
 	if regProfile.Name == "" || regProfile.ManagerID == "" || regProfile.Description == nil {
-		app.Logger.Info("all fields should be field")
-		return nil, fmt.Errorf("all fields should be field")
+		log.Printf("all fields should be filled")
+		return nil, fmt.Errorf("all fields should be filled")
 	}
 	project, err := p.project.CreateProject(ctx, regProfile)
 	if err != nil {
 		return nil, err
 	}
-	app.Logger.Info("Project created, uuid:", zap.String("pId", project.ID))
+	log.Printf("Project created, uuid: %s", project.ID)
 	return project, nil
 }
 
+func (p *projectCore) GetProject(ctx context.Context, projectID string) (*models.Project, error) {
+	if projectID == "" {
+		log.Printf("empty data provided, projectID")
+		return nil, fmt.Errorf("empty data provided")
+	}
+	project, err := p.project.GetProject(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	return project, nil
+}

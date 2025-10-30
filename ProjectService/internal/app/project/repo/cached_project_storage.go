@@ -21,3 +21,14 @@ func NewCachedProjectStorage(db ProjectStorage, cache *CacheStorage) *CachedEmpl
 func (c *CachedEmployeeStorage) CreateProject(ctx context.Context, createProject *models.CreateProjectRequest) (*models.Project, error) {
 	return c.db.CreateProject(ctx, createProject)
 }
+
+func (c *CachedEmployeeStorage) GetProject(ctx context.Context, projectID string) (*models.Project, error) {
+	project, err := c.cache.Get(ctx, projectID)
+	if err != nil {
+		project, err = c.db.GetProject(ctx, projectID)
+		if err == nil {
+			_ = c.cache.Set(ctx, project)
+		}
+	}
+	return project, err
+}

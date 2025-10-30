@@ -21,7 +21,7 @@ func (s ProjectStatus) String() string {
 	return string(s)
 }
 
-func (s ProjectStatus) ProtoValue() int32 {
+func (s ProjectStatus) ProtoValue() int {
 	switch s {
 	case ProjectStatusActive:
 		return 1

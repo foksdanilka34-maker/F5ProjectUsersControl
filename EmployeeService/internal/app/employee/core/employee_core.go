@@ -3,14 +3,13 @@ package employee
 import (
 	"context"
 	"fmt"
+	"log"
 
 	emp "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee"
 	authClient "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/client"
 
 	natsclient "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/client/nats"
 	empl "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/repo"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app"
-	"go.uber.org/zap"
 )
 
 const maxPageSize = 100
@@ -58,7 +57,7 @@ func (l *loginCore) CreateProfile(ctx context.Context, regProfile *emp.RegisterD
 	if regProfile == nil {
 		return nil, fmt.Errorf("profile data cannot be nil")
 	}
-	app.Logger.Info("CreateProfile called", zap.String("login", regProfile.Login), zap.String("email", regProfile.Email))
+	log.Printf("CreateProfile called: login=%s, email=%s", regProfile.Login, regProfile.Email)
 	if regProfile.FirstName == "" || regProfile.LastName == "" || regProfile.Email == "" {
 		return nil, fmt.Errorf("first name, last name, and email are required fields")
 	}
@@ -74,21 +73,21 @@ func (l *loginCore) CreateProfile(ctx context.Context, regProfile *emp.RegisterD
 	}
 	authCred := l.client.CreateCredentials(ctx, newUser.UserID, regProfile.Login, regProfile.Password, regProfile.Role)
 	if authCred != nil {
-		app.Logger.Error("failed to create credentials", zap.Error(authCred))
+		log.Printf("failed to create credentials: %v", authCred)
 		return nil, authCred
 	}
 
 	if err = tx.Commit(ctx); err != nil {
-		app.Logger.Error("transaction not completed", zap.Error(err))
+		log.Printf("transaction not completed: %v", err)
 		return nil, err
 	}
 
-	app.Logger.Info("Profile created successfully", zap.String("userID", newUser.UserID))
+	log.Printf("Profile created successfully: userID=%s", newUser.UserID)
 	return newUser, nil
 }
 
 func (l *loginCore) GetProfile(ctx context.Context, userID string) (*emp.Profile, error) {
-	app.Logger.Info("GetProfile called", zap.String("userID", userID))
+	log.Printf("GetProfile called: userID=%s", userID)
 	if userID == "" {
 		return nil, fmt.Errorf("empty user ID")
 	}
@@ -96,12 +95,12 @@ func (l *loginCore) GetProfile(ctx context.Context, userID string) (*emp.Profile
 	if err != nil {
 		return nil, err
 	}
-	app.Logger.Info("Profile retrieved successfully", zap.String("userID", userID))
+	log.Printf("Profile retrieved successfully: userID=%s", userID)
 	return getProfile, nil
 }
 
 func (l *loginCore) ListProfile(ctx context.Context, pageSize, pageNum int, departmentID, positionID string) ([]*emp.Profile, error) {
-	app.Logger.Info("ListProfile called", zap.Int("pageSize", pageSize), zap.Int("pageNum", pageNum), zap.String("departmentID", departmentID), zap.String("positionID", positionID))
+	log.Printf("ListProfile called: pageSize=%d, pageNum=%d, departmentID=%s, positionID=%s", pageSize, pageNum, departmentID, positionID)
 	if pageSize <= 0 {
 		pageSize = 10
 	}
@@ -116,12 +115,12 @@ func (l *loginCore) ListProfile(ctx context.Context, pageSize, pageNum int, depa
 	if err != nil {
 		return nil, err
 	}
-	app.Logger.Info("Profiles listed successfully", zap.Int("count", len(profiles)))
+	log.Printf("Profiles listed successfully: count=%d", len(profiles))
 	return profiles, nil
 }
 
 func (l *loginCore) UpdateProfile(ctx context.Context, userID string, updProf *emp.UpdateProfile) (*emp.Profile, error) {
-	app.Logger.Info("UpdateProfile called", zap.String("userID", userID))
+	log.Printf("UpdateProfile called: userID=%s", userID)
 	if userID == "" {
 		return nil, fmt.Errorf("user ID cannot be empty")
 	}
@@ -129,12 +128,12 @@ func (l *loginCore) UpdateProfile(ctx context.Context, userID string, updProf *e
 	if err != nil {
 		return nil, err
 	}
-	app.Logger.Info("Profile updated successfully", zap.String("userID", userID))
+	log.Printf("Profile updated successfully: userID=%s", userID)
 	return updProfile, nil
 }
 
 func (l *loginCore) DeactivateProfile(ctx context.Context, userID string, status bool) error {
-	app.Logger.Info("DeactivateProfile called", zap.String("userID", userID))
+	log.Printf("DeactivateProfile called: userID=%s", userID)
 	if userID == "" {
 		return fmt.Errorf("user ID cannot be empty")
 	}
@@ -142,51 +141,51 @@ func (l *loginCore) DeactivateProfile(ctx context.Context, userID string, status
 	if err := l.publisher.PublishDeactivateUserCommand(ctx, userID, status); err != nil {
 		return fmt.Errorf("failed to publish deactivate user command: %w", err)
 	}
-	app.Logger.Info("NATS: deactivate command published", zap.String("userID", userID))
+	log.Printf("NATS: deactivate command published: userID=%s", userID)
 	return nil
 }
 
 func (l *loginCore) CreateDepartment(ctx context.Context, name string) (*emp.Department, error) {
-	app.Logger.Info("CreateDepartment called", zap.String("name", name))
+	log.Printf("CreateDepartment called: name=%s", name)
 	if name == "" {
 		return nil, fmt.Errorf("department name cannot be empty")
 	}
 	department, err := l.employee.CreateDepartment(ctx, name)
 	if err != nil {
-		app.Logger.Error("failed to create department", zap.Error(err))
+		log.Printf("failed to create department: %v", err)
 		return nil, err
 	}
-	app.Logger.Info("Department created successfully", zap.String("id", department.ID))
+	log.Printf("Department created successfully: id=%s", department.ID)
 	return department, nil
 }
 
 func (l *loginCore) GetDepartment(ctx context.Context, id string) (*emp.Department, error) {
-	app.Logger.Info("GetDepartment called", zap.String("id", id))
+	log.Printf("GetDepartment called: id=%s", id)
 	if id == "" {
 		return nil, fmt.Errorf("department ID cannot be empty")
 	}
 	department, err := l.employee.GetDepartment(ctx, id)
 	if err != nil {
-		app.Logger.Error("failed to get department", zap.Error(err))
+		log.Printf("failed to get department: %v", err)
 		return nil, err
 	}
-	app.Logger.Info("Department retrieved successfully", zap.String("id", id))
+	log.Printf("Department retrieved successfully: id=%s", id)
 	return department, nil
 }
 
 func (l *loginCore) ListDepartments(ctx context.Context) ([]*emp.Department, error) {
-	app.Logger.Info("ListDepartments called")
+	log.Printf("ListDepartments called")
 	departments, err := l.employee.ListDepartments(ctx)
 	if err != nil {
-		app.Logger.Error("failed to list departments", zap.Error(err))
+		log.Printf("failed to list departments: %v", err)
 		return nil, err
 	}
-	app.Logger.Info("Departments listed successfully", zap.Int("count", len(departments)))
+	log.Printf("Departments listed successfully: count=%d", len(departments))
 	return departments, nil
 }
 
 func (l *loginCore) UpdateDepartment(ctx context.Context, id, name string) (*emp.Department, error) {
-	app.Logger.Info("UpdateDepartment called", zap.String("id", id), zap.String("name", name))
+	log.Printf("UpdateDepartment called: id=%s, name=%s", id, name)
 	if id == "" {
 		return nil, fmt.Errorf("department ID cannot be empty")
 	}
@@ -195,68 +194,68 @@ func (l *loginCore) UpdateDepartment(ctx context.Context, id, name string) (*emp
 	}
 	department, err := l.employee.UpdateDepartment(ctx, id, name)
 	if err != nil {
-		app.Logger.Error("failed to update department", zap.Error(err))
+		log.Printf("failed to update department: %v", err)
 		return nil, err
 	}
-	app.Logger.Info("Department updated successfully", zap.String("id", id))
+	log.Printf("Department updated successfully: id=%s", id)
 	return department, nil
 }
 
 func (l *loginCore) DeleteDepartment(ctx context.Context, id string) error {
-	app.Logger.Info("DeleteDepartment called", zap.String("id", id))
+	log.Printf("DeleteDepartment called: id=%s", id)
 	if id == "" {
 		return fmt.Errorf("department ID cannot be empty")
 	}
 	err := l.employee.DeleteDepartment(ctx, id)
 	if err != nil {
-		app.Logger.Error("failed to delete department", zap.Error(err))
+		log.Printf("failed to delete department: %v", err)
 		return err
 	}
-	app.Logger.Info("Department deleted successfully", zap.String("id", id))
+	log.Printf("Department deleted successfully: id=%s", id)
 	return nil
 }
 
 func (l *loginCore) CreatePosition(ctx context.Context, name string) (*emp.Position, error) {
-	app.Logger.Info("CreatePosition called", zap.String("name", name))
+	log.Printf("CreatePosition called: name=%s", name)
 	if name == "" {
 		return nil, fmt.Errorf("position name cannot be empty")
 	}
 	position, err := l.employee.CreatePosition(ctx, name)
 	if err != nil {
-		app.Logger.Error("failed to create position", zap.Error(err))
+		log.Printf("failed to create position: %v", err)
 		return nil, err
 	}
-	app.Logger.Info("Position created successfully", zap.String("id", position.ID))
+	log.Printf("Position created successfully: id=%s", position.ID)
 	return position, nil
 }
 
 func (l *loginCore) GetPosition(ctx context.Context, id string) (*emp.Position, error) {
-	app.Logger.Info("GetPosition called", zap.String("id", id))
+	log.Printf("GetPosition called: id=%s", id)
 	if id == "" {
 		return nil, fmt.Errorf("position ID cannot be empty")
 	}
 	position, err := l.employee.GetPosition(ctx, id)
 	if err != nil {
-		app.Logger.Error("failed to get position", zap.Error(err))
+		log.Printf("failed to get position: %v", err)
 		return nil, err
 	}
-	app.Logger.Info("Position retrieved successfully", zap.String("id", id))
+	log.Printf("Position retrieved successfully: id=%s", id)
 	return position, nil
 }
 
 func (l *loginCore) ListPositions(ctx context.Context) ([]*emp.Position, error) {
-	app.Logger.Info("ListPositions called")
+	log.Printf("ListPositions called")
 	positions, err := l.employee.ListPositions(ctx)
 	if err != nil {
-		app.Logger.Error("failed to list positions", zap.Error(err))
+		log.Printf("failed to list positions: %v", err)
 		return nil, err
 	}
-	app.Logger.Info("Positions listed successfully", zap.Int("count", len(positions)))
+	log.Printf("Positions listed successfully: count=%d", len(positions))
 	return positions, nil
 }
 
 func (l *loginCore) UpdatePosition(ctx context.Context, id, name string) (*emp.Position, error) {
-	app.Logger.Info("UpdatePosition called", zap.String("id", id), zap.String("name", name))
+	log.Printf("UpdatePosition called: id=%s, name=%s", id, name)
 	if id == "" {
 		return nil, fmt.Errorf("position ID cannot be empty")
 	}
@@ -265,54 +264,54 @@ func (l *loginCore) UpdatePosition(ctx context.Context, id, name string) (*emp.P
 	}
 	position, err := l.employee.UpdatePosition(ctx, id, name)
 	if err != nil {
-		app.Logger.Error("failed to update position", zap.Error(err))
+		log.Printf("failed to update position: %v", err)
 		return nil, err
 	}
-	app.Logger.Info("Position updated successfully", zap.String("id", id))
+	log.Printf("Position updated successfully: id=%s", id)
 	return position, nil
 }
 
 func (l *loginCore) DeletePosition(ctx context.Context, id string) error {
-	app.Logger.Info("DeletePosition called", zap.String("id", id))
+	log.Printf("DeletePosition called: id=%s", id)
 	if id == "" {
 		return fmt.Errorf("position ID cannot be empty")
 	}
 	err := l.employee.DeletePosition(ctx, id)
 	if err != nil {
-		app.Logger.Error("failed to delete position", zap.Error(err))
+		log.Printf("failed to delete position: %v", err)
 		return err
 	}
-	app.Logger.Info("Position deleted successfully", zap.String("id", id))
+	log.Printf("Position deleted successfully: id=%s", id)
 	return nil
 }
 
 func (l *loginCore) CreateSkill(ctx context.Context, name string) (*emp.Skill, error) {
-	app.Logger.Info("CreateSkill called", zap.String("name", name))
+	log.Printf("CreateSkill called: name=%s", name)
 	if name == "" {
 		return nil, fmt.Errorf("skill name cannot be empty")
 	}
 	skill, err := l.employee.CreateSkill(ctx, name)
 	if err != nil {
-		app.Logger.Error("failed to create skill", zap.Error(err))
+		log.Printf("failed to create skill: %v", err)
 		return nil, err
 	}
-	app.Logger.Info("Skill created successfully", zap.String("id", skill.ID))
+	log.Printf("Skill created successfully: id=%s", skill.ID)
 	return skill, nil
 }
 
 func (l *loginCore) ListSkills(ctx context.Context) ([]*emp.Skill, error) {
-	app.Logger.Info("ListSkills called")
+	log.Printf("ListSkills called")
 	skills, err := l.employee.ListSkills(ctx)
 	if err != nil {
-		app.Logger.Error("failed to list skills", zap.Error(err))
+		log.Printf("failed to list skills: %v", err)
 		return nil, err
 	}
-	app.Logger.Info("Skills listed successfully", zap.Int("count", len(skills)))
+	log.Printf("Skills listed successfully: count=%d", len(skills))
 	return skills, nil
 }
 
 func (l *loginCore) AddSkillToEmployee(ctx context.Context, employeeID, skillID string) error {
-	app.Logger.Info("AddSkillToEmployee called", zap.String("employeeID", employeeID), zap.String("skillID", skillID))
+	log.Printf("AddSkillToEmployee called: employeeID=%s, skillID=%s", employeeID, skillID)
 	if employeeID == "" {
 		return fmt.Errorf("employee ID cannot be empty")
 	}
@@ -321,15 +320,15 @@ func (l *loginCore) AddSkillToEmployee(ctx context.Context, employeeID, skillID 
 	}
 	err := l.employee.AddSkillToEmployee(ctx, employeeID, skillID)
 	if err != nil {
-		app.Logger.Error("failed to add skill to employee", zap.Error(err))
+		log.Printf("failed to add skill to employee: %v", err)
 		return err
 	}
-	app.Logger.Info("Skill added to employee successfully", zap.String("employeeID", employeeID), zap.String("skillID", skillID))
+	log.Printf("Skill added to employee successfully: employeeID=%s, skillID=%s", employeeID, skillID)
 	return nil
 }
 
 func (l *loginCore) RemoveSkillFromEmployee(ctx context.Context, employeeID, skillID string) error {
-	app.Logger.Info("RemoveSkillFromEmployee called", zap.String("employeeID", employeeID), zap.String("skillID", skillID))
+	log.Printf("RemoveSkillFromEmployee called: employeeID=%s, skillID=%s", employeeID, skillID)
 	if employeeID == "" {
 		return fmt.Errorf("employee ID cannot be empty")
 	}
@@ -338,9 +337,9 @@ func (l *loginCore) RemoveSkillFromEmployee(ctx context.Context, employeeID, ski
 	}
 	err := l.employee.RemoveSkillFromEmployee(ctx, employeeID, skillID)
 	if err != nil {
-		app.Logger.Error("failed to remove skill from employee", zap.Error(err))
+		log.Printf("failed to remove skill from employee: %v", err)
 		return err
 	}
-	app.Logger.Info("Skill removed from employee successfully", zap.String("employeeID", employeeID), zap.String("skillID", skillID))
+	log.Printf("Skill removed from employee successfully: employeeID=%s, skillID=%s", employeeID, skillID)
 	return nil
 }

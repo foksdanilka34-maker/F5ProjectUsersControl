@@ -3,11 +3,10 @@ package nats
 import (
 	"context"
 	"encoding/json"
+	"log"
 
 	methods "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/core"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
 	"github.com/nats-io/nats.go"
-	"go.uber.org/zap"
 )
 
 type NatsConn struct {
@@ -30,31 +29,31 @@ type DeactivateUserCommand struct {
 func (s *NatsConn) Start() {
 	_, err := s.n.Subscribe(DeactivateUserCommandSubject, s.handleChangeUserStatus)
 	if err != nil {
-		app.Logger.Error("NATS: Failed to subscribe to", zap.Error(err))
+		log.Printf("NATS: Failed to subscribe to: %v", err)
 	}
-	app.Logger.Info("NATS: Subscribed to", zap.String("dUser", DeactivateUserCommandSubject))
+	log.Printf("NATS: Subscribed to %s", DeactivateUserCommandSubject)
 
 	select {}
 }
 
 func (s *NatsConn) handleChangeUserStatus(msg *nats.Msg) {
-	app.Logger.Info("NATS RECEIVE: Subject=", zap.String("Subject", msg.Subject))
+	log.Printf("NATS RECEIVE: Subject=%s", msg.Subject)
 
 	var command DeactivateUserCommand
 	if err := json.Unmarshal(msg.Data, &command); err != nil {
-		app.Logger.Error("NATS ERROR: Failed to unmarshal DeactivateUserCommand:", zap.Error(err))
+		log.Printf("NATS ERROR: Failed to unmarshal DeactivateUserCommand: %v", err)
 		return
 	}
 
 	if command.UserID == "" {
-		app.Logger.Error("NATS ERROR: Received DeactivateUserCommand with empty user_id")
+		log.Printf("NATS ERROR: Received DeactivateUserCommand with empty user_id")
 		return
 	}
 
 	err := s.core.ChangeUserStatus(context.Background(), command.UserID, command.Status)
 	if err != nil {
-		app.Logger.Error("NATS ERROR: Failed to process deactivate command for user", zap.String("deactiv", command.UserID), zap.Error(err))
+		log.Printf("NATS ERROR: Failed to process deactivate command for user %s: %v", command.UserID, err)
 	} else {
-		app.Logger.Info("NATS: Successfully processed deactivate command for user", zap.String("user", command.UserID))
+		log.Printf("NATS: Successfully processed deactivate command for user %s", command.UserID)
 	}
 }

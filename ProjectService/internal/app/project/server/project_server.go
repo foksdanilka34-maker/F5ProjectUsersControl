@@ -2,13 +2,12 @@ package server
 
 import (
 	"context"
+	"log"
 
 	models "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project"
 	core "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/core"
 	pb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/project_service"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app"
 
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -31,7 +30,7 @@ func (s *Server) Register(gRPC *grpc.Server) {
 }
 
 func (s *Server) CreateProject(ctx context.Context, req *pb.CreateProjectRequest) (*pb.Project, error) {
-	app.Logger.Info("RPC CreateProject called", zap.String("name", req.Name), zap.String("managerID", req.ManagerId))
+	log.Printf("RPC CreateProject called: name=%s, managerID=%s", req.Name, req.ManagerId)
 	if req.GetName() == "" || req.GetManagerId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "name and manager_id are required")
 	}
@@ -47,7 +46,7 @@ func (s *Server) CreateProject(ctx context.Context, req *pb.CreateProjectRequest
 
 	project, err := s.core.CreateProject(ctx, coreReq)
 	if err != nil {
-		app.Logger.Error("failed to create project", zap.Error(err))
+		log.Printf("failed to create project: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create project")
 	}
 
@@ -66,4 +65,25 @@ func (s *Server) CreateProject(ctx context.Context, req *pb.CreateProjectRequest
 	return pbProject, nil
 }
 
+func (s *Server) GetProject(ctx context.Context, req *pb.GetProjectRequest) (*pb.Project, error) {
+	log.Printf("RPC GetProject called: projectID=%s", req.ProjectId)
+	if req.GetProjectId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "projectID required")
+	}
+	project, err := s.core.GetProject(ctx, req.ProjectId)
+	if err != nil {
+		log.Printf("failed to get project: %v", err)
+		return nil, status.Error(codes.Internal, "failed to get project")
+	}
 
+	pbProject := &pb.Project{
+		Id:          project.ID,
+		Name:        project.Name,
+		Description: project.Description,
+		ManagerId:   project.ManagerID,
+		Status:      pb.ProjectStatus(project.Status.ProtoValue()),
+		CreatedAt:   timestamppb.New(project.CreatedAt),
+		UpdatedAt:   timestamppb.New(project.UpdatedAt),
+	}
+	return pbProject, nil
+}

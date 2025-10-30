@@ -1,16 +1,12 @@
 package app
 
 import (
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/logger"
-	"go.uber.org/zap"
+	"log"
+	"os"
 )
 
-var Logger *zap.Logger
+var Logger *log.Logger
 
 func init() {
-	var err error
-	Logger, err = logger.New("project-service")
-	if err != nil {
-		panic("failed to initialize logger: " + err.Error())
-	}
+	Logger = log.New(os.Stdout, "project-service: ", log.LstdFlags)
 }

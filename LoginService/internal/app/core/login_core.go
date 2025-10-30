@@ -3,13 +3,12 @@ package auth
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
 	credential "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/auth"
 	session "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/session"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
-	"go.uber.org/zap"
 )
 
 type loginCore struct {
@@ -36,7 +35,7 @@ func NewCore(credsStorage credential.CredentialStorage, sessStorage session.Sess
 }
 
 func (l *loginCore) Login(ctx context.Context, login, password, userAgent, ipAddress string) (accessToken, refreshToken string, err error) {
-	app.Logger.Info("Login called", zap.String("login", login), zap.String("userAgent", userAgent), zap.String("ipAddress", ipAddress))
+	log.Printf("Login called: login=%s, userAgent=%s, ipAddress=%s", login, userAgent, ipAddress)
 	checkUser, err := l.credentialStorage.GetCrendentialsByUser(ctx, login)
 	if err != nil {
 		return "", "", err
@@ -62,14 +61,14 @@ func (l *loginCore) Login(ctx context.Context, login, password, userAgent, ipAdd
 		return "", "", err
 	}
 
-	app.Logger.Info("Login successful", zap.String("userID", checkUser.UserID), zap.String("login", login))
+	log.Printf("Login successful: userID=%s, login=%s", checkUser.UserID, login)
 	return accToken, refToken, nil
 }
 
 func (l *loginCore) Logout(ctx context.Context, refreshToken string) error {
-	app.Logger.Info("Logout called", zap.String("refreshToken", refreshToken))
+	log.Printf("Logout called: refreshToken=%s", refreshToken)
 	if refreshToken == "" {
-		app.Logger.Warn("Logout: empty token")
+		log.Printf("Logout: empty token")
 		return fmt.Errorf("empty token")
 	}
 	tokenHash := l.authenticator.HashRefreshToken(refreshToken)
@@ -77,48 +76,48 @@ func (l *loginCore) Logout(ctx context.Context, refreshToken string) error {
 	if err != nil {
 		return err
 	}
-	app.Logger.Info("Logout successful", zap.String("refreshToken", refreshToken))
+	log.Printf("Logout successful: refreshToken=%s", refreshToken)
 	return nil
 }
 
 func (l *loginCore) Refresh(ctx context.Context, oldRefreshToken, userAgent, ipAddress string) (newAccessToken, newRefreshToken string, err error) {
-	app.Logger.Info("Refresh called", zap.String("oldRefreshToken", oldRefreshToken), zap.String("userAgent", userAgent), zap.String("ipAddress", ipAddress))
+	log.Printf("Refresh called: oldRefreshToken=%s, userAgent=%s, ipAddress=%s", oldRefreshToken, userAgent, ipAddress)
 	oldTokenHash := l.authenticator.HashRefreshToken(oldRefreshToken)
 	ses, err := l.sessionStorage.GetSessionByToken(ctx, oldTokenHash)
 	if err != nil {
-		app.Logger.Error("error getting session", zap.Error(err))
+		log.Printf("error getting session: %v", err)
 		return "", "", err
 	}
 	if time.Now().After(ses.ExpiresAt) {
 		_ = l.sessionStorage.DeleteSession(ctx, oldRefreshToken)
-		app.Logger.Warn("token is expired", zap.String("userID", ses.UserID))
+		log.Printf("token is expired: userID=%s", ses.UserID)
 		return "", "", err
 	}
 	credentials, err := l.credentialStorage.GetCrendentialsByID(ctx, ses.UserID)
 	if err != nil {
-		app.Logger.Error("error getting credentials", zap.Error(err))
+		log.Printf("error getting credentials: %v", err)
 		return "", "", err
 	}
 	accToken, refToken, err := l.authenticator.GenerateTokens(credentials.UserID, credentials.Role)
 	if err != nil {
-		app.Logger.Error("error during generation token", zap.Error(err))
+		log.Printf("error during generation token: %v", err)
 		return "", "", err
 	}
 	newHashToken := l.authenticator.HashRefreshToken(refToken)
 	_, err = l.sessionStorage.UpdateSession(ctx, oldTokenHash, newHashToken, time.Now().Add(auth.RefreshTokenLifetime))
 	if err != nil {
-		app.Logger.Error("error during updating session", zap.Error(err))
+		log.Printf("error during updating session: %v", err)
 		return "", "", err
 	}
-	app.Logger.Info("Refresh successful", zap.String("userID", credentials.UserID))
+	log.Printf("Refresh successful: userID=%s", credentials.UserID)
 	return accToken, refToken, nil
 }
 
 func (l *loginCore) CreateCredentials(ctx context.Context, userID, login, password, role string) error {
-	app.Logger.Info("CreateCredentials called", zap.String("userID", userID), zap.String("login", login), zap.String("role", role))
+	log.Printf("CreateCredentials called: userID=%s, login=%s, role=%s", userID, login, role)
 	hashedPassword, err := l.authenticator.HashPassword(password)
 	if err != nil {
-		app.Logger.Error("error hashing password", zap.Error(err))
+		log.Printf("error hashing password: %v", err)
 		return err
 	}
 	credential := &auth.Credential{
@@ -129,36 +128,36 @@ func (l *loginCore) CreateCredentials(ctx context.Context, userID, login, passwo
 	}
 	err = l.credentialStorage.CreateCredentials(ctx, credential)
 	if err != nil {
-		app.Logger.Error("error creating credentials", zap.Error(err))
+		log.Printf("error creating credentials: %v", err)
 		return err
 	}
-	app.Logger.Info("CreateCredentials successful", zap.String("userID", userID), zap.String("login", login))
+	log.Printf("CreateCredentials successful: userID=%s, login=%s", userID, login)
 	return nil
 }
 
 func (l *loginCore) ChangeUserStatus(ctx context.Context, userID string, isActive bool) error {
-	app.Logger.Info("ChangeUserStatus called", zap.String("userID", userID), zap.Bool("isActive", isActive))
+	log.Printf("ChangeUserStatus called: userID=%s, isActive=%t", userID, isActive)
 	err := l.credentialStorage.ChangeUserStatus(ctx, userID, isActive)
 	if err != nil {
-		app.Logger.Error("error changing user status", zap.Error(err))
+		log.Printf("error changing user status: %v", err)
 		return err
 	}
-	app.Logger.Info("ChangeUserStatus successful", zap.String("userID", userID), zap.Bool("isActive", isActive))
+	log.Printf("ChangeUserStatus successful: userID=%s, isActive=%t", userID, isActive)
 	return nil
 }
 
 func (l *loginCore) ChangePassword(ctx context.Context, userID, newPassword string) error {
-	app.Logger.Info("ChangePassword called", zap.String("userID", userID))
+	log.Printf("ChangePassword called: userID=%s", userID)
 	hashedPassword, err := l.authenticator.HashPassword(newPassword)
 	if err != nil {
-		app.Logger.Error("error hashing password", zap.Error(err))
+		log.Printf("error hashing password: %v", err)
 		return err
 	}
 	err = l.credentialStorage.PasswordHashUpdate(ctx, hashedPassword, userID)
 	if err != nil {
-		app.Logger.Error("error updating password", zap.Error(err))
+		log.Printf("error updating password: %v", err)
 		return err
 	}
-	app.Logger.Info("ChangePassword successful", zap.String("userID", userID))
+	log.Printf("ChangePassword successful: userID=%s", userID)
 	return nil
 }

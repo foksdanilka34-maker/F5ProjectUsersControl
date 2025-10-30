@@ -2,13 +2,12 @@ package server
 
 import (
 	"context"
+	"log"
 
 	models "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee"
 	core "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/core"
 	employee "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/employee_service"
 
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -32,7 +31,7 @@ func (s *Server) Register(gRPC *grpc.Server) {
 }
 
 func (s *Server) CreateProfile(ctx context.Context, req *employee.CreateProfileRequest) (*employee.Profile, error) {
-	app.Logger.Info("RPC CreateProfile called", zap.String("firstName", req.FirstName), zap.String("lastName", req.LastName), zap.String("email", req.Email))
+	log.Printf("RPC CreateProfile called: firstName=%s, lastName=%s, email=%s", req.FirstName, req.LastName, req.Email)
 	if req.GetFirstName() == "" || req.GetLastName() == "" || req.GetEmail() == "" {
 		return nil, status.Error(codes.InvalidArgument, "FirstName, LastName, and Email are required")
 	}
@@ -50,9 +49,9 @@ func (s *Server) CreateProfile(ctx context.Context, req *employee.CreateProfileR
 	}
 
 	newProfile, err := s.core.CreateProfile(ctx, coreReq)
-	app.Logger.Debug("created profile", zap.Any("profile", newProfile))
+	log.Printf("created profile: %+v", newProfile)
 	if err != nil {
-		app.Logger.Error("failed to create profile", zap.Error(err))
+		log.Printf("failed to create profile: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create profile")
 	}
 
@@ -60,15 +59,15 @@ func (s *Server) CreateProfile(ctx context.Context, req *employee.CreateProfileR
 }
 
 func (s *Server) GetProfile(ctx context.Context, req *employee.GetProfileRequest) (*employee.Profile, error) {
-	app.Logger.Info("RPC GetProfile called", zap.String("userID", req.UserId))
+	log.Printf("RPC GetProfile called: userID=%s", req.UserId)
 	if req.GetUserId() == "" {
-		app.Logger.Warn("RPC GetProfile: user ID required")
+		log.Printf("RPC GetProfile: user ID required")
 		return nil, status.Error(codes.InvalidArgument, "ID is required")
 	}
 
 	profile, err := s.core.GetProfile(ctx, req.UserId)
 	if err != nil {
-		app.Logger.Error("failed to get profile", zap.Error(err))
+		log.Printf("failed to get profile: %v", err)
 		return nil, status.Error(codes.Internal, "failed to get profile")
 	}
 
@@ -76,10 +75,10 @@ func (s *Server) GetProfile(ctx context.Context, req *employee.GetProfileRequest
 }
 
 func (s *Server) ListProfiles(ctx context.Context, req *employee.ListProfilesRequest) (*employee.ListProfilesResponse, error) {
-	app.Logger.Info("RPC ListProfiles called", zap.Int32("pageSize", req.PageSize), zap.Int32("pageNumber", req.PageNumber))
+	log.Printf("RPC ListProfiles called: pageSize=%d, pageNumber=%d", req.PageSize, req.PageNumber)
 	profiles, err := s.core.ListProfile(ctx, int(req.GetPageSize()), int(req.GetPageNumber()), req.GetDepartmentId(), req.GetPositionId())
 	if err != nil {
-		app.Logger.Error("failed to list profiles", zap.Error(err))
+		log.Printf("failed to list profiles: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list profiles")
 	}
 
@@ -92,9 +91,9 @@ func (s *Server) ListProfiles(ctx context.Context, req *employee.ListProfilesReq
 }
 
 func (s *Server) UpdateProfile(ctx context.Context, req *employee.UpdateProfileRequest) (*employee.Profile, error) {
-	app.Logger.Info("RPC UpdateProfile called", zap.String("userID", req.UserId))
+	log.Printf("RPC UpdateProfile called: userID=%s", req.UserId)
 	if req.GetUserId() == "" {
-		app.Logger.Warn("RPC UpdateProfile: user ID required")
+		log.Printf("RPC UpdateProfile: user ID required")
 		return nil, status.Error(codes.InvalidArgument, "ID is required")
 	}
 
@@ -109,7 +108,7 @@ func (s *Server) UpdateProfile(ctx context.Context, req *employee.UpdateProfileR
 
 	updatedProfile, err := s.core.UpdateProfile(ctx, req.GetUserId(), coreReq)
 	if err != nil {
-		app.Logger.Error("failed to update profile", zap.Error(err))
+		log.Printf("failed to update profile: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update profile")
 	}
 
@@ -117,13 +116,13 @@ func (s *Server) UpdateProfile(ctx context.Context, req *employee.UpdateProfileR
 }
 
 func (s *Server) ChangeUserStatusProfile(ctx context.Context, req *employee.DeactivateProfileRequest) (*emptypb.Empty, error) {
-	app.Logger.Info("RPC ChangeUserStatusProfile called", zap.String("userID", req.UserId))
+	log.Printf("RPC ChangeUserStatusProfile called: userID=%s", req.UserId)
 	if req.GetUserId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "ID is required")
 	}
 
 	if err := s.core.DeactivateProfile(ctx, req.GetUserId(), req.GetStatus()); err != nil {
-		app.Logger.Error("failed to change profile status", zap.Error(err))
+		log.Printf("failed to change profile status: %v", err)
 		return nil, status.Error(codes.Internal, "failed to change profile status")
 	}
 
@@ -153,15 +152,15 @@ func convertCoreProfileToProto(p *models.Profile) *employee.Profile {
 }
 
 func (s *Server) CreateDepartment(ctx context.Context, req *employee.CreateDepartmentRequest) (*employee.Department, error) {
-	app.Logger.Info("RPC CreateDepartment called", zap.String("name", req.Name))
+	log.Printf("RPC CreateDepartment called: name=%s", req.Name)
 	if req.GetName() == "" {
-		app.Logger.Warn("RPC CreateDepartment: name is required")
+		log.Printf("RPC CreateDepartment: name is required")
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
 	department, err := s.core.CreateDepartment(ctx, req.GetName())
 	if err != nil {
-		app.Logger.Error("failed to create department", zap.Error(err))
+		log.Printf("failed to create department: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create department")
 	}
 
@@ -172,15 +171,15 @@ func (s *Server) CreateDepartment(ctx context.Context, req *employee.CreateDepar
 }
 
 func (s *Server) GetDepartment(ctx context.Context, req *employee.GetDepartmentRequest) (*employee.Department, error) {
-	app.Logger.Info("RPC GetDepartment called", zap.String("id", req.Id))
+	log.Printf("RPC GetDepartment called: id=%s", req.Id)
 	if req.GetId() == "" {
-		app.Logger.Warn("RPC GetDepartment: id is required")
+		log.Printf("RPC GetDepartment: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
 	department, err := s.core.GetDepartment(ctx, req.GetId())
 	if err != nil {
-		app.Logger.Error("failed to get department", zap.Error(err))
+		log.Printf("failed to get department: %v", err)
 		return nil, status.Error(codes.NotFound, "department not found")
 	}
 
@@ -191,10 +190,10 @@ func (s *Server) GetDepartment(ctx context.Context, req *employee.GetDepartmentR
 }
 
 func (s *Server) ListDepartments(ctx context.Context, req *emptypb.Empty) (*employee.ListDepartmentsResponse, error) {
-	app.Logger.Info("RPC ListDepartments called")
+	log.Printf("RPC ListDepartments called")
 	departments, err := s.core.ListDepartments(ctx)
 	if err != nil {
-		app.Logger.Error("failed to list departments", zap.Error(err))
+		log.Printf("failed to list departments: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list departments")
 	}
 
@@ -210,19 +209,19 @@ func (s *Server) ListDepartments(ctx context.Context, req *emptypb.Empty) (*empl
 }
 
 func (s *Server) UpdateDepartment(ctx context.Context, req *employee.UpdateDepartmentRequest) (*employee.Department, error) {
-	app.Logger.Info("RPC UpdateDepartment called", zap.String("id", req.Id), zap.String("name", req.Name))
+	log.Printf("RPC UpdateDepartment called: id=%s, name=%s", req.Id, req.Name)
 	if req.GetId() == "" {
-		app.Logger.Warn("RPC UpdateDepartment: id is required")
+		log.Printf("RPC UpdateDepartment: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 	if req.GetName() == "" {
-		app.Logger.Warn("RPC UpdateDepartment: name is required")
+		log.Printf("RPC UpdateDepartment: name is required")
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
 	department, err := s.core.UpdateDepartment(ctx, req.GetId(), req.GetName())
 	if err != nil {
-		app.Logger.Error("failed to update department", zap.Error(err))
+		log.Printf("failed to update department: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update department")
 	}
 
@@ -233,15 +232,15 @@ func (s *Server) UpdateDepartment(ctx context.Context, req *employee.UpdateDepar
 }
 
 func (s *Server) DeleteDepartment(ctx context.Context, req *employee.DeleteDepartmentRequest) (*emptypb.Empty, error) {
-	app.Logger.Info("RPC DeleteDepartment called", zap.String("id", req.Id))
+	log.Printf("RPC DeleteDepartment called: id=%s", req.Id)
 	if req.GetId() == "" {
-		app.Logger.Warn("RPC DeleteDepartment: id is required")
+		log.Printf("RPC DeleteDepartment: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
 	err := s.core.DeleteDepartment(ctx, req.GetId())
 	if err != nil {
-		app.Logger.Error("failed to delete department", zap.Error(err))
+		log.Printf("failed to delete department: %v", err)
 		return nil, status.Error(codes.Internal, "failed to delete department")
 	}
 
@@ -249,15 +248,15 @@ func (s *Server) DeleteDepartment(ctx context.Context, req *employee.DeleteDepar
 }
 
 func (s *Server) CreatePosition(ctx context.Context, req *employee.CreatePositionRequest) (*employee.Position, error) {
-	app.Logger.Info("RPC CreatePosition called", zap.String("name", req.Name))
+	log.Printf("RPC CreatePosition called: name=%s", req.Name)
 	if req.GetName() == "" {
-		app.Logger.Warn("RPC CreatePosition: name is required")
+		log.Printf("RPC CreatePosition: name is required")
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
 	position, err := s.core.CreatePosition(ctx, req.GetName())
 	if err != nil {
-		app.Logger.Error("failed to create position", zap.Error(err))
+		log.Printf("failed to create position: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create position")
 	}
 
@@ -268,15 +267,15 @@ func (s *Server) CreatePosition(ctx context.Context, req *employee.CreatePositio
 }
 
 func (s *Server) GetPosition(ctx context.Context, req *employee.GetPositionRequest) (*employee.Position, error) {
-	app.Logger.Info("RPC GetPosition called", zap.String("id", req.Id))
+	log.Printf("RPC GetPosition called: id=%s", req.Id)
 	if req.GetId() == "" {
-		app.Logger.Warn("RPC GetPosition: id is required")
+		log.Printf("RPC GetPosition: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
 	position, err := s.core.GetPosition(ctx, req.GetId())
 	if err != nil {
-		app.Logger.Error("failed to get position", zap.Error(err))
+		log.Printf("failed to get position: %v", err)
 		return nil, status.Error(codes.NotFound, "position not found")
 	}
 
@@ -287,10 +286,10 @@ func (s *Server) GetPosition(ctx context.Context, req *employee.GetPositionReque
 }
 
 func (s *Server) ListPositions(ctx context.Context, req *emptypb.Empty) (*employee.ListPositionsResponse, error) {
-	app.Logger.Info("RPC ListPositions called")
+	log.Printf("RPC ListPositions called")
 	positions, err := s.core.ListPositions(ctx)
 	if err != nil {
-		app.Logger.Error("failed to list positions", zap.Error(err))
+		log.Printf("failed to list positions: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list positions")
 	}
 
@@ -306,19 +305,19 @@ func (s *Server) ListPositions(ctx context.Context, req *emptypb.Empty) (*employ
 }
 
 func (s *Server) UpdatePosition(ctx context.Context, req *employee.UpdatePositionRequest) (*employee.Position, error) {
-	app.Logger.Info("RPC UpdatePosition called", zap.String("id", req.Id), zap.String("name", req.Name))
+	log.Printf("RPC UpdatePosition called: id=%s, name=%s", req.Id, req.Name)
 	if req.GetId() == "" {
-		app.Logger.Warn("RPC UpdatePosition: id is required")
+		log.Printf("RPC UpdatePosition: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 	if req.GetName() == "" {
-		app.Logger.Warn("RPC UpdatePosition: name is required")
+		log.Printf("RPC UpdatePosition: name is required")
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
 	position, err := s.core.UpdatePosition(ctx, req.GetId(), req.GetName())
 	if err != nil {
-		app.Logger.Error("failed to update position", zap.Error(err))
+		log.Printf("failed to update position: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update position")
 	}
 
@@ -329,15 +328,15 @@ func (s *Server) UpdatePosition(ctx context.Context, req *employee.UpdatePositio
 }
 
 func (s *Server) DeletePosition(ctx context.Context, req *employee.DeletePositionRequest) (*emptypb.Empty, error) {
-	app.Logger.Info("RPC DeletePosition called", zap.String("id", req.Id))
+	log.Printf("RPC DeletePosition called: id=%s", req.Id)
 	if req.GetId() == "" {
-		app.Logger.Warn("RPC DeletePosition: id is required")
+		log.Printf("RPC DeletePosition: id is required")
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
 	err := s.core.DeletePosition(ctx, req.GetId())
 	if err != nil {
-		app.Logger.Error("failed to delete position", zap.Error(err))
+		log.Printf("failed to delete position: %v", err)
 		return nil, status.Error(codes.Internal, "failed to delete position")
 	}
 
@@ -345,15 +344,15 @@ func (s *Server) DeletePosition(ctx context.Context, req *employee.DeletePositio
 }
 
 func (s *Server) CreateSkill(ctx context.Context, req *employee.CreateSkillRequest) (*employee.Skill, error) {
-	app.Logger.Info("RPC CreateSkill called", zap.String("name", req.Name))
+	log.Printf("RPC CreateSkill called: name=%s", req.Name)
 	if req.GetName() == "" {
-		app.Logger.Warn("RPC CreateSkill: name is required")
+		log.Printf("RPC CreateSkill: name is required")
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
 	skill, err := s.core.CreateSkill(ctx, req.GetName())
 	if err != nil {
-		app.Logger.Error("failed to create skill", zap.Error(err))
+		log.Printf("failed to create skill: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create skill")
 	}
 
@@ -364,10 +363,10 @@ func (s *Server) CreateSkill(ctx context.Context, req *employee.CreateSkillReque
 }
 
 func (s *Server) ListSkills(ctx context.Context, req *emptypb.Empty) (*employee.ListSkillsResponse, error) {
-	app.Logger.Info("RPC ListSkills called")
+	log.Printf("RPC ListSkills called")
 	skills, err := s.core.ListSkills(ctx)
 	if err != nil {
-		app.Logger.Error("failed to list skills", zap.Error(err))
+		log.Printf("failed to list skills: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list skills")
 	}
 
@@ -383,19 +382,19 @@ func (s *Server) ListSkills(ctx context.Context, req *emptypb.Empty) (*employee.
 }
 
 func (s *Server) AddSkillToEmployee(ctx context.Context, req *employee.AddSkillToEmployeeRequest) (*emptypb.Empty, error) {
-	app.Logger.Info("RPC AddSkillToEmployee called", zap.String("employeeID", req.EmployeeId), zap.String("skillID", req.SkillId))
+	log.Printf("RPC AddSkillToEmployee called: employeeID=%s, skillID=%s", req.EmployeeId, req.SkillId)
 	if req.GetEmployeeId() == "" {
-		app.Logger.Warn("RPC AddSkillToEmployee: employee_id is required")
+		log.Printf("RPC AddSkillToEmployee: employee_id is required")
 		return nil, status.Error(codes.InvalidArgument, "employee_id is required")
 	}
 	if req.GetSkillId() == "" {
-		app.Logger.Warn("RPC AddSkillToEmployee: skill_id is required")
+		log.Printf("RPC AddSkillToEmployee: skill_id is required")
 		return nil, status.Error(codes.InvalidArgument, "skill_id is required")
 	}
 
 	err := s.core.AddSkillToEmployee(ctx, req.GetEmployeeId(), req.GetSkillId())
 	if err != nil {
-		app.Logger.Error("failed to add skill to employee", zap.Error(err))
+		log.Printf("failed to add skill to employee: %v", err)
 		return nil, status.Error(codes.Internal, "failed to add skill to employee")
 	}
 
@@ -403,19 +402,19 @@ func (s *Server) AddSkillToEmployee(ctx context.Context, req *employee.AddSkillT
 }
 
 func (s *Server) RemoveSkillFromEmployee(ctx context.Context, req *employee.RemoveSkillFromEmployeeRequest) (*emptypb.Empty, error) {
-	app.Logger.Info("RPC RemoveSkillFromEmployee called", zap.String("employeeID", req.EmployeeId), zap.String("skillID", req.SkillId))
+	log.Printf("RPC RemoveSkillFromEmployee called: employeeID=%s, skillID=%s", req.EmployeeId, req.SkillId)
 	if req.GetEmployeeId() == "" {
-		app.Logger.Warn("RPC RemoveSkillFromEmployee: employee_id is required")
+		log.Printf("RPC RemoveSkillFromEmployee: employee_id is required")
 		return nil, status.Error(codes.InvalidArgument, "employee_id is required")
 	}
 	if req.GetSkillId() == "" {
-		app.Logger.Warn("RPC RemoveSkillFromEmployee: skill_id is required")
+		log.Printf("RPC RemoveSkillFromEmployee: skill_id is required")
 		return nil, status.Error(codes.InvalidArgument, "skill_id is required")
 	}
 
 	err := s.core.RemoveSkillFromEmployee(ctx, req.GetEmployeeId(), req.GetSkillId())
 	if err != nil {
-		app.Logger.Error("failed to remove skill from employee", zap.Error(err))
+		log.Printf("failed to remove skill from employee: %v", err)
 		return nil, status.Error(codes.Internal, "failed to remove skill from employee")
 	}
 

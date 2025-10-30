@@ -2,11 +2,10 @@ package employee
 
 import (
 	"context"
+	"log"
 
 	emp "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app"
 	"github.com/jackc/pgx/v5"
-	"go.uber.org/zap"
 )
 
 type CachedEmployeeStorage struct {
@@ -52,7 +51,7 @@ func (s *CachedEmployeeStorage) CreateDepartment(ctx context.Context, name strin
 func (s *CachedEmployeeStorage) GetDepartment(ctx context.Context, id string) (*emp.Department, error) {
 	department, err := s.cache.GetDepartment(ctx, id)
 	if err == nil && department != nil {
-		app.Logger.Debug("department found in cache", zap.String("id", id))
+		log.Printf("department found in cache: id=%s", id)
 		return department, nil
 	}
 
@@ -68,7 +67,7 @@ func (s *CachedEmployeeStorage) GetDepartment(ctx context.Context, id string) (*
 func (s *CachedEmployeeStorage) ListDepartments(ctx context.Context) ([]*emp.Department, error) {
 	departments, err := s.cache.GetDepartmentsList(ctx)
 	if err == nil && departments != nil {
-		app.Logger.Debug("departments list found in cache")
+		log.Printf("departments list found in cache")
 		return departments, nil
 	}
 
@@ -108,7 +107,7 @@ func (s *CachedEmployeeStorage) CreatePosition(ctx context.Context, name string)
 func (s *CachedEmployeeStorage) GetPosition(ctx context.Context, id string) (*emp.Position, error) {
 	position, err := s.cache.GetPosition(ctx, id)
 	if err == nil && position != nil {
-		app.Logger.Debug("position found in cache", zap.String("id", id))
+		log.Printf("position found in cache: id=%s", id)
 		return position, nil
 	}
 
@@ -124,7 +123,7 @@ func (s *CachedEmployeeStorage) GetPosition(ctx context.Context, id string) (*em
 func (s *CachedEmployeeStorage) ListPositions(ctx context.Context) ([]*emp.Position, error) {
 	positions, err := s.cache.GetPositionsList(ctx)
 	if err == nil && positions != nil {
-		app.Logger.Debug("positions list found in cache")
+		log.Printf("positions list found in cache")
 		return positions, nil
 	}
 
@@ -164,7 +163,7 @@ func (s *CachedEmployeeStorage) CreateSkill(ctx context.Context, name string) (*
 func (s *CachedEmployeeStorage) ListSkills(ctx context.Context) ([]*emp.Skill, error) {
 	skills, err := s.cache.GetSkillsList(ctx)
 	if err == nil && skills != nil {
-		app.Logger.Debug("skills list found in cache")
+		log.Printf("skills list found in cache")
 		return skills, nil
 	}
 
