@@ -87,3 +87,89 @@ func (s *Server) GetProject(ctx context.Context, req *pb.GetProjectRequest) (*pb
 	}
 	return pbProject, nil
 }
+
+func (s *Server) ListProjects(ctx context.Context, req *pb.ListProjectsRequest) (*pb.ListProjectsResponse, error) {
+	log.Printf("RPC ListProject called: managerId=%s, Status %s", req.GetManagerId(), req.GetStatus())
+
+	coreReq := &models.ListProjectsFilter{
+		PageSize:   req.PageSize,
+		PageNumber: req.PageNumber,
+		ManagerID:  req.ManagerId,
+	}
+
+	if req.Status != nil {
+		projStatus := models.ProjectStatusFromProtoValue(int32(*req.Status))
+		coreReq.Status = &projStatus
+	}
+	projects, err := s.core.ListProjects(ctx, coreReq)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to list projects")
+	}
+
+	if projects == nil {
+		projects = &models.ProjectsListResponse{
+			Projects:   make([]*models.Project, 0),
+			TotalCount: 0,
+		}
+	}
+
+	pbProjects := make([]*pb.Project, 0, len(projects.Projects))
+	for _, p := range projects.Projects {
+		pbP := &pb.Project{
+			Id:          p.ID,
+			Name:        p.Name,
+			Description: p.Description,
+			ManagerId:   p.ManagerID,
+			Status:      pb.ProjectStatus(p.Status.ProtoValue()),
+			CreatedAt:   timestamppb.New(p.CreatedAt),
+			UpdatedAt:   timestamppb.New(p.UpdatedAt),
+		}
+		if p.DueDate != nil {
+			pbP.DueDate = timestamppb.New(*p.DueDate)
+		}
+		pbProjects = append(pbProjects, pbP)
+	}
+
+	listResponse := &pb.ListProjectsResponse{
+		Projects:   pbProjects,
+		TotalCount: projects.TotalCount,
+	}
+
+	return listResponse, nil
+}
+
+func (s *Server) UpdateProject(ctx context.Context, req *pb.UpdateProjectRequest) (*pb.Project, error) {
+	log.Printf("RPC UpdateProject called %s:", req.GetProjectId())
+	if req.GetProjectId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "project id required")
+	}
+
+	pstatus := models.ProjectStatusFromProtoValue(int32(*req.Status))
+	fs := req.GetDueDate()
+	dueDate := fs.AsTime()
+
+	updReq := &models.UpdateProjectRequest{
+		ID: req.GetProjectId(),
+		Name: req.Name,
+		Description: req.Description,
+		Status: &pstatus,
+		DueDate: &dueDate,
+	}
+
+	updProject, err := s.core.UpdateProject(ctx, updReq)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to update project")
+	}
+
+	pbUpdProject := &pb.Project{
+		Id:          updProject.ID,
+		Name:        updProject.Name,
+		Description: updProject.Description,
+		ManagerId:   updProject.ManagerID,
+		CreatedAt:   timestamppb.New(updProject.CreatedAt),
+		UpdatedAt:   timestamppb.New(updProject.UpdatedAt),
+		DueDate:     timestamppb.New(*updProject.DueDate),
+		Status: 	pb.ProjectStatus(updProject.Status.ProtoValue()),	
+	}
+	return pbUpdProject, nil
+}

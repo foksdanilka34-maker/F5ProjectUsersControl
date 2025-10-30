@@ -16,6 +16,8 @@ type projectCore struct {
 type CoreLogic interface {
 	CreateProject(ctx context.Context, regProfile *models.CreateProjectRequest) (*models.Project, error)
 	GetProject(ctx context.Context, projectID string) (*models.Project, error)
+	ListProjects(ctx context.Context, listProject *models.ListProjectsFilter) (*models.ProjectsListResponse, error)
+	UpdateProject(ctx context.Context, updRequest *models.UpdateProjectRequest) (*models.Project, error)
 }
 
 func NewCore(project repo.ProjectStorage) CoreLogic {
@@ -51,4 +53,30 @@ func (p *projectCore) GetProject(ctx context.Context, projectID string) (*models
 		return nil, err
 	}
 	return project, nil
+}
+
+func (p *projectCore) ListProjects(ctx context.Context, listProject *models.ListProjectsFilter) (*models.ProjectsListResponse, error) {
+	if listProject.PageNumber <= 0 {
+		listProject.PageNumber = 1
+	}
+	if listProject.PageSize <= 0 {
+		listProject.PageSize = 5
+	}
+	projects, err := p.project.ListProjects(ctx, listProject)
+	if err != nil {
+		return nil, err
+	}
+	return projects, nil
+}
+
+func (p *projectCore) UpdateProject(ctx context.Context, updRequest *models.UpdateProjectRequest) (*models.Project, error) {
+	if updRequest.ID == "" {
+		log.Printf("project id is empty")
+		return nil, fmt.Errorf("projectId is empty")
+	}
+	updProject, err := p.project.UpdateProject(ctx, updRequest)
+	if err != nil {
+		return nil, err
+	}
+	return updProject, nil
 }
