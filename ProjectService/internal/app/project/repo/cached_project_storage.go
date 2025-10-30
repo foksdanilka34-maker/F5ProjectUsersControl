@@ -49,3 +49,17 @@ func (c *CachedProjectStorage) UpdateProject(ctx context.Context, updRequest *mo
 	}
 	return updProject, nil
 }
+
+func (c *CachedProjectStorage) DeleteProject(ctx context.Context, projectID string) error {
+	err := c.db.DeleteProject(ctx, projectID)
+	if err != nil {
+		log.Printf("error deleting project from db: %v", err)
+		return err
+	}
+
+	err = c.cache.Delete(ctx, projectID)
+	if err != nil {
+		log.Printf("error deleting project from cache, but deleted from db: %v", err)
+	}
+	return nil
+}

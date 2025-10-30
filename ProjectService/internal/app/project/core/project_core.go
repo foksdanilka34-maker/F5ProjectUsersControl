@@ -18,6 +18,7 @@ type CoreLogic interface {
 	GetProject(ctx context.Context, projectID string) (*models.Project, error)
 	ListProjects(ctx context.Context, listProject *models.ListProjectsFilter) (*models.ProjectsListResponse, error)
 	UpdateProject(ctx context.Context, updRequest *models.UpdateProjectRequest) (*models.Project, error)
+	DeleteProject(ctx context.Context, projectID string) error
 }
 
 func NewCore(project repo.ProjectStorage) CoreLogic {
@@ -79,4 +80,18 @@ func (p *projectCore) UpdateProject(ctx context.Context, updRequest *models.Upda
 		return nil, err
 	}
 	return updProject, nil
+}
+
+func (p *projectCore) DeleteProject(ctx context.Context, projectID string) error {
+	if projectID == "" {
+		log.Printf("empty projectID provided for deletion")
+		return fmt.Errorf("projectID cannot be empty")
+	}
+	err := p.project.DeleteProject(ctx, projectID)
+	if err != nil {
+		log.Printf("failed to delete project %s: %v", projectID, err)
+		return err
+	}
+	log.Printf("project %s deleted successfully", projectID)
+	return nil
 }

@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -149,11 +150,11 @@ func (s *Server) UpdateProject(ctx context.Context, req *pb.UpdateProjectRequest
 	dueDate := fs.AsTime()
 
 	updReq := &models.UpdateProjectRequest{
-		ID: req.GetProjectId(),
-		Name: req.Name,
+		ID:          req.GetProjectId(),
+		Name:        req.Name,
 		Description: req.Description,
-		Status: &pstatus,
-		DueDate: &dueDate,
+		Status:      &pstatus,
+		DueDate:     &dueDate,
 	}
 
 	updProject, err := s.core.UpdateProject(ctx, updReq)
@@ -169,7 +170,22 @@ func (s *Server) UpdateProject(ctx context.Context, req *pb.UpdateProjectRequest
 		CreatedAt:   timestamppb.New(updProject.CreatedAt),
 		UpdatedAt:   timestamppb.New(updProject.UpdatedAt),
 		DueDate:     timestamppb.New(*updProject.DueDate),
-		Status: 	pb.ProjectStatus(updProject.Status.ProtoValue()),	
+		Status:      pb.ProjectStatus(updProject.Status.ProtoValue()),
 	}
 	return pbUpdProject, nil
+}
+
+func (s *Server) DeleteProject(ctx context.Context, req *pb.DeleteProjectRequest) (*emptypb.Empty, error) {
+	log.Printf("RPC DeleteProject called for project %s", req.GetProjectId())
+	if req.GetProjectId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "project_id is required")
+	}
+
+	err := s.core.DeleteProject(ctx, req.GetProjectId())
+	if err != nil {
+		log.Printf("failed to delete project: %v", err)
+		return nil, status.Error(codes.Internal, "failed to delete project")
+	}
+
+	return &emptypb.Empty{}, nil
 }

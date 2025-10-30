@@ -26,6 +26,7 @@ type ProjectStorage interface {
 	GetProject(ctx context.Context, projectID string) (*models.Project, error)
 	ListProjects(ctx context.Context, listProject *models.ListProjectsFilter) (*models.ProjectsListResponse, error)
 	UpdateProject(ctx context.Context, updRequest *models.UpdateProjectRequest) (*models.Project, error)
+	DeleteProject(ctx context.Context, projectID string) error
 }
 
 func (s *Storage) CreateProject(ctx context.Context, createProject *models.CreateProjectRequest) (*models.Project, error) {
@@ -146,7 +147,7 @@ func (s *Storage) UpdateProject(ctx context.Context, updRequest *models.UpdatePr
 			WHERE project_id = $5
 			RETURNING project_id, project_name, project_description, 
 			manager_id, project_status, created_at, updated_at, due_date`
-	
+
 	updProject := &models.Project{}
 	err := s.pgx.QueryRow(ctx, query, updRequest.Name, updRequest.Description, updRequest.Status.DBValue(), updRequest.DueDate, updRequest.ID).Scan(
 		&updProject.ID,
@@ -167,4 +168,21 @@ func (s *Storage) UpdateProject(ctx context.Context, updRequest *models.UpdatePr
 		return nil, err
 	}
 	return updProject, nil
+}
+
+func (s *Storage) DeleteProject(ctx context.Context, projectID string) error {
+	query := `DELETE FROM project.projects WHERE project_id = $1`
+
+	result, err := s.pgx.Exec(ctx, query, projectID)
+	if err != nil {
+		log.Printf("system error while deleting project: %v", err)
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		log.Printf("project with id %s not found for deletion", projectID)
+		return errors.New("project not found")
+	}
+
+	log.Printf("project with id %s deleted", projectID)
+	return nil
 }

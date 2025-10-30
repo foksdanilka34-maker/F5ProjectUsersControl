@@ -31,6 +31,7 @@ func buildKey(projectID string) string {
 type ProjectCacheStorage interface {
 	Set(ctx context.Context, project *models.Project) error
 	Get(ctx context.Context, projectID string) (project *models.Project, err error)
+	Delete(ctx context.Context, projectID string) error
 }
 
 func (c *CacheStorage) Set(ctx context.Context, project *models.Project) error {
@@ -60,4 +61,14 @@ func (c *CacheStorage) Get(ctx context.Context, projectID string) (project *mode
 		return nil, err
 	}
 	return retProject, nil
+}
+
+func (c *CacheStorage) Delete(ctx context.Context, projectID string) error {
+	err := c.r.Del(ctx, buildKey(projectID)).Err()
+	if err != nil {
+		log.Printf("failed to delete project %s from cache: %v", projectID, err)
+		return err
+	}
+	log.Printf("project %s deleted from cache", projectID)
+	return nil
 }
