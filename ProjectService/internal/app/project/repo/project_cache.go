@@ -15,7 +15,7 @@ type CacheStorage struct {
 }
 
 const (
-	projectKey = "project:"
+	Key = "project:"
 )
 
 func NewCacheStorage(r *redis.Client) *CacheStorage {
@@ -24,8 +24,8 @@ func NewCacheStorage(r *redis.Client) *CacheStorage {
 	}
 }
 
-func buildKey(projectID string) string {
-	return projectKey + projectID
+func buildKey(ID string) string {
+	return Key + ID
 }
 
 type ProjectCacheStorage interface {
@@ -40,7 +40,7 @@ func (c *CacheStorage) Set(ctx context.Context, project *models.Project) error {
 		log.Printf("error marshaling object: %v", err)
 		return err
 	}
-	return c.r.Set(ctx, projectKey+project.ID, payload, 0).Err()
+	return c.r.Set(ctx,buildKey(project.ID), payload, 0).Err()
 }
 
 func (c *CacheStorage) Get(ctx context.Context, projectID string) (project *models.Project, err error) {
@@ -72,3 +72,4 @@ func (c *CacheStorage) Delete(ctx context.Context, projectID string) error {
 	log.Printf("project %s deleted from cache", projectID)
 	return nil
 }
+

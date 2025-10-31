@@ -82,6 +82,15 @@ func (l *loginCore) CreateProfile(ctx context.Context, regProfile *emp.RegisterD
 		return nil, err
 	}
 
+	fullName := regProfile.FirstName + " " + regProfile.LastName
+	var photoURL *string
+	if regProfile.AvatarUrl != "" {
+		photoURL = &regProfile.AvatarUrl
+	}
+	if err := l.publisher.PublishEmployeeCreated(ctx, newUser.UserID, fullName, photoURL); err != nil {
+		log.Printf("failed to publish employee created event: %v", err)
+	}
+
 	log.Printf("Profile created successfully: userID=%s", newUser.UserID)
 	return newUser, nil
 }
@@ -128,6 +137,18 @@ func (l *loginCore) UpdateProfile(ctx context.Context, userID string, updProf *e
 	if err != nil {
 		return nil, err
 	}
+
+	// Publish employee updated event to NATS
+	fullName := updProfile.FirstName + " " + updProfile.LastName
+	var photoURL *string
+	if updProfile.AvatarUrl != "" {
+		photoURL = &updProfile.AvatarUrl
+	}
+	if err := l.publisher.PublishEmployeeUpdated(ctx, updProfile.UserID, fullName, photoURL); err != nil {
+		log.Printf("failed to publish employee updated event: %v", err)
+		// Don't fail the whole operation, just log the error
+	}
+
 	log.Printf("Profile updated successfully: userID=%s", userID)
 	return updProfile, nil
 }

@@ -835,8 +835,9 @@ type CreateTaskRequest struct {
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	Priority      *TaskPriority          `protobuf:"varint,4,opt,name=priority,proto3,enum=project.TaskPriority,oneof" json:"priority,omitempty"`
-	AssigneeId    *string                `protobuf:"bytes,5,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
-	DueDate       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=due_date,json=dueDate,proto3,oneof" json:"due_date,omitempty"`
+	CreatorId     string                 `protobuf:"bytes,5,opt,name=creator_id,json=creatorId,proto3" json:"creator_id,omitempty"`
+	AssigneeId    *string                `protobuf:"bytes,6,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
+	DueDate       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -897,6 +898,13 @@ func (x *CreateTaskRequest) GetPriority() TaskPriority {
 		return *x.Priority
 	}
 	return TaskPriority_PRIORITY_UNSPECIFIED
+}
+
+func (x *CreateTaskRequest) GetCreatorId() string {
+	if x != nil {
+		return x.CreatorId
+	}
+	return ""
 }
 
 func (x *CreateTaskRequest) GetAssigneeId() string {
@@ -1587,19 +1595,20 @@ const file_project_service_project_proto_rawDesc = "" +
 	"\t_due_date\"5\n" +
 	"\x14DeleteProjectRequest\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\"\xae\x02\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\"\xbb\x02\n" +
 	"\x11CreateTaskRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x126\n" +
-	"\bpriority\x18\x04 \x01(\x0e2\x15.project.TaskPriorityH\x00R\bpriority\x88\x01\x01\x12$\n" +
-	"\vassignee_id\x18\x05 \x01(\tH\x01R\n" +
-	"assigneeId\x88\x01\x01\x12:\n" +
-	"\bdue_date\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x02R\adueDate\x88\x01\x01B\v\n" +
+	"\bpriority\x18\x04 \x01(\x0e2\x15.project.TaskPriorityH\x00R\bpriority\x88\x01\x01\x12\x1d\n" +
+	"\n" +
+	"creator_id\x18\x05 \x01(\tR\tcreatorId\x12$\n" +
+	"\vassignee_id\x18\x06 \x01(\tH\x01R\n" +
+	"assigneeId\x88\x01\x01\x125\n" +
+	"\bdue_date\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\adueDateB\v\n" +
 	"\t_priorityB\x0e\n" +
-	"\f_assignee_idB\v\n" +
-	"\t_due_date\")\n" +
+	"\f_assignee_id\")\n" +
 	"\x0eGetTaskRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x89\x03\n" +
 	"\x11UpdateTaskRequest\x12\x17\n" +

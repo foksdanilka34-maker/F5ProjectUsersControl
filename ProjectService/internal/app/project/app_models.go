@@ -262,7 +262,7 @@ type Project struct {
 type Task struct {
 	ID          string
 	ProjectID   string
-	Title       string
+	TaskName       string
 	Description string
 	Status      TaskStatus
 	Priority    TaskPriority
@@ -311,18 +311,18 @@ type ProjectsListResponse struct {
 
 type CreateTaskRequest struct {
 	ProjectID   string
-	Title       string
+	TaskName    string
 	Description string
 	Status      TaskStatus
 	Priority    TaskPriority
 	AssigneeID  *string
 	CreatorID   string
-	DueDate     *time.Time
+	DueDate     time.Time
 }
 
 type UpdateTaskRequest struct {
 	ID          string
-	Title       *string
+	TaskName       *string
 	Description *string
 	Status      *TaskStatus
 	Priority    *TaskPriority

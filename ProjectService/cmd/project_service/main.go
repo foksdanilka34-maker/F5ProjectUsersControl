@@ -8,8 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	// projectClient "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/client"
-	// natsclient "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/client/nats"
+	natsclient "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/client/nats"
 	projectCore "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/core"
 	project "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/repo"
 	projectServer "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/server"
@@ -66,29 +65,23 @@ func main() {
 	projectCache := project.NewCacheStorage(redisClient)
 
 	cachedProjectStorage := project.NewCachedProjectStorage(projectStorage, projectCache)
-	// natsConfig := &storage.NatsConfig{
-	// 	URL: storage.GetEnv(log, "NATS_URL", "nats://localhost:4222"),
-	// }
-	// // natsClient, err := storage.NewNATSConnection(*natsConfig)
-	// // if err != nil {
-	// // 	log.Fatal("nats connection error", zap.Error(err))
-	// // }
-	// // //publisher := natsclient.NewPublisher(natsClient)
 
-	// loginServiceConn, err := grpc.NewClient(
-	// 	storage.GetEnv(log, "EMPLOYEE_SERVICE_GRPC_ADDR", "localhost:50052"),
-	// 	grpc.WithTransportCredentials(insecure.NewCredentials()),
-	// )
+	natsConfig := &storage.NatsConfig{
+		URL: storage.GetEnv("NATS_URL", "nats://localhost:4222"),
+	}
 
-	// if err != nil {
-	// 	log.Fatal("Employee service client creation error", zap.Error(err))
-	// }
-	// defer loginServiceConn.Close()
+	natsClient, err := storage.NewNATSConnection(*natsConfig)
+	if err != nil {
+		log.Fatalf("nats connection error: %v", err)
+	}
+	defer natsClient.Close()
+	log.Println("NATS connected")
 
-	// projectClient1, err := projectClient.projectClient(loginServiceConn)
-	// if err != nil {
-	// 	log.Fatal("failed to create login service client", zap.Error(err))
-	// }
+	subscriber := natsclient.NewSubscriber(natsClient, projectStorage)
+	if err := subscriber.Start(ctx); err != nil {
+		log.Fatalf("failed to start NATS subscriber: %v", err)
+	}
+	log.Println("NATS subscriber started")
 
 	projectCore := projectCore.NewCore(cachedProjectStorage)
 	grpcServerImpl := projectServer.NewProjectServer(projectCore)

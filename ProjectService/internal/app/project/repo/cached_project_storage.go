@@ -63,3 +63,43 @@ func (c *CachedProjectStorage) DeleteProject(ctx context.Context, projectID stri
 	}
 	return nil
 }
+
+func (c *CachedProjectStorage) CreateTask(ctx context.Context, createTask *models.CreateTaskRequest) (*models.Task, error) {
+	return c.db.CreateTask(ctx, createTask)
+}
+
+func (c *CachedProjectStorage) GetTask(ctx context.Context, taskID string) (*models.Task, error) {
+	return c.db.GetTask(ctx, taskID)
+}
+
+func (c *CachedProjectStorage) UpdateTask(ctx context.Context, updRequest *models.UpdateTaskRequest) (*models.Task, error) {
+	return c.db.UpdateTask(ctx, updRequest)
+}
+
+func (c *CachedProjectStorage) DeleteTask(ctx context.Context, taskID string) error {
+	return c.db.DeleteTask(ctx, taskID)
+}
+
+func (c *CachedProjectStorage) MoveTask(ctx context.Context, moveRequest *models.MoveTaskRequest) (*models.Task, error) {
+	return c.db.MoveTask(ctx, moveRequest)
+}
+
+func (c *CachedProjectStorage) AssignTask(ctx context.Context, assignRequest *models.AssignTaskRequest) (*models.Task, error) {
+	return c.db.AssignTask(ctx, assignRequest)
+}
+
+func (c *CachedProjectStorage) ListTasksByProject(ctx context.Context, filter *models.ListTasksFilter) (*models.TasksListResponse, error) {
+	return c.db.ListTasksByProject(ctx, filter)
+}
+
+func (c *CachedProjectStorage) AddMemberToProject(ctx context.Context, projectID, userID string) error {
+	return c.db.AddMemberToProject(ctx, projectID, userID)
+}
+
+func (c *CachedProjectStorage) RemoveMemberFromProject(ctx context.Context, projectID, userID string) error {
+	return c.db.RemoveMemberFromProject(ctx, projectID, userID)
+}
+
+func (c *CachedProjectStorage) ListProjectMembers(ctx context.Context, projectID string) (*models.ProjectMembersResponse, error) {
+	return c.db.ListProjectMembers(ctx, projectID)
+}

@@ -122,8 +122,9 @@ message CreateTaskRequest {
     string title = 2;
     string description = 3;
     optional TaskPriority priority = 4;
-    optional string assignee_id = 5; 
-    optional google.protobuf.Timestamp due_date = 6;
+    string creator_id = 5; 
+    optional string assignee_id = 6; 
+    google.protobuf.Timestamp due_date = 7;
 }
 
 message GetTaskRequest {

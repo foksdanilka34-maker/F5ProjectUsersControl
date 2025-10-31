@@ -19,6 +19,18 @@ type CoreLogic interface {
 	ListProjects(ctx context.Context, listProject *models.ListProjectsFilter) (*models.ProjectsListResponse, error)
 	UpdateProject(ctx context.Context, updRequest *models.UpdateProjectRequest) (*models.Project, error)
 	DeleteProject(ctx context.Context, projectID string) error
+
+	CreateTask(ctx context.Context, createTask *models.CreateTaskRequest) (*models.Task, error)
+	GetTask(ctx context.Context, taskID string) (*models.Task, error)
+	UpdateTask(ctx context.Context, updRequest *models.UpdateTaskRequest) (*models.Task, error)
+	DeleteTask(ctx context.Context, taskID string) error
+	MoveTask(ctx context.Context, moveRequest *models.MoveTaskRequest) (*models.Task, error)
+	AssignTask(ctx context.Context, assignRequest *models.AssignTaskRequest) (*models.Task, error)
+	ListTasksByProject(ctx context.Context, filter *models.ListTasksFilter) (*models.TasksListResponse, error)
+
+	AddMemberToProject(ctx context.Context, projectID, userID string) error
+	RemoveMemberFromProject(ctx context.Context, projectID, userID string) error
+	ListProjectMembers(ctx context.Context, projectID string) (*models.ProjectMembersResponse, error)
 }
 
 func NewCore(project repo.ProjectStorage) CoreLogic {
@@ -94,4 +106,122 @@ func (p *projectCore) DeleteProject(ctx context.Context, projectID string) error
 	}
 	log.Printf("project %s deleted successfully", projectID)
 	return nil
+}
+
+func (p *projectCore) CreateTask(ctx context.Context, createTask *models.CreateTaskRequest) (*models.Task, error) {
+	newTask, err := p.project.CreateTask(ctx, createTask)
+	if err != nil {
+		return nil, err
+	}
+	return newTask, err
+}
+
+func (p *projectCore) GetTask(ctx context.Context, taskID string) (*models.Task, error) {
+	task, err := p.project.GetTask(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	return task, nil
+}
+
+func (p *projectCore) UpdateTask(ctx context.Context, updRequest *models.UpdateTaskRequest) (*models.Task, error) {
+	if updRequest.ID == "" {
+		log.Printf("task id is empty")
+		return nil, fmt.Errorf("taskID is empty")
+	}
+	updTask, err := p.project.UpdateTask(ctx, updRequest)
+	if err != nil {
+		return nil, err
+	}
+	return updTask, nil
+}
+
+func (p *projectCore) DeleteTask(ctx context.Context, taskID string) error {
+	if taskID == "" {
+		log.Printf("empty taskID provided for deletion")
+		return fmt.Errorf("taskID cannot be empty")
+	}
+	err := p.project.DeleteTask(ctx, taskID)
+	if err != nil {
+		log.Printf("failed to delete task %s: %v", taskID, err)
+		return err
+	}
+	log.Printf("task %s deleted successfully", taskID)
+	return nil
+}
+
+func (p *projectCore) MoveTask(ctx context.Context, moveRequest *models.MoveTaskRequest) (*models.Task, error) {
+	if moveRequest.TaskID == "" {
+		log.Printf("empty taskID provided for moving")
+		return nil, fmt.Errorf("taskID cannot be empty")
+	}
+	movedTask, err := p.project.MoveTask(ctx, moveRequest)
+	if err != nil {
+		return nil, err
+	}
+	return movedTask, nil
+}
+
+func (p *projectCore) AssignTask(ctx context.Context, assignRequest *models.AssignTaskRequest) (*models.Task, error) {
+	if assignRequest.TaskID == "" {
+		log.Printf("empty taskID provided for assignment")
+		return nil, fmt.Errorf("taskID cannot be empty")
+	}
+	assignedTask, err := p.project.AssignTask(ctx, assignRequest)
+	if err != nil {
+		return nil, err
+	}
+	return assignedTask, nil
+}
+
+func (p *projectCore) ListTasksByProject(ctx context.Context, filter *models.ListTasksFilter) (*models.TasksListResponse, error) {
+	if filter.ProjectID == "" {
+		log.Printf("empty projectID provided for listing tasks")
+		return nil, fmt.Errorf("projectID cannot be empty")
+	}
+	tasks, err := p.project.ListTasksByProject(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+func (p *projectCore) AddMemberToProject(ctx context.Context, projectID, userID string) error {
+	if projectID == "" || userID == "" {
+		log.Printf("empty projectID or userID provided")
+		return fmt.Errorf("projectID and userID cannot be empty")
+	}
+	err := p.project.AddMemberToProject(ctx, projectID, userID)
+	if err != nil {
+		log.Printf("failed to add member %s to project %s: %v", userID, projectID, err)
+		return err
+	}
+	log.Printf("member %s added to project %s successfully", userID, projectID)
+	return nil
+}
+
+func (p *projectCore) RemoveMemberFromProject(ctx context.Context, projectID, userID string) error {
+	if projectID == "" || userID == "" {
+		log.Printf("empty projectID or userID provided")
+		return fmt.Errorf("projectID and userID cannot be empty")
+	}
+	err := p.project.RemoveMemberFromProject(ctx, projectID, userID)
+	if err != nil {
+		log.Printf("failed to remove member %s from project %s: %v", userID, projectID, err)
+		return err
+	}
+	log.Printf("member %s removed from project %s successfully", userID, projectID)
+	return nil
+}
+
+func (p *projectCore) ListProjectMembers(ctx context.Context, projectID string) (*models.ProjectMembersResponse, error) {
+	if projectID == "" {
+		log.Printf("empty projectID provided for listing members")
+		return nil, fmt.Errorf("projectID cannot be empty")
+	}
+	members, err := p.project.ListProjectMembers(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	return members, nil
 }

@@ -30,6 +30,32 @@ func (s *Server) Register(gRPC *grpc.Server) {
 	pb.RegisterProjectServiceServer(gRPC, s)
 }
 
+// Helper function to convert models.Task to pb.Task
+func taskToProto(task *models.Task) *pb.Task {
+	pbTask := &pb.Task{
+		Id:          task.ID,
+		ProjectId:   task.ProjectID,
+		Title:       task.TaskName,
+		Description: task.Description,
+		Status:      pb.TaskStatus(task.Status.ProtoValue()),
+		Priority:    pb.TaskPriority(task.Priority.ProtoValue()),
+		CreatorId:   task.CreatorID,
+		OrderIndex:  task.OrderIndex,
+		CreatedAt:   timestamppb.New(task.CreatedAt),
+		UpdatedAt:   timestamppb.New(task.UpdatedAt),
+	}
+
+	if task.AssigneeID != nil {
+		pbTask.AssigneeId = *task.AssigneeID
+	}
+
+	if task.DueDate != nil {
+		pbTask.DueDate = timestamppb.New(*task.DueDate)
+	}
+
+	return pbTask
+}
+
 func (s *Server) CreateProject(ctx context.Context, req *pb.CreateProjectRequest) (*pb.Project, error) {
 	log.Printf("RPC CreateProject called: name=%s, managerID=%s", req.Name, req.ManagerId)
 	if req.GetName() == "" || req.GetManagerId() == "" {
@@ -188,4 +214,240 @@ func (s *Server) DeleteProject(ctx context.Context, req *pb.DeleteProjectRequest
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb.Task, error) {
+	log.Printf("RPC CreateTask called for project %s", req.GetProjectId())
+	if req.GetProjectId() == "" || req.GetTitle() == "" || req.GetCreatorId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "project_id, title and creator_id are required")
+	}
+
+	priority := models.TaskPriorityMedium
+	if req.Priority != nil {
+		priority = models.TaskPriorityFromProtoValue(int32(*req.Priority))
+	}
+
+	coreReq := &models.CreateTaskRequest{
+		ProjectID:   req.ProjectId,
+		TaskName:    req.Title,
+		Description: req.Description,
+		Status:      models.TaskStatusTodo,
+		Priority:    priority,
+		CreatorID:   req.CreatorId,
+		DueDate:     req.DueDate.AsTime(),
+	}
+
+	if req.AssigneeId != nil {
+		assigneeID := *req.AssigneeId
+		coreReq.AssigneeID = &assigneeID
+	}
+
+	task, err := s.core.CreateTask(ctx, coreReq)
+	if err != nil {
+		log.Printf("failed to create task: %v", err)
+		return nil, status.Error(codes.Internal, "failed to create task")
+	}
+
+	return taskToProto(task), nil
+}
+
+func (s *Server) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.Task, error) {
+	log.Printf("RPC GetTask called: taskID=%s", req.GetTaskId())
+	if req.GetTaskId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "task_id is required")
+	}
+
+	task, err := s.core.GetTask(ctx, req.TaskId)
+	if err != nil {
+		log.Printf("failed to get task: %v", err)
+		return nil, status.Error(codes.Internal, "failed to get task")
+	}
+
+	return taskToProto(task), nil
+}
+
+func (s *Server) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest) (*pb.Task, error) {
+	log.Printf("RPC UpdateTask called: taskID=%s", req.GetTaskId())
+	if req.GetTaskId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "task_id is required")
+	}
+
+	updReq := &models.UpdateTaskRequest{
+		ID:          req.TaskId,
+		TaskName:    req.Title,
+		Description: req.Description,
+		AssigneeID:  req.AssigneeId,
+	}
+
+	if req.Status != nil {
+		status := models.TaskStatusFromProtoValue(int32(*req.Status))
+		updReq.Status = &status
+	}
+
+	if req.Priority != nil {
+		priority := models.TaskPriorityFromProtoValue(int32(*req.Priority))
+		updReq.Priority = &priority
+	}
+
+	if req.DueDate != nil {
+		dueDate := req.DueDate.AsTime()
+		updReq.DueDate = &dueDate
+	}
+
+	task, err := s.core.UpdateTask(ctx, updReq)
+	if err != nil {
+		log.Printf("failed to update task: %v", err)
+		return nil, status.Error(codes.Internal, "failed to update task")
+	}
+
+	return taskToProto(task), nil
+}
+
+func (s *Server) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest) (*emptypb.Empty, error) {
+	log.Printf("RPC DeleteTask called for task %s", req.GetTaskId())
+	if req.GetTaskId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "task_id is required")
+	}
+
+	err := s.core.DeleteTask(ctx, req.TaskId)
+	if err != nil {
+		log.Printf("failed to delete task: %v", err)
+		return nil, status.Error(codes.Internal, "failed to delete task")
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) MoveTask(ctx context.Context, req *pb.MoveTaskRequest) (*pb.Task, error) {
+	log.Printf("RPC MoveTask called for task %s to status %s", req.GetTaskId(), req.GetNewStatus())
+	if req.GetTaskId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "task_id is required")
+	}
+
+	moveReq := &models.MoveTaskRequest{
+		TaskID:        req.TaskId,
+		NewStatus:     models.TaskStatusFromProtoValue(int32(req.NewStatus)),
+		NewOrderIndex: req.NewOrderIndex,
+	}
+
+	task, err := s.core.MoveTask(ctx, moveReq)
+	if err != nil {
+		log.Printf("failed to move task: %v", err)
+		return nil, status.Error(codes.Internal, "failed to move task")
+	}
+
+	return taskToProto(task), nil
+}
+
+func (s *Server) AssignTask(ctx context.Context, req *pb.AssignTaskRequest) (*pb.Task, error) {
+	log.Printf("RPC AssignTask called for task %s to assignee %s", req.GetTaskId(), req.GetAssigneeId())
+	if req.GetTaskId() == "" || req.GetAssigneeId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "task_id and assignee_id are required")
+	}
+
+	assignReq := &models.AssignTaskRequest{
+		TaskID:     req.TaskId,
+		AssigneeID: &req.AssigneeId,
+	}
+
+	task, err := s.core.AssignTask(ctx, assignReq)
+	if err != nil {
+		log.Printf("failed to assign task: %v", err)
+		return nil, status.Error(codes.Internal, "failed to assign task")
+	}
+
+	return taskToProto(task), nil
+}
+
+func (s *Server) ListTasksByProject(ctx context.Context, req *pb.ListTasksByProjectRequest) (*pb.ListTasksByProjectResponse, error) {
+	log.Printf("RPC ListTasksByProject called for project %s", req.GetProjectId())
+	if req.GetProjectId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "project_id is required")
+	}
+
+	filter := &models.ListTasksFilter{
+		ProjectID:  req.ProjectId,
+		AssigneeID: req.AssigneeId,
+	}
+
+	if req.Status != nil {
+		taskStatus := models.TaskStatusFromProtoValue(int32(*req.Status))
+		filter.Status = &taskStatus
+	}
+
+	if req.Priority != nil {
+		taskPriority := models.TaskPriorityFromProtoValue(int32(*req.Priority))
+		filter.Priority = &taskPriority
+	}
+
+	tasks, err := s.core.ListTasksByProject(ctx, filter)
+	if err != nil {
+		log.Printf("failed to list tasks: %v", err)
+		return nil, status.Error(codes.Internal, "failed to list tasks")
+	}
+
+	pbTasks := make([]*pb.Task, 0, len(tasks.Tasks))
+	for _, task := range tasks.Tasks {
+		pbTasks = append(pbTasks, taskToProto(task))
+	}
+
+	return &pb.ListTasksByProjectResponse{
+		Tasks: pbTasks,
+	}, nil
+}
+
+func (s *Server) AddMemberToProject(ctx context.Context, req *pb.AddMemberToProjectRequest) (*emptypb.Empty, error) {
+	log.Printf("RPC AddMemberToProject called: projectID=%s, userID=%s", req.GetProjectId(), req.GetUserId())
+	if req.GetProjectId() == "" || req.GetUserId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "project_id and user_id are required")
+	}
+
+	err := s.core.AddMemberToProject(ctx, req.ProjectId, req.UserId)
+	if err != nil {
+		log.Printf("failed to add member to project: %v", err)
+		return nil, status.Error(codes.Internal, "failed to add member to project")
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) RemoveMemberFromProject(ctx context.Context, req *pb.RemoveMemberFromProjectRequest) (*emptypb.Empty, error) {
+	log.Printf("RPC RemoveMemberFromProject called: projectID=%s, userID=%s", req.GetProjectId(), req.GetUserId())
+	if req.GetProjectId() == "" || req.GetUserId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "project_id and user_id are required")
+	}
+
+	err := s.core.RemoveMemberFromProject(ctx, req.ProjectId, req.UserId)
+	if err != nil {
+		log.Printf("failed to remove member from project: %v", err)
+		return nil, status.Error(codes.Internal, "failed to remove member from project")
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (s *Server) ListProjectMembers(ctx context.Context, req *pb.ListProjectMembersRequest) (*pb.ListProjectMembersResponse, error) {
+	log.Printf("RPC ListProjectMembers called for project %s", req.GetProjectId())
+	if req.GetProjectId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "project_id is required")
+	}
+
+	members, err := s.core.ListProjectMembers(ctx, req.ProjectId)
+	if err != nil {
+		log.Printf("failed to list project members: %v", err)
+		return nil, status.Error(codes.Internal, "failed to list project members")
+	}
+
+	pbMembers := make([]*pb.ProjectMember, 0, len(members.Members))
+	for _, member := range members.Members {
+		pbMembers = append(pbMembers, &pb.ProjectMember{
+			UserId:   member.UserID,
+			FullName: member.FullName,
+			Role:     member.Role.String(),
+		})
+	}
+
+	return &pb.ListProjectMembersResponse{
+		Members: pbMembers,
+	}, nil
 }
