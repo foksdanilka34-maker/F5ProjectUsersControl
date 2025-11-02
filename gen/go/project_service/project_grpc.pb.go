@@ -35,6 +35,8 @@ const (
 	ProjectService_AddMemberToProject_FullMethodName      = "/project.ProjectService/AddMemberToProject"
 	ProjectService_RemoveMemberFromProject_FullMethodName = "/project.ProjectService/RemoveMemberFromProject"
 	ProjectService_ListProjectMembers_FullMethodName      = "/project.ProjectService/ListProjectMembers"
+	ProjectService_GetTaskStatusHistory_FullMethodName    = "/project.ProjectService/GetTaskStatusHistory"
+	ProjectService_GetProjectMetrics_FullMethodName       = "/project.ProjectService/GetProjectMetrics"
 )
 
 // ProjectServiceClient is the client API for ProjectService service.
@@ -56,6 +58,8 @@ type ProjectServiceClient interface {
 	AddMemberToProject(ctx context.Context, in *AddMemberToProjectRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	RemoveMemberFromProject(ctx context.Context, in *RemoveMemberFromProjectRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ListProjectMembers(ctx context.Context, in *ListProjectMembersRequest, opts ...grpc.CallOption) (*ListProjectMembersResponse, error)
+	GetTaskStatusHistory(ctx context.Context, in *GetTaskStatusHistoryRequest, opts ...grpc.CallOption) (*GetTaskStatusHistoryResponse, error)
+	GetProjectMetrics(ctx context.Context, in *GetProjectMetricsRequest, opts ...grpc.CallOption) (*ProjectMetrics, error)
 }
 
 type projectServiceClient struct {
@@ -216,6 +220,26 @@ func (c *projectServiceClient) ListProjectMembers(ctx context.Context, in *ListP
 	return out, nil
 }
 
+func (c *projectServiceClient) GetTaskStatusHistory(ctx context.Context, in *GetTaskStatusHistoryRequest, opts ...grpc.CallOption) (*GetTaskStatusHistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTaskStatusHistoryResponse)
+	err := c.cc.Invoke(ctx, ProjectService_GetTaskStatusHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *projectServiceClient) GetProjectMetrics(ctx context.Context, in *GetProjectMetricsRequest, opts ...grpc.CallOption) (*ProjectMetrics, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProjectMetrics)
+	err := c.cc.Invoke(ctx, ProjectService_GetProjectMetrics_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProjectServiceServer is the server API for ProjectService service.
 // All implementations must embed UnimplementedProjectServiceServer
 // for forward compatibility.
@@ -235,6 +259,8 @@ type ProjectServiceServer interface {
 	AddMemberToProject(context.Context, *AddMemberToProjectRequest) (*emptypb.Empty, error)
 	RemoveMemberFromProject(context.Context, *RemoveMemberFromProjectRequest) (*emptypb.Empty, error)
 	ListProjectMembers(context.Context, *ListProjectMembersRequest) (*ListProjectMembersResponse, error)
+	GetTaskStatusHistory(context.Context, *GetTaskStatusHistoryRequest) (*GetTaskStatusHistoryResponse, error)
+	GetProjectMetrics(context.Context, *GetProjectMetricsRequest) (*ProjectMetrics, error)
 	mustEmbedUnimplementedProjectServiceServer()
 }
 
@@ -289,6 +315,12 @@ func (UnimplementedProjectServiceServer) RemoveMemberFromProject(context.Context
 }
 func (UnimplementedProjectServiceServer) ListProjectMembers(context.Context, *ListProjectMembersRequest) (*ListProjectMembersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListProjectMembers not implemented")
+}
+func (UnimplementedProjectServiceServer) GetTaskStatusHistory(context.Context, *GetTaskStatusHistoryRequest) (*GetTaskStatusHistoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTaskStatusHistory not implemented")
+}
+func (UnimplementedProjectServiceServer) GetProjectMetrics(context.Context, *GetProjectMetricsRequest) (*ProjectMetrics, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetProjectMetrics not implemented")
 }
 func (UnimplementedProjectServiceServer) mustEmbedUnimplementedProjectServiceServer() {}
 func (UnimplementedProjectServiceServer) testEmbeddedByValue()                        {}
@@ -581,6 +613,42 @@ func _ProjectService_ListProjectMembers_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProjectService_GetTaskStatusHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTaskStatusHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProjectServiceServer).GetTaskStatusHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProjectService_GetTaskStatusHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProjectServiceServer).GetTaskStatusHistory(ctx, req.(*GetTaskStatusHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProjectService_GetProjectMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProjectMetricsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProjectServiceServer).GetProjectMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProjectService_GetProjectMetrics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProjectServiceServer).GetProjectMetrics(ctx, req.(*GetProjectMetricsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProjectService_ServiceDesc is the grpc.ServiceDesc for ProjectService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -647,6 +715,14 @@ var ProjectService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListProjectMembers",
 			Handler:    _ProjectService_ListProjectMembers_Handler,
+		},
+		{
+			MethodName: "GetTaskStatusHistory",
+			Handler:    _ProjectService_GetTaskStatusHistory_Handler,
+		},
+		{
+			MethodName: "GetProjectMetrics",
+			Handler:    _ProjectService_GetProjectMetrics_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -19,6 +19,7 @@ import (
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -98,6 +99,9 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	grpcServerImpl.Register(grpcServer)
+
+	reflection.Register(grpcServer)
+	log.Println("gRPC reflection enabled")
 
 	go func() {
 		log.Printf("gRPC server listening on %s", lis.Addr().String())

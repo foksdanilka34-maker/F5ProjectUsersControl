@@ -299,6 +299,8 @@ type Task struct {
 	DueDate       *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	StartedAt     *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=started_at,json=startedAt,proto3,oneof" json:"started_at,omitempty"`
+	CompletedAt   *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=completed_at,json=completedAt,proto3,oneof" json:"completed_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -413,6 +415,20 @@ func (x *Task) GetCreatedAt() *timestamppb.Timestamp {
 func (x *Task) GetUpdatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *Task) GetStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartedAt
+	}
+	return nil
+}
+
+func (x *Task) GetCompletedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CompletedAt
 	}
 	return nil
 }
@@ -1517,6 +1533,362 @@ func (x *ListProjectMembersResponse) GetMembers() []*ProjectMember {
 	return nil
 }
 
+type TaskStatusHistoryEntry struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TaskId        string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	FromStatus    *TaskStatus            `protobuf:"varint,3,opt,name=from_status,json=fromStatus,proto3,enum=project.TaskStatus,oneof" json:"from_status,omitempty"`
+	ToStatus      TaskStatus             `protobuf:"varint,4,opt,name=to_status,json=toStatus,proto3,enum=project.TaskStatus" json:"to_status,omitempty"`
+	ChangedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=changed_at,json=changedAt,proto3" json:"changed_at,omitempty"`
+	ActorId       *string                `protobuf:"bytes,6,opt,name=actor_id,json=actorId,proto3,oneof" json:"actor_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskStatusHistoryEntry) Reset() {
+	*x = TaskStatusHistoryEntry{}
+	mi := &file_project_service_project_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskStatusHistoryEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskStatusHistoryEntry) ProtoMessage() {}
+
+func (x *TaskStatusHistoryEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_project_service_project_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskStatusHistoryEntry.ProtoReflect.Descriptor instead.
+func (*TaskStatusHistoryEntry) Descriptor() ([]byte, []int) {
+	return file_project_service_project_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *TaskStatusHistoryEntry) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TaskStatusHistoryEntry) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *TaskStatusHistoryEntry) GetFromStatus() TaskStatus {
+	if x != nil && x.FromStatus != nil {
+		return *x.FromStatus
+	}
+	return TaskStatus_TASK_STATUS_UNSPECIFIED
+}
+
+func (x *TaskStatusHistoryEntry) GetToStatus() TaskStatus {
+	if x != nil {
+		return x.ToStatus
+	}
+	return TaskStatus_TASK_STATUS_UNSPECIFIED
+}
+
+func (x *TaskStatusHistoryEntry) GetChangedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ChangedAt
+	}
+	return nil
+}
+
+func (x *TaskStatusHistoryEntry) GetActorId() string {
+	if x != nil && x.ActorId != nil {
+		return *x.ActorId
+	}
+	return ""
+}
+
+type GetTaskStatusHistoryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageNumber    int32                  `protobuf:"varint,3,opt,name=page_number,json=pageNumber,proto3" json:"page_number,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTaskStatusHistoryRequest) Reset() {
+	*x = GetTaskStatusHistoryRequest{}
+	mi := &file_project_service_project_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTaskStatusHistoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTaskStatusHistoryRequest) ProtoMessage() {}
+
+func (x *GetTaskStatusHistoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_project_service_project_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTaskStatusHistoryRequest.ProtoReflect.Descriptor instead.
+func (*GetTaskStatusHistoryRequest) Descriptor() ([]byte, []int) {
+	return file_project_service_project_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *GetTaskStatusHistoryRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *GetTaskStatusHistoryRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *GetTaskStatusHistoryRequest) GetPageNumber() int32 {
+	if x != nil {
+		return x.PageNumber
+	}
+	return 0
+}
+
+type GetTaskStatusHistoryResponse struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	History       []*TaskStatusHistoryEntry `protobuf:"bytes,1,rep,name=history,proto3" json:"history,omitempty"`
+	TotalCount    int32                     `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTaskStatusHistoryResponse) Reset() {
+	*x = GetTaskStatusHistoryResponse{}
+	mi := &file_project_service_project_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTaskStatusHistoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTaskStatusHistoryResponse) ProtoMessage() {}
+
+func (x *GetTaskStatusHistoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_project_service_project_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTaskStatusHistoryResponse.ProtoReflect.Descriptor instead.
+func (*GetTaskStatusHistoryResponse) Descriptor() ([]byte, []int) {
+	return file_project_service_project_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *GetTaskStatusHistoryResponse) GetHistory() []*TaskStatusHistoryEntry {
+	if x != nil {
+		return x.History
+	}
+	return nil
+}
+
+func (x *GetTaskStatusHistoryResponse) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+type GetProjectMetricsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=start_date,json=startDate,proto3,oneof" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=end_date,json=endDate,proto3,oneof" json:"end_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProjectMetricsRequest) Reset() {
+	*x = GetProjectMetricsRequest{}
+	mi := &file_project_service_project_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProjectMetricsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProjectMetricsRequest) ProtoMessage() {}
+
+func (x *GetProjectMetricsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_project_service_project_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProjectMetricsRequest.ProtoReflect.Descriptor instead.
+func (*GetProjectMetricsRequest) Descriptor() ([]byte, []int) {
+	return file_project_service_project_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *GetProjectMetricsRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *GetProjectMetricsRequest) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *GetProjectMetricsRequest) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
+type ProjectMetrics struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId              string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	TotalTasks             int32                  `protobuf:"varint,2,opt,name=total_tasks,json=totalTasks,proto3" json:"total_tasks,omitempty"`
+	CompletedTasks         int32                  `protobuf:"varint,3,opt,name=completed_tasks,json=completedTasks,proto3" json:"completed_tasks,omitempty"`
+	OverdueTasks           int32                  `protobuf:"varint,4,opt,name=overdue_tasks,json=overdueTasks,proto3" json:"overdue_tasks,omitempty"`
+	InProgressTasks        int32                  `protobuf:"varint,5,opt,name=in_progress_tasks,json=inProgressTasks,proto3" json:"in_progress_tasks,omitempty"`
+	AvgCompletionTimeHours float64                `protobuf:"fixed64,6,opt,name=avg_completion_time_hours,json=avgCompletionTimeHours,proto3" json:"avg_completion_time_hours,omitempty"`
+	OnTimeCompletionRate   float64                `protobuf:"fixed64,7,opt,name=on_time_completion_rate,json=onTimeCompletionRate,proto3" json:"on_time_completion_rate,omitempty"`
+	CalculatedAt           *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=calculated_at,json=calculatedAt,proto3" json:"calculated_at,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ProjectMetrics) Reset() {
+	*x = ProjectMetrics{}
+	mi := &file_project_service_project_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProjectMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProjectMetrics) ProtoMessage() {}
+
+func (x *ProjectMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_project_service_project_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProjectMetrics.ProtoReflect.Descriptor instead.
+func (*ProjectMetrics) Descriptor() ([]byte, []int) {
+	return file_project_service_project_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *ProjectMetrics) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *ProjectMetrics) GetTotalTasks() int32 {
+	if x != nil {
+		return x.TotalTasks
+	}
+	return 0
+}
+
+func (x *ProjectMetrics) GetCompletedTasks() int32 {
+	if x != nil {
+		return x.CompletedTasks
+	}
+	return 0
+}
+
+func (x *ProjectMetrics) GetOverdueTasks() int32 {
+	if x != nil {
+		return x.OverdueTasks
+	}
+	return 0
+}
+
+func (x *ProjectMetrics) GetInProgressTasks() int32 {
+	if x != nil {
+		return x.InProgressTasks
+	}
+	return 0
+}
+
+func (x *ProjectMetrics) GetAvgCompletionTimeHours() float64 {
+	if x != nil {
+		return x.AvgCompletionTimeHours
+	}
+	return 0
+}
+
+func (x *ProjectMetrics) GetOnTimeCompletionRate() float64 {
+	if x != nil {
+		return x.OnTimeCompletionRate
+	}
+	return 0
+}
+
+func (x *ProjectMetrics) GetCalculatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CalculatedAt
+	}
+	return nil
+}
+
 var File_project_service_project_proto protoreflect.FileDescriptor
 
 const file_project_service_project_proto_rawDesc = "" +
@@ -1533,7 +1905,7 @@ const file_project_service_project_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xdb\x03\n" +
+	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xff\x04\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -1553,7 +1925,12 @@ const file_project_service_project_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"Y\n" +
+	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12>\n" +
+	"\n" +
+	"started_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampH\x00R\tstartedAt\x88\x01\x01\x12B\n" +
+	"\fcompleted_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampH\x01R\vcompletedAt\x88\x01\x01B\r\n" +
+	"\v_started_atB\x0f\n" +
+	"\r_completed_at\"Y\n" +
 	"\rProjectMember\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
 	"\tfull_name\x18\x02 \x01(\tR\bfullName\x12\x12\n" +
@@ -1661,7 +2038,46 @@ const file_project_service_project_proto_rawDesc = "" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\"N\n" +
 	"\x1aListProjectMembersResponse\x120\n" +
-	"\amembers\x18\x01 \x03(\v2\x16.project.ProjectMemberR\amembers*Z\n" +
+	"\amembers\x18\x01 \x03(\v2\x16.project.ProjectMemberR\amembers\"\xa6\x02\n" +
+	"\x16TaskStatusHistoryEntry\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\atask_id\x18\x02 \x01(\tR\x06taskId\x129\n" +
+	"\vfrom_status\x18\x03 \x01(\x0e2\x13.project.TaskStatusH\x00R\n" +
+	"fromStatus\x88\x01\x01\x120\n" +
+	"\tto_status\x18\x04 \x01(\x0e2\x13.project.TaskStatusR\btoStatus\x129\n" +
+	"\n" +
+	"changed_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tchangedAt\x12\x1e\n" +
+	"\bactor_id\x18\x06 \x01(\tH\x01R\aactorId\x88\x01\x01B\x0e\n" +
+	"\f_from_statusB\v\n" +
+	"\t_actor_id\"t\n" +
+	"\x1bGetTaskStatusHistoryRequest\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1f\n" +
+	"\vpage_number\x18\x03 \x01(\x05R\n" +
+	"pageNumber\"z\n" +
+	"\x1cGetTaskStatusHistoryResponse\x129\n" +
+	"\ahistory\x18\x01 \x03(\v2\x1f.project.TaskStatusHistoryEntryR\ahistory\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\x05R\n" +
+	"totalCount\"\xd1\x01\n" +
+	"\x18GetProjectMetricsRequest\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\x12>\n" +
+	"\n" +
+	"start_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\tstartDate\x88\x01\x01\x12:\n" +
+	"\bend_date\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\aendDate\x88\x01\x01B\r\n" +
+	"\v_start_dateB\v\n" +
+	"\t_end_date\"\xfd\x02\n" +
+	"\x0eProjectMetrics\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x1f\n" +
+	"\vtotal_tasks\x18\x02 \x01(\x05R\n" +
+	"totalTasks\x12'\n" +
+	"\x0fcompleted_tasks\x18\x03 \x01(\x05R\x0ecompletedTasks\x12#\n" +
+	"\roverdue_tasks\x18\x04 \x01(\x05R\foverdueTasks\x12*\n" +
+	"\x11in_progress_tasks\x18\x05 \x01(\x05R\x0finProgressTasks\x129\n" +
+	"\x19avg_completion_time_hours\x18\x06 \x01(\x01R\x16avgCompletionTimeHours\x125\n" +
+	"\x17on_time_completion_rate\x18\a \x01(\x01R\x14onTimeCompletionRate\x12?\n" +
+	"\rcalculated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\fcalculatedAt*Z\n" +
 	"\n" +
 	"TaskStatus\x12\x1b\n" +
 	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\b\n" +
@@ -1682,7 +2098,7 @@ const file_project_service_project_proto_rawDesc = "" +
 	"\n" +
 	"\x06ACTIVE\x10\x01\x12\v\n" +
 	"\aON_HOLD\x10\x02\x12\f\n" +
-	"\bARCHIVED\x10\x032\xa6\b\n" +
+	"\bARCHIVED\x10\x032\xdc\t\n" +
 	"\x0eProjectService\x12@\n" +
 	"\rCreateProject\x12\x1d.project.CreateProjectRequest\x1a\x10.project.Project\x12:\n" +
 	"\n" +
@@ -1703,7 +2119,9 @@ const file_project_service_project_proto_rawDesc = "" +
 	"\x12ListTasksByProject\x12\".project.ListTasksByProjectRequest\x1a#.project.ListTasksByProjectResponse\x12P\n" +
 	"\x12AddMemberToProject\x12\".project.AddMemberToProjectRequest\x1a\x16.google.protobuf.Empty\x12Z\n" +
 	"\x17RemoveMemberFromProject\x12'.project.RemoveMemberFromProjectRequest\x1a\x16.google.protobuf.Empty\x12]\n" +
-	"\x12ListProjectMembers\x12\".project.ListProjectMembersRequest\x1a#.project.ListProjectMembersResponseBKZIgithub.com/foksdanilka34-maker/F5ProjectUsersControl/project/v1;projectv1b\x06proto3"
+	"\x12ListProjectMembers\x12\".project.ListProjectMembersRequest\x1a#.project.ListProjectMembersResponse\x12c\n" +
+	"\x14GetTaskStatusHistory\x12$.project.GetTaskStatusHistoryRequest\x1a%.project.GetTaskStatusHistoryResponse\x12O\n" +
+	"\x11GetProjectMetrics\x12!.project.GetProjectMetricsRequest\x1a\x17.project.ProjectMetricsBKZIgithub.com/foksdanilka34-maker/F5ProjectUsersControl/project/v1;projectv1b\x06proto3"
 
 var (
 	file_project_service_project_proto_rawDescOnce sync.Once
@@ -1718,7 +2136,7 @@ func file_project_service_project_proto_rawDescGZIP() []byte {
 }
 
 var file_project_service_project_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_project_service_project_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_project_service_project_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_project_service_project_proto_goTypes = []any{
 	(TaskStatus)(0),                        // 0: project.TaskStatus
 	(TaskPriority)(0),                      // 1: project.TaskPriority
@@ -1744,69 +2162,87 @@ var file_project_service_project_proto_goTypes = []any{
 	(*RemoveMemberFromProjectRequest)(nil), // 21: project.RemoveMemberFromProjectRequest
 	(*ListProjectMembersRequest)(nil),      // 22: project.ListProjectMembersRequest
 	(*ListProjectMembersResponse)(nil),     // 23: project.ListProjectMembersResponse
-	(*timestamppb.Timestamp)(nil),          // 24: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                  // 25: google.protobuf.Empty
+	(*TaskStatusHistoryEntry)(nil),         // 24: project.TaskStatusHistoryEntry
+	(*GetTaskStatusHistoryRequest)(nil),    // 25: project.GetTaskStatusHistoryRequest
+	(*GetTaskStatusHistoryResponse)(nil),   // 26: project.GetTaskStatusHistoryResponse
+	(*GetProjectMetricsRequest)(nil),       // 27: project.GetProjectMetricsRequest
+	(*ProjectMetrics)(nil),                 // 28: project.ProjectMetrics
+	(*timestamppb.Timestamp)(nil),          // 29: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                  // 30: google.protobuf.Empty
 }
 var file_project_service_project_proto_depIdxs = []int32{
 	2,  // 0: project.Project.status:type_name -> project.ProjectStatus
-	24, // 1: project.Project.due_date:type_name -> google.protobuf.Timestamp
-	24, // 2: project.Project.created_at:type_name -> google.protobuf.Timestamp
-	24, // 3: project.Project.updated_at:type_name -> google.protobuf.Timestamp
+	29, // 1: project.Project.due_date:type_name -> google.protobuf.Timestamp
+	29, // 2: project.Project.created_at:type_name -> google.protobuf.Timestamp
+	29, // 3: project.Project.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 4: project.Task.status:type_name -> project.TaskStatus
 	1,  // 5: project.Task.priority:type_name -> project.TaskPriority
-	24, // 6: project.Task.due_date:type_name -> google.protobuf.Timestamp
-	24, // 7: project.Task.created_at:type_name -> google.protobuf.Timestamp
-	24, // 8: project.Task.updated_at:type_name -> google.protobuf.Timestamp
-	24, // 9: project.CreateProjectRequest.due_date:type_name -> google.protobuf.Timestamp
-	2,  // 10: project.ListProjectsRequest.status:type_name -> project.ProjectStatus
-	3,  // 11: project.ListProjectsResponse.projects:type_name -> project.Project
-	2,  // 12: project.UpdateProjectRequest.status:type_name -> project.ProjectStatus
-	24, // 13: project.UpdateProjectRequest.due_date:type_name -> google.protobuf.Timestamp
-	1,  // 14: project.CreateTaskRequest.priority:type_name -> project.TaskPriority
-	24, // 15: project.CreateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
-	0,  // 16: project.UpdateTaskRequest.status:type_name -> project.TaskStatus
-	1,  // 17: project.UpdateTaskRequest.priority:type_name -> project.TaskPriority
-	24, // 18: project.UpdateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
-	0,  // 19: project.MoveTaskRequest.new_status:type_name -> project.TaskStatus
-	0,  // 20: project.ListTasksByProjectRequest.status:type_name -> project.TaskStatus
-	1,  // 21: project.ListTasksByProjectRequest.priority:type_name -> project.TaskPriority
-	4,  // 22: project.ListTasksByProjectResponse.tasks:type_name -> project.Task
-	5,  // 23: project.ListProjectMembersResponse.members:type_name -> project.ProjectMember
-	6,  // 24: project.ProjectService.CreateProject:input_type -> project.CreateProjectRequest
-	7,  // 25: project.ProjectService.GetProject:input_type -> project.GetProjectRequest
-	8,  // 26: project.ProjectService.ListProjects:input_type -> project.ListProjectsRequest
-	10, // 27: project.ProjectService.UpdateProject:input_type -> project.UpdateProjectRequest
-	11, // 28: project.ProjectService.DeleteProject:input_type -> project.DeleteProjectRequest
-	12, // 29: project.ProjectService.CreateTask:input_type -> project.CreateTaskRequest
-	13, // 30: project.ProjectService.GetTask:input_type -> project.GetTaskRequest
-	14, // 31: project.ProjectService.UpdateTask:input_type -> project.UpdateTaskRequest
-	15, // 32: project.ProjectService.DeleteTask:input_type -> project.DeleteTaskRequest
-	16, // 33: project.ProjectService.MoveTask:input_type -> project.MoveTaskRequest
-	17, // 34: project.ProjectService.AssignTask:input_type -> project.AssignTaskRequest
-	18, // 35: project.ProjectService.ListTasksByProject:input_type -> project.ListTasksByProjectRequest
-	20, // 36: project.ProjectService.AddMemberToProject:input_type -> project.AddMemberToProjectRequest
-	21, // 37: project.ProjectService.RemoveMemberFromProject:input_type -> project.RemoveMemberFromProjectRequest
-	22, // 38: project.ProjectService.ListProjectMembers:input_type -> project.ListProjectMembersRequest
-	3,  // 39: project.ProjectService.CreateProject:output_type -> project.Project
-	3,  // 40: project.ProjectService.GetProject:output_type -> project.Project
-	9,  // 41: project.ProjectService.ListProjects:output_type -> project.ListProjectsResponse
-	3,  // 42: project.ProjectService.UpdateProject:output_type -> project.Project
-	25, // 43: project.ProjectService.DeleteProject:output_type -> google.protobuf.Empty
-	4,  // 44: project.ProjectService.CreateTask:output_type -> project.Task
-	4,  // 45: project.ProjectService.GetTask:output_type -> project.Task
-	4,  // 46: project.ProjectService.UpdateTask:output_type -> project.Task
-	25, // 47: project.ProjectService.DeleteTask:output_type -> google.protobuf.Empty
-	4,  // 48: project.ProjectService.MoveTask:output_type -> project.Task
-	4,  // 49: project.ProjectService.AssignTask:output_type -> project.Task
-	19, // 50: project.ProjectService.ListTasksByProject:output_type -> project.ListTasksByProjectResponse
-	25, // 51: project.ProjectService.AddMemberToProject:output_type -> google.protobuf.Empty
-	25, // 52: project.ProjectService.RemoveMemberFromProject:output_type -> google.protobuf.Empty
-	23, // 53: project.ProjectService.ListProjectMembers:output_type -> project.ListProjectMembersResponse
-	39, // [39:54] is the sub-list for method output_type
-	24, // [24:39] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	29, // 6: project.Task.due_date:type_name -> google.protobuf.Timestamp
+	29, // 7: project.Task.created_at:type_name -> google.protobuf.Timestamp
+	29, // 8: project.Task.updated_at:type_name -> google.protobuf.Timestamp
+	29, // 9: project.Task.started_at:type_name -> google.protobuf.Timestamp
+	29, // 10: project.Task.completed_at:type_name -> google.protobuf.Timestamp
+	29, // 11: project.CreateProjectRequest.due_date:type_name -> google.protobuf.Timestamp
+	2,  // 12: project.ListProjectsRequest.status:type_name -> project.ProjectStatus
+	3,  // 13: project.ListProjectsResponse.projects:type_name -> project.Project
+	2,  // 14: project.UpdateProjectRequest.status:type_name -> project.ProjectStatus
+	29, // 15: project.UpdateProjectRequest.due_date:type_name -> google.protobuf.Timestamp
+	1,  // 16: project.CreateTaskRequest.priority:type_name -> project.TaskPriority
+	29, // 17: project.CreateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
+	0,  // 18: project.UpdateTaskRequest.status:type_name -> project.TaskStatus
+	1,  // 19: project.UpdateTaskRequest.priority:type_name -> project.TaskPriority
+	29, // 20: project.UpdateTaskRequest.due_date:type_name -> google.protobuf.Timestamp
+	0,  // 21: project.MoveTaskRequest.new_status:type_name -> project.TaskStatus
+	0,  // 22: project.ListTasksByProjectRequest.status:type_name -> project.TaskStatus
+	1,  // 23: project.ListTasksByProjectRequest.priority:type_name -> project.TaskPriority
+	4,  // 24: project.ListTasksByProjectResponse.tasks:type_name -> project.Task
+	5,  // 25: project.ListProjectMembersResponse.members:type_name -> project.ProjectMember
+	0,  // 26: project.TaskStatusHistoryEntry.from_status:type_name -> project.TaskStatus
+	0,  // 27: project.TaskStatusHistoryEntry.to_status:type_name -> project.TaskStatus
+	29, // 28: project.TaskStatusHistoryEntry.changed_at:type_name -> google.protobuf.Timestamp
+	24, // 29: project.GetTaskStatusHistoryResponse.history:type_name -> project.TaskStatusHistoryEntry
+	29, // 30: project.GetProjectMetricsRequest.start_date:type_name -> google.protobuf.Timestamp
+	29, // 31: project.GetProjectMetricsRequest.end_date:type_name -> google.protobuf.Timestamp
+	29, // 32: project.ProjectMetrics.calculated_at:type_name -> google.protobuf.Timestamp
+	6,  // 33: project.ProjectService.CreateProject:input_type -> project.CreateProjectRequest
+	7,  // 34: project.ProjectService.GetProject:input_type -> project.GetProjectRequest
+	8,  // 35: project.ProjectService.ListProjects:input_type -> project.ListProjectsRequest
+	10, // 36: project.ProjectService.UpdateProject:input_type -> project.UpdateProjectRequest
+	11, // 37: project.ProjectService.DeleteProject:input_type -> project.DeleteProjectRequest
+	12, // 38: project.ProjectService.CreateTask:input_type -> project.CreateTaskRequest
+	13, // 39: project.ProjectService.GetTask:input_type -> project.GetTaskRequest
+	14, // 40: project.ProjectService.UpdateTask:input_type -> project.UpdateTaskRequest
+	15, // 41: project.ProjectService.DeleteTask:input_type -> project.DeleteTaskRequest
+	16, // 42: project.ProjectService.MoveTask:input_type -> project.MoveTaskRequest
+	17, // 43: project.ProjectService.AssignTask:input_type -> project.AssignTaskRequest
+	18, // 44: project.ProjectService.ListTasksByProject:input_type -> project.ListTasksByProjectRequest
+	20, // 45: project.ProjectService.AddMemberToProject:input_type -> project.AddMemberToProjectRequest
+	21, // 46: project.ProjectService.RemoveMemberFromProject:input_type -> project.RemoveMemberFromProjectRequest
+	22, // 47: project.ProjectService.ListProjectMembers:input_type -> project.ListProjectMembersRequest
+	25, // 48: project.ProjectService.GetTaskStatusHistory:input_type -> project.GetTaskStatusHistoryRequest
+	27, // 49: project.ProjectService.GetProjectMetrics:input_type -> project.GetProjectMetricsRequest
+	3,  // 50: project.ProjectService.CreateProject:output_type -> project.Project
+	3,  // 51: project.ProjectService.GetProject:output_type -> project.Project
+	9,  // 52: project.ProjectService.ListProjects:output_type -> project.ListProjectsResponse
+	3,  // 53: project.ProjectService.UpdateProject:output_type -> project.Project
+	30, // 54: project.ProjectService.DeleteProject:output_type -> google.protobuf.Empty
+	4,  // 55: project.ProjectService.CreateTask:output_type -> project.Task
+	4,  // 56: project.ProjectService.GetTask:output_type -> project.Task
+	4,  // 57: project.ProjectService.UpdateTask:output_type -> project.Task
+	30, // 58: project.ProjectService.DeleteTask:output_type -> google.protobuf.Empty
+	4,  // 59: project.ProjectService.MoveTask:output_type -> project.Task
+	4,  // 60: project.ProjectService.AssignTask:output_type -> project.Task
+	19, // 61: project.ProjectService.ListTasksByProject:output_type -> project.ListTasksByProjectResponse
+	30, // 62: project.ProjectService.AddMemberToProject:output_type -> google.protobuf.Empty
+	30, // 63: project.ProjectService.RemoveMemberFromProject:output_type -> google.protobuf.Empty
+	23, // 64: project.ProjectService.ListProjectMembers:output_type -> project.ListProjectMembersResponse
+	26, // 65: project.ProjectService.GetTaskStatusHistory:output_type -> project.GetTaskStatusHistoryResponse
+	28, // 66: project.ProjectService.GetProjectMetrics:output_type -> project.ProjectMetrics
+	50, // [50:67] is the sub-list for method output_type
+	33, // [33:50] is the sub-list for method input_type
+	33, // [33:33] is the sub-list for extension type_name
+	33, // [33:33] is the sub-list for extension extendee
+	0,  // [0:33] is the sub-list for field type_name
 }
 
 func init() { file_project_service_project_proto_init() }
@@ -1814,19 +2250,22 @@ func file_project_service_project_proto_init() {
 	if File_project_service_project_proto != nil {
 		return
 	}
+	file_project_service_project_proto_msgTypes[1].OneofWrappers = []any{}
 	file_project_service_project_proto_msgTypes[3].OneofWrappers = []any{}
 	file_project_service_project_proto_msgTypes[5].OneofWrappers = []any{}
 	file_project_service_project_proto_msgTypes[7].OneofWrappers = []any{}
 	file_project_service_project_proto_msgTypes[9].OneofWrappers = []any{}
 	file_project_service_project_proto_msgTypes[11].OneofWrappers = []any{}
 	file_project_service_project_proto_msgTypes[15].OneofWrappers = []any{}
+	file_project_service_project_proto_msgTypes[21].OneofWrappers = []any{}
+	file_project_service_project_proto_msgTypes[24].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_project_service_project_proto_rawDesc), len(file_project_service_project_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   21,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

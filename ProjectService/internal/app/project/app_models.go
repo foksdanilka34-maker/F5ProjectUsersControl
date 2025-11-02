@@ -262,7 +262,7 @@ type Project struct {
 type Task struct {
 	ID          string
 	ProjectID   string
-	TaskName       string
+	TaskName    string
 	Description string
 	Status      TaskStatus
 	Priority    TaskPriority
@@ -272,6 +272,8 @@ type Task struct {
 	DueDate     *time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	StartedAt   *time.Time
+	CompletedAt *time.Time
 }
 
 type ProjectMember struct {
@@ -322,7 +324,7 @@ type CreateTaskRequest struct {
 
 type UpdateTaskRequest struct {
 	ID          string
-	TaskName       *string
+	TaskName    *string
 	Description *string
 	Status      *TaskStatus
 	Priority    *TaskPriority
@@ -355,4 +357,29 @@ type TasksListResponse struct {
 
 type ProjectMembersResponse struct {
 	Members []*ProjectMember
+}
+
+type TaskStatusHistoryEntry struct {
+	ID         string
+	TaskID     string
+	FromStatus *TaskStatus
+	ToStatus   TaskStatus
+	ChangedAt  time.Time
+	ActorID    *string
+}
+
+type TaskStatusHistoryResponse struct {
+	History    []*TaskStatusHistoryEntry
+	TotalCount int32
+}
+
+type ProjectMetrics struct {
+	ProjectID              string
+	TotalTasks             int32
+	CompletedTasks         int32
+	OverdueTasks           int32
+	InProgressTasks        int32
+	AvgCompletionTimeHours float64
+	OnTimeCompletionRate   float64
+	CalculatedAt           time.Time
 }

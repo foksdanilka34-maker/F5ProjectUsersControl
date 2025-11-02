@@ -138,7 +138,6 @@ func (l *loginCore) UpdateProfile(ctx context.Context, userID string, updProf *e
 		return nil, err
 	}
 
-	// Publish employee updated event to NATS
 	fullName := updProfile.FirstName + " " + updProfile.LastName
 	var photoURL *string
 	if updProfile.AvatarUrl != "" {
@@ -146,7 +145,6 @@ func (l *loginCore) UpdateProfile(ctx context.Context, userID string, updProf *e
 	}
 	if err := l.publisher.PublishEmployeeUpdated(ctx, updProfile.UserID, fullName, photoURL); err != nil {
 		log.Printf("failed to publish employee updated event: %v", err)
-		// Don't fail the whole operation, just log the error
 	}
 
 	log.Printf("Profile updated successfully: userID=%s", userID)

@@ -25,6 +25,9 @@ service ProjectService {
     rpc AddMemberToProject(AddMemberToProjectRequest) returns (google.protobuf.Empty);
     rpc RemoveMemberFromProject(RemoveMemberFromProjectRequest) returns (google.protobuf.Empty);
     rpc ListProjectMembers(ListProjectMembersRequest) returns (ListProjectMembersResponse);
+    
+    rpc GetTaskStatusHistory(GetTaskStatusHistoryRequest) returns (GetTaskStatusHistoryResponse);
+    rpc GetProjectMetrics(GetProjectMetricsRequest) returns (ProjectMetrics);
 }
 
 enum TaskStatus {
@@ -74,6 +77,8 @@ message Task {
     google.protobuf.Timestamp due_date = 10; 
     google.protobuf.Timestamp created_at = 11;
     google.protobuf.Timestamp updated_at = 12;
+    optional google.protobuf.Timestamp started_at = 13;
+    optional google.protobuf.Timestamp completed_at = 14;
 }
 
 message ProjectMember {
@@ -183,4 +188,41 @@ message ListProjectMembersRequest {
 
 message ListProjectMembersResponse {
     repeated ProjectMember members = 1;
+}
+
+message TaskStatusHistoryEntry {
+    string id = 1;
+    string task_id = 2;
+    optional TaskStatus from_status = 3;
+    TaskStatus to_status = 4;
+    google.protobuf.Timestamp changed_at = 5;
+    optional string actor_id = 6;
+}
+
+message GetTaskStatusHistoryRequest {
+    string task_id = 1;
+    int32 page_size = 2;
+    int32 page_number = 3;
+}
+
+message GetTaskStatusHistoryResponse {
+    repeated TaskStatusHistoryEntry history = 1;
+    int32 total_count = 2;
+}
+
+message GetProjectMetricsRequest {
+    string project_id = 1;
+    optional google.protobuf.Timestamp start_date = 2;
+    optional google.protobuf.Timestamp end_date = 3;
+}
+
+message ProjectMetrics {
+    string project_id = 1;
+    int32 total_tasks = 2;
+    int32 completed_tasks = 3;
+    int32 overdue_tasks = 4;
+    int32 in_progress_tasks = 5;
+    double avg_completion_time_hours = 6;
+    double on_time_completion_rate = 7;
+    google.protobuf.Timestamp calculated_at = 8;
 }

@@ -10,6 +10,7 @@ import (
 
 	natsclient "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/client/nats"
 	projectCore "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/core"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/events"
 	project "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/repo"
 	projectServer "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/server"
 
@@ -19,6 +20,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -83,7 +85,10 @@ func main() {
 	}
 	log.Println("NATS subscriber started")
 
-	projectCore := projectCore.NewCore(cachedProjectStorage)
+	publisher := events.NewPublisher(natsClient)
+	log.Println("NATS publisher initialized")
+
+	projectCore := projectCore.NewCore(cachedProjectStorage, publisher)
 	grpcServerImpl := projectServer.NewProjectServer(projectCore)
 
 	lis, err := net.Listen("tcp", listenAddr)
@@ -93,6 +98,9 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	grpcServerImpl.Register(grpcServer)
+
+	reflection.Register(grpcServer)
+	log.Println("gRPC reflection enabled")
 
 	go func() {
 		log.Printf("gRPC server listening on %s", lis.Addr().String())

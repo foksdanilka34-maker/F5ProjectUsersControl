@@ -103,3 +103,15 @@ func (c *CachedProjectStorage) RemoveMemberFromProject(ctx context.Context, proj
 func (c *CachedProjectStorage) ListProjectMembers(ctx context.Context, projectID string) (*models.ProjectMembersResponse, error) {
 	return c.db.ListProjectMembers(ctx, projectID)
 }
+
+func (c *CachedProjectStorage) RecordStatusChange(ctx context.Context, taskID string, fromStatus, toStatus models.TaskStatus, actorID *string) error {
+	return c.db.RecordStatusChange(ctx, taskID, fromStatus, toStatus, actorID)
+}
+
+func (c *CachedProjectStorage) GetTaskStatusHistory(ctx context.Context, taskID string, pageSize, pageNumber int32) (*models.TaskStatusHistoryResponse, error) {
+	return c.db.GetTaskStatusHistory(ctx, taskID, pageSize, pageNumber)
+}
+
+func (c *CachedProjectStorage) GetProjectMetrics(ctx context.Context, projectID string) (*models.ProjectMetrics, error) {
+	return c.db.GetProjectMetrics(ctx, projectID)
+}

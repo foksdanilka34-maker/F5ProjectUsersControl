@@ -53,6 +53,14 @@ func taskToProto(task *models.Task) *pb.Task {
 		pbTask.DueDate = timestamppb.New(*task.DueDate)
 	}
 
+	if task.StartedAt != nil {
+		pbTask.StartedAt = timestamppb.New(*task.StartedAt)
+	}
+
+	if task.CompletedAt != nil {
+		pbTask.CompletedAt = timestamppb.New(*task.CompletedAt)
+	}
+
 	return pbTask
 }
 
@@ -449,5 +457,74 @@ func (s *Server) ListProjectMembers(ctx context.Context, req *pb.ListProjectMemb
 
 	return &pb.ListProjectMembersResponse{
 		Members: pbMembers,
+	}, nil
+}
+
+func (s *Server) GetTaskStatusHistory(ctx context.Context, req *pb.GetTaskStatusHistoryRequest) (*pb.GetTaskStatusHistoryResponse, error) {
+	log.Printf("RPC GetTaskStatusHistory called for task %s", req.GetTaskId())
+	if req.GetTaskId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "task_id is required")
+	}
+
+	pageSize := req.GetPageSize()
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	pageNumber := req.GetPageNumber()
+	if pageNumber <= 0 {
+		pageNumber = 1
+	}
+
+	history, err := s.core.GetTaskStatusHistory(ctx, req.TaskId, pageSize, pageNumber)
+	if err != nil {
+		log.Printf("failed to get task status history: %v", err)
+		return nil, status.Error(codes.Internal, "failed to get task status history")
+	}
+
+	pbHistory := make([]*pb.TaskStatusHistoryEntry, 0, len(history.History))
+	for _, entry := range history.History {
+		pbEntry := &pb.TaskStatusHistoryEntry{
+			Id:        entry.ID,
+			TaskId:    entry.TaskID,
+			ToStatus:  pb.TaskStatus(entry.ToStatus.ProtoValue()),
+			ChangedAt: timestamppb.New(entry.ChangedAt),
+		}
+		if entry.FromStatus != nil {
+			fromStatus := pb.TaskStatus(entry.FromStatus.ProtoValue())
+			pbEntry.FromStatus = &fromStatus
+		}
+		if entry.ActorID != nil {
+			pbEntry.ActorId = entry.ActorID
+		}
+		pbHistory = append(pbHistory, pbEntry)
+	}
+
+	return &pb.GetTaskStatusHistoryResponse{
+		History:    pbHistory,
+		TotalCount: history.TotalCount,
+	}, nil
+}
+
+func (s *Server) GetProjectMetrics(ctx context.Context, req *pb.GetProjectMetricsRequest) (*pb.ProjectMetrics, error) {
+	log.Printf("RPC GetProjectMetrics called for project %s", req.GetProjectId())
+	if req.GetProjectId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "project_id is required")
+	}
+
+	metrics, err := s.core.GetProjectMetrics(ctx, req.ProjectId)
+	if err != nil {
+		log.Printf("failed to get project metrics: %v", err)
+		return nil, status.Error(codes.Internal, "failed to get project metrics")
+	}
+
+	return &pb.ProjectMetrics{
+		ProjectId:              metrics.ProjectID,
+		TotalTasks:             metrics.TotalTasks,
+		CompletedTasks:         metrics.CompletedTasks,
+		OverdueTasks:           metrics.OverdueTasks,
+		InProgressTasks:        metrics.InProgressTasks,
+		AvgCompletionTimeHours: metrics.AvgCompletionTimeHours,
+		OnTimeCompletionRate:   metrics.OnTimeCompletionRate,
+		CalculatedAt:           timestamppb.New(metrics.CalculatedAt),
 	}, nil
 }
