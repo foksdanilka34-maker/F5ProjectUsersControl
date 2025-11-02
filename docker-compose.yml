@@ -141,6 +141,51 @@ services:
       -database "postgres://${PROJECT_DB_USER}:${PROJECT_DB_PASSWORD}@project_db:5432/${PROJECT_DB}?sslmode=disable"
       up
     networks: [app_network]
+  
+  analytics_db:
+    image: postgres:17-alpine
+    container_name: analytics_service_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${ANALYTICS_DB_USER}
+      POSTGRES_PASSWORD: ${ANALYTICS_DB_PASSWORD}
+      POSTGRES_DB: ${ANALYTICS_DB}
+    ports:
+      - "${ANALYTICS_DB_PORT}:5432"
+    volumes:
+      - ./environment/analytics_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ANALYTICS_DB_USER} -d ${ANALYTICS_DB}"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app_network
+
+  analytics_redis:
+    image: redis:7
+    container_name: analytics_cache
+    restart: always
+    ports:
+      - "${ANALYTICS_REDIS_PORT}:6379"
+    volumes:
+      - ./environment/analytics_redis:/data
+    networks:
+      - app_network
+
+  migrate_analytics:
+    image: migrate/migrate
+    entrypoint: ["migrate"]
+    depends_on:
+      analytics_db: { condition: service_healthy }
+    volumes:
+      - ./AnalyticsService/migrations:/migrations
+    command: >
+      -path /migrations
+      -database "postgres://${ANALYTICS_DB_USER}:${ANALYTICS_DB_PASSWORD}@analytics_db:5432/${ANALYTICS_DB}?sslmode=disable"
+      up
+    networks: [app_network]
+
 
 volumes:
   nats-data:

@@ -24,6 +24,14 @@ proto-proj:
 	       --go_out=paths=source_relative:gen/go \
 	       api/project_service/project.proto
 
+proto-analytics:
+	protoc --proto_path=api \
+	       --go-grpc_out=paths=source_relative:gen/go \
+	       api/analytics_service/analytics.proto
+	protoc --proto_path=api \
+	       --go_out=paths=source_relative:gen/go \
+	       api/analytics_service/analytics.proto
+
 fmt:
 	go fmt ./...
 
@@ -36,6 +44,8 @@ run-es:
 	go run ./EmployeeService/cmd/employee_service/main.go
 run-ps:
 	go run ./ProjectService/cmd/project_service/main.go
+run-as:
+	go run ./AnalyticsService/cmd/analytics_service/main.go
 
 kill:
 	lsof -i :50051 | grep LISTEN | awk '{print $$2}' | xargs kill -9 2>/dev/null || true

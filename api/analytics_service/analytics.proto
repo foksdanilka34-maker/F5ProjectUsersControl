@@ -1,0 +1,258 @@
+syntax = "proto3";
+
+package analytics;
+
+option go_package = "github.com/foksdanilka34-maker/F5ProjectUsersControl/analytics/v1;analyticsv1";
+
+import "google/protobuf/timestamp.proto";
+
+service AnalyticsService {
+    rpc GetEmployeeMetrics(GetEmployeeMetricsRequest) returns (EmployeeMetricsResponse);
+    rpc ListEmployeeMetrics(ListEmployeeMetricsRequest) returns (ListEmployeeMetricsResponse);
+    rpc GetTopPerformers(GetTopPerformersRequest) returns (ListEmployeeMetricsResponse);
+    
+    rpc GetProjectMetrics(GetProjectMetricsRequest) returns (ProjectMetricsResponse);
+    rpc ListProjectMetrics(ListProjectMetricsRequest) returns (ListProjectMetricsResponse);
+    
+    rpc GetDepartmentMetrics(GetDepartmentMetricsRequest) returns (DepartmentMetricsResponse);
+    rpc ListDepartmentMetrics(ListDepartmentMetricsRequest) returns (ListDepartmentMetricsResponse);
+    
+    rpc SubscribeToMetricsUpdates(SubscribeToMetricsUpdatesRequest) returns (stream MetricsUpdate);
+    
+    rpc GetProductivityTrends(GetProductivityTrendsRequest) returns (ProductivityTrendsResponse);
+    rpc GetCompletionRateTrends(GetCompletionRateTrendsRequest) returns (CompletionRateTrendsResponse);
+    
+    rpc GetDashboardStats(GetDashboardStatsRequest) returns (DashboardStatsResponse);
+}
+
+message EmployeeMetrics {
+    string employee_id = 1;
+    string employee_name = 2;
+    string department = 3;
+    string position = 4;
+    
+    google.protobuf.Timestamp metric_date = 5;
+    
+    int32 tasks_completed = 6;
+    int32 tasks_assigned = 7;
+    double avg_completion_time_hours = 8;
+    double on_time_completion_rate = 9;
+    double avg_task_priority = 10; 
+    
+    repeated string skills_used = 11;
+    int32 projects_involved = 12;
+    
+    double efficiency_score = 13; 
+}
+
+message GetEmployeeMetricsRequest {
+    string employee_id = 1;
+    optional google.protobuf.Timestamp start_date = 2;
+    optional google.protobuf.Timestamp end_date = 3;
+}
+
+message EmployeeMetricsResponse {
+    repeated EmployeeMetrics metrics = 1;
+    google.protobuf.Timestamp calculated_at = 2;
+}
+
+message ListEmployeeMetricsRequest {
+    int32 page_size = 1;
+    int32 page_number = 2;
+    optional string department_id = 3;
+    optional google.protobuf.Timestamp start_date = 4;
+    optional google.protobuf.Timestamp end_date = 5;
+}
+
+message ListEmployeeMetricsResponse {
+    repeated EmployeeMetrics metrics = 1;
+    int32 total_count = 2;
+}
+
+message GetTopPerformersRequest {
+    int32 limit = 1;
+    optional string department_id = 2;
+    optional google.protobuf.Timestamp start_date = 3;
+    optional google.protobuf.Timestamp end_date = 4;
+}
+
+message ProjectMetrics {
+    string project_id = 1;
+    string project_name = 2;
+    string manager_id = 3;
+    string manager_name = 4;
+    
+    google.protobuf.Timestamp metric_date = 5;
+    
+    int32 total_tasks = 6;
+    int32 completed_tasks = 7;
+    int32 in_progress_tasks = 8;
+    int32 overdue_tasks = 9;
+    
+    double completion_rate = 10;
+    double on_time_completion_rate = 11; 
+    
+    int32 team_size = 12;
+    double avg_task_duration_hours = 13;
+    
+    double project_health_score = 14;
+}
+
+message GetProjectMetricsRequest {
+    string project_id = 1;
+    optional google.protobuf.Timestamp start_date = 2;
+    optional google.protobuf.Timestamp end_date = 3;
+}
+
+message ProjectMetricsResponse {
+    repeated ProjectMetrics metrics = 1;
+    google.protobuf.Timestamp calculated_at = 2;
+}
+
+message ListProjectMetricsRequest {
+    int32 page_size = 1;
+    int32 page_number = 2;
+    optional string manager_id = 3;
+    optional google.protobuf.Timestamp start_date = 4;
+    optional google.protobuf.Timestamp end_date = 5;
+}
+
+message ListProjectMetricsResponse {
+    repeated ProjectMetrics metrics = 1;
+    int32 total_count = 2;
+}
+
+message DepartmentMetrics {
+    string department_id = 1;
+    string department_name = 2;
+    
+    google.protobuf.Timestamp metric_date = 3;
+    
+    int32 total_employees = 4;
+    int32 active_projects = 5;
+    int32 total_tasks = 6;
+    int32 completed_tasks = 7;
+    
+    double avg_employee_efficiency = 8; 
+    double department_completion_rate = 9; 
+    double department_on_time_rate = 10;
+    
+    double department_health_score = 11; 
+}
+
+message GetDepartmentMetricsRequest {
+    string department_id = 1;
+    optional google.protobuf.Timestamp start_date = 2;
+    optional google.protobuf.Timestamp end_date = 3;
+}
+
+message DepartmentMetricsResponse {
+    repeated DepartmentMetrics metrics = 1;
+    google.protobuf.Timestamp calculated_at = 2;
+}
+
+message ListDepartmentMetricsRequest {
+    int32 page_size = 1;
+    int32 page_number = 2;
+    optional google.protobuf.Timestamp start_date = 3;
+    optional google.protobuf.Timestamp end_date = 4;
+}
+
+message ListDepartmentMetricsResponse {
+    repeated DepartmentMetrics metrics = 1;
+    int32 total_count = 2;
+}
+
+message SubscribeToMetricsUpdatesRequest {
+    optional string employee_id = 1;
+    optional string project_id = 2;
+    optional string department_id = 3;
+    int32 update_interval_seconds = 4; 
+}
+
+message MetricsUpdate {
+    oneof update {
+        EmployeeMetrics employee_metrics = 1;
+        ProjectMetrics project_metrics = 2;
+        DepartmentMetrics department_metrics = 3;
+    }
+    google.protobuf.Timestamp updated_at = 4;
+}
+
+message ProductivityTrendsResponse {
+    repeated ProductivityTrendEntry entries = 1;
+    string period = 2;
+}
+
+message ProductivityTrendEntry {
+    google.protobuf.Timestamp date = 1;
+    double avg_efficiency = 2;
+    int32 total_tasks_completed = 3;
+    int32 total_employees_active = 4;
+}
+
+message GetProductivityTrendsRequest {
+    string period = 1; 
+    int32 limit = 2; 
+    optional string department_id = 3;
+    optional string employee_id = 4;
+}
+
+message CompletionRateTrendsResponse {
+    repeated CompletionRateTrendEntry entries = 1;
+    string period = 2;
+}
+
+message CompletionRateTrendEntry {
+    google.protobuf.Timestamp date = 1;
+    double on_time_rate = 2; 
+    double overall_rate = 3; 
+    int32 completed_count = 4;
+    int32 overdue_count = 5;
+}
+
+message GetCompletionRateTrendsRequest {
+    string period = 1; 
+    int32 limit = 2;
+    optional string project_id = 3;
+    optional string department_id = 4;
+}
+
+message DashboardStatsResponse {
+    int32 total_employees = 1;
+    int32 active_employees = 2;
+    
+    int32 total_projects = 3;
+    int32 active_projects = 4;
+    
+    int32 total_tasks = 5;
+    int32 completed_tasks = 6;
+    int32 overdue_tasks = 7;
+    
+    double avg_company_efficiency = 8;
+    double avg_on_time_rate = 9;
+    
+    repeated TopEmployee top_employees = 10;
+    repeated BottomProject problematic_projects = 11;
+    
+    google.protobuf.Timestamp calculated_at = 12;
+}
+
+message TopEmployee {
+    string employee_id = 1;
+    string name = 2;
+    double efficiency_score = 3;
+    int32 tasks_completed = 4;
+}
+
+message BottomProject {
+    string project_id = 1;
+    string name = 2;
+    double health_score = 3;
+    double on_time_rate = 4;
+}
+
+message GetDashboardStatsRequest {
+    optional google.protobuf.Timestamp start_date = 1;
+    optional google.protobuf.Timestamp end_date = 2;
+}
