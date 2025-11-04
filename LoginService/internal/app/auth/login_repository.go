@@ -31,7 +31,7 @@ func (s *Storage) GetCrendentialsByUser(ctx context.Context, login string) (*aut
 	result := &auth.Credential{}
 	query := `SELECT user_id, login, password_hash, role, created_at, updated_at, is_active
 			  FROM auth.credentials WHERE login = $1`
-	err := s.pgx.QueryRow(ctx, query, login).Scan(&result.UserID, &result.Login, &result.Password, &result.Role, &result.IsActive)
+	err := s.pgx.QueryRow(ctx, query, login).Scan(&result.UserID, &result.Login, &result.Password, &result.Role, &result.CreatedAt, &result.UpdatedAt, &result.IsActive)
 	if err != nil {
 		log.Printf("error during sql expression at method GetCredentialsByUser: %v", err)
 		return nil, err

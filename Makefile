@@ -46,6 +46,8 @@ run-ps:
 	go run ./ProjectService/cmd/project_service/main.go
 run-as:
 	go run ./AnalyticsService/cmd/analytics_service/main.go
+run-ag:
+	go run ./ApiGateway/cmd/api-gateway/main.go
 
 kill:
 	lsof -i :50051 | grep LISTEN | awk '{print $$2}' | xargs kill -9 2>/dev/null || true
