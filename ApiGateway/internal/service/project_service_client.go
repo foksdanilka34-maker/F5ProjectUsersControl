@@ -47,7 +47,6 @@ func (c *ProjectServiceClient) Close() error {
 	return nil
 }
 
-// Project methods
 func (c *ProjectServiceClient) CreateProject(ctx context.Context, req *projectpb.CreateProjectRequest) (*projectpb.Project, error) {
 	return c.client.CreateProject(ctx, req)
 }

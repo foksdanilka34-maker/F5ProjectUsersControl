@@ -8,7 +8,7 @@ import (
 
 const (
 	SessionKeyPrefix     = "session:"
-	AccessTokenLifetime  = 15 * time.Minute
+	AccessTokenLifetime  = 60 * time.Minute
 	RefreshTokenLifetime = 3 * 24 * time.Hour
 	RefreshTokenLength   = 32
 )

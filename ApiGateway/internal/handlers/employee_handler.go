@@ -406,7 +406,6 @@ func (h *EmployeeHandler) DeletePosition(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Position deleted successfully")
 }
 
-// Skill handlers
 func (h *EmployeeHandler) CreateSkill(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	log.Printf("Admin %s creating new skill", adminID)

@@ -60,6 +60,16 @@ func main() {
 		}
 	}()
 
+	analyticsServiceClient := service.NewAnalyticsServiceClient(
+		cfg.AnalyticsServiceHost,
+		cfg.AnalyticsServicePort,
+	)
+	defer func() {
+		if err := analyticsServiceClient.Close(); err != nil {
+			log.Printf("failed to close analytics service client: %v", err)
+		}
+	}()
+
 	router := gin.Default()
 
 	router.Use(middleware.LoggingMiddleware())
@@ -73,6 +83,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(loginServiceClient, cfg)
 	employeeHandler := handlers.NewEmployeeHandler(employeeServiceClient)
 	projectHandler := handlers.NewProjectHandler(projectServiceClient)
+	analyticsHandler := handlers.NewAnalyticsHandler(analyticsServiceClient, projectServiceClient)
 
 	v1 := router.Group("/api/v1")
 	{
@@ -86,68 +97,50 @@ func main() {
 			{
 				protected.POST("/logout", authHandler.Logout)
 			}
-
-			admin := auth.Group("")
-			admin.Use(middleware.AuthMiddleware(cfg.JWTSecret))
-			admin.Use(middleware.RoleMiddleware("admin", "director"))
-			{
-				// admin.POST("/credentials", authHandler.CreateCredentials)
-				// admin.PATCH("/users/:userID/status", authHandler.ChangeUserStatus)
-			}
 		}
 
-		// Employee routes - все требуют роль admin
 		employees := v1.Group("/employees")
 		employees.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 		employees.Use(middleware.RoleMiddleware("admin"))
 		{
-			// Profile endpoints
 			employees.POST("/profiles", employeeHandler.CreateProfile)
 			employees.GET("/profiles", employeeHandler.ListProfiles)
 			employees.GET("/profiles/:id", employeeHandler.GetProfile)
 			employees.PATCH("/profiles/:id", employeeHandler.UpdateProfile)
 			employees.PATCH("/profiles/:id/status", employeeHandler.ChangeUserStatus)
 
-			// Department endpoints
 			employees.POST("/departments", employeeHandler.CreateDepartment)
 			employees.GET("/departments", employeeHandler.ListDepartments)
 			employees.GET("/departments/:id", employeeHandler.GetDepartment)
 			employees.PUT("/departments/:id", employeeHandler.UpdateDepartment)
 			employees.DELETE("/departments/:id", employeeHandler.DeleteDepartment)
 
-			// Position endpoints
 			employees.POST("/positions", employeeHandler.CreatePosition)
 			employees.GET("/positions", employeeHandler.ListPositions)
 			employees.GET("/positions/:id", employeeHandler.GetPosition)
 			employees.PUT("/positions/:id", employeeHandler.UpdatePosition)
 			employees.DELETE("/positions/:id", employeeHandler.DeletePosition)
 
-			// Skill endpoints
 			employees.POST("/skills", employeeHandler.CreateSkill)
 			employees.GET("/skills", employeeHandler.ListSkills)
 			employees.POST("/profiles/:id/skills", employeeHandler.AddSkillToEmployee)
 			employees.DELETE("/profiles/:id/skills/:skillId", employeeHandler.RemoveSkillFromEmployee)
 		}
 
-		// Project routes - разные уровни доступа
 		projects := v1.Group("/projects")
 		projects.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 		{
-			// Читать проекты могут все авторизованные пользователи
 			projects.GET("", projectHandler.ListProjects)
+			projects.GET("/:id/members", projectHandler.ListProjectMembers)
+			projects.GET("/:id/tasks", projectHandler.ListTasksByProject)
 			projects.GET("/:id", projectHandler.GetProject)
-			projects.GET("/:projectId/members", projectHandler.ListProjectMembers)
-			projects.GET("/:projectId/tasks", projectHandler.ListTasksByProject)
-			projects.GET("/:projectId/metrics", projectHandler.GetProjectMetrics)
 
-			// Создавать проекты могут только manager и director
 			managerOrDirector := projects.Group("")
 			managerOrDirector.Use(middleware.RoleMiddleware("manager", "director"))
 			{
 				managerOrDirector.POST("", projectHandler.CreateProject)
 			}
 
-			// Обновлять и удалять могут manager, director и admin
 			managerDirectorAdmin := projects.Group("")
 			managerDirectorAdmin.Use(middleware.RoleMiddleware("manager", "director", "admin"))
 			{
@@ -155,49 +148,58 @@ func main() {
 				managerDirectorAdmin.DELETE("/:id", projectHandler.DeleteProject)
 			}
 
-			// Управление участниками проекта - только manager (создатель проекта)
-			// TODO: добавить проверку, что пользователь является создателем проекта
 			managerOnly := projects.Group("")
 			managerOnly.Use(middleware.RoleMiddleware("manager", "director"))
 			{
-				managerOnly.POST("/:projectId/members", projectHandler.AddMemberToProject)
-				managerOnly.DELETE("/:projectId/members/:memberId", projectHandler.RemoveMemberFromProject)
+				managerOnly.POST("/:id/members", projectHandler.AddMemberToProject)
+				managerOnly.DELETE("/:id/members/:memberId", projectHandler.RemoveMemberFromProject)
 			}
 		}
 
-		// Task routes - разные уровни доступа
 		tasks := v1.Group("/tasks")
 		tasks.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 		{
-			// Читать таски могут все авторизованные
 			tasks.GET("/:id", projectHandler.GetTask)
-			tasks.GET("/:id/history", projectHandler.GetTaskStatusHistory)
 
-			// Обновлять и перемещать таски могут все авторизованные (участники проекта)
 			tasks.PATCH("/:id", projectHandler.UpdateTask)
 			tasks.POST("/:id/move", projectHandler.MoveTask)
 			tasks.DELETE("/:id", projectHandler.DeleteTask)
 
-			// Создавать и назначать таски - только manager и director (создатели проекта)
 			managerDirectorTasks := tasks.Group("")
 			managerDirectorTasks.Use(middleware.RoleMiddleware("manager", "director"))
-			{
-				// POST /tasks будет создаваться через /projects/:projectId/tasks
-			}
 		}
 
-		// Создание тасков через проект
-		v1.POST("/projects/:projectId/tasks",
+		v1.POST("/projects/:id/tasks",
 			middleware.AuthMiddleware(cfg.JWTSecret),
 			middleware.RoleMiddleware("manager", "director"),
 			projectHandler.CreateTask,
 		)
-		// Назначение таска
+
 		v1.POST("/tasks/:id/assign",
 			middleware.AuthMiddleware(cfg.JWTSecret),
 			middleware.RoleMiddleware("manager", "director"),
 			projectHandler.AssignTask,
 		)
+
+		analytics := v1.Group("/analytics")
+		analytics.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+		analytics.Use(middleware.RoleMiddleware("director"))
+		{
+			analytics.GET("/dashboard", analyticsHandler.GetDashboardStats)
+
+			analytics.GET("/employees/metrics", analyticsHandler.ListEmployeeMetrics)
+			analytics.GET("/employees/top-performers", analyticsHandler.GetTopPerformers)
+			analytics.GET("/employees/:id/metrics", analyticsHandler.GetEmployeeMetrics)
+
+			analytics.GET("/projects/metrics", analyticsHandler.ListProjectMetrics)
+			analytics.GET("/projects/:id/metrics", analyticsHandler.GetProjectMetrics)
+
+			analytics.GET("/departments/metrics", analyticsHandler.ListDepartmentMetrics)
+			analytics.GET("/departments/:id/metrics", analyticsHandler.GetDepartmentMetrics)
+
+			analytics.GET("/trends/productivity", analyticsHandler.GetProductivityTrends)
+			analytics.GET("/trends/completion-rate", analyticsHandler.GetCompletionRateTrends)
+		}
 	}
 
 	addr := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)

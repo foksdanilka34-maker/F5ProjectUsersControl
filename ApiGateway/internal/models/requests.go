@@ -18,7 +18,6 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
-// Employee Profile Requests
 type CreateProfileRequest struct {
 	FirstName    string    `json:"first_name" binding:"required"`
 	LastName     string    `json:"last_name" binding:"required"`
@@ -51,7 +50,6 @@ type ChangeUserStatusRequest struct {
 	Status bool `json:"status" binding:"required"`
 }
 
-// Department Requests
 type CreateDepartmentRequest struct {
 	Name string `json:"name" binding:"required,min=2"`
 }
@@ -60,7 +58,6 @@ type UpdateDepartmentRequest struct {
 	Name string `json:"name" binding:"required,min=2"`
 }
 
-// Position Requests
 type CreatePositionRequest struct {
 	Name string `json:"name" binding:"required,min=2"`
 }
@@ -69,7 +66,6 @@ type UpdatePositionRequest struct {
 	Name string `json:"name" binding:"required,min=2"`
 }
 
-// Skill Requests
 type CreateSkillRequest struct {
 	Name string `json:"name" binding:"required,min=2"`
 }
@@ -82,7 +78,6 @@ type RemoveSkillFromEmployeeRequest struct {
 	SkillID string `json:"skill_id" binding:"required"`
 }
 
-// Project Requests
 type CreateProjectRequest struct {
 	Name        string     `json:"name" binding:"required,min=2"`
 	Description *string    `json:"description,omitempty"`
@@ -104,7 +99,6 @@ type ListProjectsRequest struct {
 	Status     *int32  `form:"status,omitempty" binding:"omitempty,min=0,max=3"`
 }
 
-// Task Requests
 type CreateTaskRequest struct {
 	ProjectID   string    `json:"project_id" binding:"required"`
 	Title       string    `json:"title" binding:"required,min=2"`
@@ -138,7 +132,6 @@ type ListTasksByProjectRequest struct {
 	Priority   *int32  `form:"priority,omitempty" binding:"omitempty,min=0,max=4"`
 }
 
-// Project Member Requests
 type AddMemberToProjectRequest struct {
 	UserID string `json:"user_id" binding:"required"`
 }
@@ -147,14 +140,80 @@ type RemoveMemberFromProjectRequest struct {
 	UserID string `json:"user_id" binding:"required"`
 }
 
-// Task History Requests
 type GetTaskStatusHistoryRequest struct {
 	PageSize   int32 `form:"page_size" binding:"omitempty,min=1,max=100"`
 	PageNumber int32 `form:"page_number" binding:"omitempty,min=1"`
 }
-
-// Project Metrics Requests
 type GetProjectMetricsRequest struct {
 	StartDate *time.Time `form:"start_date,omitempty"`
 	EndDate   *time.Time `form:"end_date,omitempty"`
+}
+
+type AnalyticsDateRangeQuery struct {
+	StartDate string `form:"start_date"`
+	EndDate   string `form:"end_date"`
+}
+
+type EmployeeMetricsQuery struct {
+	StartDate string `form:"start_date"`
+	EndDate   string `form:"end_date"`
+}
+
+type ListEmployeeMetricsQuery struct {
+	PageSize     int32  `form:"page_size" binding:"omitempty,min=1,max=100"`
+	PageNumber   int32  `form:"page_number" binding:"omitempty,min=1"`
+	DepartmentID string `form:"department_id"`
+	StartDate    string `form:"start_date"`
+	EndDate      string `form:"end_date"`
+}
+
+type TopPerformersQuery struct {
+	Limit        int32  `form:"limit" binding:"omitempty,min=1,max=100"`
+	DepartmentID string `form:"department_id"`
+	StartDate    string `form:"start_date"`
+	EndDate      string `form:"end_date"`
+}
+
+type ProjectMetricsQuery struct {
+	StartDate string `form:"start_date"`
+	EndDate   string `form:"end_date"`
+}
+
+type ListProjectMetricsQuery struct {
+	PageSize   int32  `form:"page_size" binding:"omitempty,min=1,max=100"`
+	PageNumber int32  `form:"page_number" binding:"omitempty,min=1"`
+	ManagerID  string `form:"manager_id"`
+	StartDate  string `form:"start_date"`
+	EndDate    string `form:"end_date"`
+}
+
+type DepartmentMetricsQuery struct {
+	StartDate string `form:"start_date"`
+	EndDate   string `form:"end_date"`
+}
+
+type ListDepartmentMetricsQuery struct {
+	PageSize   int32  `form:"page_size" binding:"omitempty,min=1,max=100"`
+	PageNumber int32  `form:"page_number" binding:"omitempty,min=1"`
+	StartDate  string `form:"start_date"`
+	EndDate    string `form:"end_date"`
+}
+
+type ProductivityTrendsQuery struct {
+	Period       string `form:"period" binding:"omitempty,oneof=DAILY WEEKLY MONTHLY"`
+	Limit        int32  `form:"limit" binding:"omitempty,min=1,max=180"`
+	DepartmentID string `form:"department_id"`
+	EmployeeID   string `form:"employee_id"`
+}
+
+type CompletionRateTrendsQuery struct {
+	Period       string `form:"period" binding:"omitempty,oneof=DAILY WEEKLY MONTHLY"`
+	Limit        int32  `form:"limit" binding:"omitempty,min=1,max=180"`
+	ProjectID    string `form:"project_id"`
+	DepartmentID string `form:"department_id"`
+}
+
+type DashboardStatsQuery struct {
+	StartDate string `form:"start_date"`
+	EndDate   string `form:"end_date"`
 }
