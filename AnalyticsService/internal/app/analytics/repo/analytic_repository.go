@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics"
 	"github.com/jackc/pgx/v5"
@@ -20,20 +19,6 @@ func NewStorage(pool *pgxpool.Pool) *Storage {
 	return &Storage{
 		pool: pool,
 	}
-}
-
-type AnalyticsStorage interface {
-	GetEmployeeMetrics(ctx context.Context, emplID string) (*analytics.EmployeeMetrics, error)
-	// ListEmployeeMetrics(ctx context.Context, req *analytics.ListEmployeeMetrics) ([]*analytics.EmployeeMetrics, int, error)
-	// GetTopPerformers(ctx context.Context, limit int, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, int, error)
-
-	// GetProjectMetrics(ctx context.Context, projectID string, startDate, endDate *time.Time) (*analytics.ProjectMetrics, error)
-	// ListProjectMetrics(ctx context.Context, req *analytics.ListProjectMetrics) ([]*analytics.ProjectMetrics, int, error)
-
-	// GetProductivityTrends(ctx context.Context, pTrends analytics.ProductivityTrends) (*analytics.ProductivityTrendsResp, error);
-    // GetCompletionRateTrends(ctx context.Context, cTrend analytics.CompletionRateTrend) (*analytics.CompletionRateTrendResp, error);
-
-    // GetDashboardStats(ctx context.Context, startDate, endDate *time.Time) (*analytics.DashboardStats, error);
 }
 
 func (s *Storage) SaveEmployeeMetrics(ctx context.Context, metrics *analytics.EmployeeMetrics) error {
@@ -62,22 +47,32 @@ func (s *Storage) SaveEmployeeMetrics(ctx context.Context, metrics *analytics.Em
 }
 
 func (s *Storage) GetEmployeeMetrics(ctx context.Context, emplID string) (*analytics.EmployeeMetrics, error) {
-	query := `SELECT id, employee_id, employee_name, metric_date,
-			assigned_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
-			efficiency_score, task_completion_rate, on_time_completion_rate,
-			created_at, updated_at
+	query := `SELECT id, employee_id, metric_date, assigned_tasks, completed_tasks, 
+			in_progress_tasks, overdue_tasks, efficiency_score, task_completion_rate,
+			on_time_completion_rate, created_at, updated_at
 			FROM analytics.employee_metrics
 			WHERE employee_id = $1
 			ORDER BY metric_date DESC`
 
 	analMetrics := &analytics.EmployeeMetrics{}
-	err := s.pool.QueryRow(ctx, query, employeeID)
+	err := s.pool.QueryRow(ctx, query, emplID).Scan(
+		analMetrics.ID,
+		analMetrics.EmployeeID,
+		analMetrics.MetricDate,
+		analMetrics.AssignedTasks,
+		analMetrics.CompletedTasks,
+		analMetrics.InProgressTasks,
+		analMetrics.OverdueTasks,
+		analMetrics.EfficiencyScore,
+		analMetrics.TaskCompletionRate,
+		analMetrics.OnTimeCompletionRate,
+		analMetrics.CreatedAt,
+		analMetrics.UpdatedAt,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query employee metrics: %w", err)
 	}
-	
-
-	return metrics, rows.Err()
+	return analMetrics, nil
 }
 
 // func (s *Storage) ListEmployeeMetrics(ctx context.Context, pageSize, pageNumber int32, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, int32, error) {

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -36,7 +35,6 @@ func main() {
 		DBName: storage.GetEnv("AUTH_DB", ""),
 	}
 
-	redisAddr := storage.GetEnv("REDIS_ADDR", "localhost:6379")
 	jwtSecret := storage.GetEnv("JWT_SECRET", "")
 	listenAddr := storage.GetEnv("GRPC_LISTEN_ADDR", "0.0.0.0:50051")
 
@@ -50,36 +48,15 @@ func main() {
 	defer pgPool.Close()
 	log.Println("Postgres connected")
 
-	redisPassword := storage.GetEnv("REDIS_PASSWORD", "")
-	redisDB := storage.GetEnv("REDIS_DB", "0")
-	redisDBInt := 0
-	if redisDB != "" {
-		fmt.Sscanf(redisDB, "%d", &redisDBInt)
-	}
-
-	redisConfig := storage.RedisConfig{
-		Addr:     redisAddr,
-		Password: redisPassword,
-		DB:       redisDBInt,
-	}
-	redisClient, err := storage.NewRedisClient(ctx, redisConfig)
-	if err != nil {
-		log.Fatalf("redis connection error: %v", err)
-	}
-	defer redisClient.Close()
-	log.Println("Redis connected")
-
 	credentialStorage := appAuth.NewStorage(pgPool)
 	sessionStorage := appSession.NewStorage(pgPool)
-	redisCache := appSession.NewRedisCache(redisClient)
-	cachedSessionStorage := appSession.NewCachedSessionStorage(sessionStorage, redisCache)
-
+	
 	authenticator, err := appSession.NewAuthenticator(jwtSecret)
 	if err != nil {
 		log.Fatalf("failed to create authenticator: %v", err)
 	}
 
-	authCore := appCore.NewCore(credentialStorage, cachedSessionStorage, authenticator)
+	authCore := appCore.NewCore(credentialStorage, sessionStorage, authenticator)
 
 	natsConfig := &storage.NatsConfig{
 		URL: storage.GetEnv("NATS_URL", "nats://localhost:4222"),

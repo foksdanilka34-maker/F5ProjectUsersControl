@@ -38,7 +38,7 @@ type CoreLogic interface {
 	ListProjectMembers(ctx context.Context, projectID string) (*models.ProjectMembersResponse, error)
 }
 
-func NewCore(project repo.Storage, publisher *nats.Publisher) CoreLogic {
+func NewCore(project repo.Storage, publisher *nats.Publisher) *projectCore {
 	return &projectCore{
 		project:   project,
 		publisher: publisher,

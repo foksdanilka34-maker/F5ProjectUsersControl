@@ -19,17 +19,6 @@ services:
     networks:
       - app_network
   
-  redis_sessions:
-    image: redis:7
-    container_name: auth_session_cache
-    restart: always
-    ports:
-      - "${REDIS_PORT}:6379"
-    volumes:
-      - ./environment/redis_sessions:/data
-    networks:
-      - app_network
-
   migrate_auth:
     image: migrate/migrate
     entrypoint: ["migrate"]
@@ -87,17 +76,6 @@ services:
       - nats-data:/data
     restart: always
   
-  redis-employee:
-    image: redis:7
-    container_name: redis-employee
-    restart: always
-    ports:
-      - "${EMPL_REDIS_PORT}:6379"
-    volumes:
-      - ./environment/redis_employee:/data
-    networks:
-      - app_network
-  
   project_db:
     image: postgres:17-alpine
     container_name: project_service_db
@@ -118,17 +96,6 @@ services:
     networks:
       - app_network
   
-  redis_project:
-    image: redis:7
-    container_name: project_cache
-    restart: always
-    ports:
-      - "${PROJECT_REDIS_PORT}:6379"
-    volumes:
-      - ./environment/project_redis_cache:/data
-    networks:
-      - app_network
-
   migrate_project:
     image: migrate/migrate
     entrypoint: ["migrate"]

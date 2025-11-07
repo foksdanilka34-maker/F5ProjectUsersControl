@@ -26,7 +26,7 @@ type CoreLogic interface {
 	ChangePassword(ctx context.Context, userID, newPassword string) error
 }
 
-func NewCore(credsStorage credential.CredentialStorage, sessStorage session.SessionStorage, auth session.Authenticator) CoreLogic {
+func NewCore(credsStorage credential.CredentialStorage, sessStorage session.SessionStorage, auth session.Authenticator) *loginCore {
 	return &loginCore{
 		credentialStorage: credsStorage,
 		sessionStorage:    sessStorage,

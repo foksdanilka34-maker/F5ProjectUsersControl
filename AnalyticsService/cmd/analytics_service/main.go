@@ -11,7 +11,7 @@ import (
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/core"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/repo"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/server"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/nats"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/client/nats"
 	projectpb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/project_service"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/storage"
 

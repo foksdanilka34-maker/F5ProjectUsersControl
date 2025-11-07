@@ -45,7 +45,7 @@ type CoreLogic interface {
 	RemoveSkillFromEmployee(ctx context.Context, employeeID, skillID string) error
 }
 
-func NewCore(employee empl.EmployeeStorage, client *authClient.Client, publisher *natsclient.Publisher) CoreLogic {
+func NewCore(employee empl.EmployeeStorage, client *authClient.Client, publisher *natsclient.Publisher) *loginCore {
 	return &loginCore{
 		employee:  employee,
 		client:    client,
