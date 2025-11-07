@@ -7,13 +7,15 @@ import (
 	"time"
 
 	models "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/events"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/client/nats"
+
+	ev "github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 	repo "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/repo"
 )
 
 type projectCore struct {
 	project   repo.Storage
-	publisher *events.Publisher
+	publisher *nats.Publisher
 }
 
 type CoreLogic interface {
@@ -36,7 +38,7 @@ type CoreLogic interface {
 	ListProjectMembers(ctx context.Context, projectID string) (*models.ProjectMembersResponse, error)
 }
 
-func NewCore(project repo.Storage, publisher *events.Publisher) CoreLogic {
+func NewCore(project repo.Storage, publisher *nats.Publisher) CoreLogic {
 	return &projectCore{
 		project:   project,
 		publisher: publisher,
@@ -68,8 +70,8 @@ func (p *projectCore) CreateProject(ctx context.Context, regProfile *models.Crea
 	log.Printf("Project created, uuid: %s", project.ID)
 
 	if p.publisher != nil {
-		event := &events.ProjectEvent{
-			EventType: events.EventTypeProjectCreated,
+		event := &nats.ProjectEvent{
+			EventType: ev.EventTypeProjectCreated,
 			ProjectID: project.ID,
 			ManagerID: project.ManagerID,
 			Status:    project.Status.String(),
@@ -120,6 +122,20 @@ func (p *projectCore) UpdateProject(ctx context.Context, updRequest *models.Upda
 	if err != nil {
 		return nil, err
 	}
+
+	if p.publisher != nil {
+		event := &nats.ProjectEvent{
+			EventType: ev.EventTypeProjectUpdated,
+			ProjectID: updProject.ID,
+			ManagerID: updProject.ManagerID,
+			Status:    updProject.Status.String(),
+			DueDate:   updProject.DueDate,
+			Timestamp: time.Now(),
+		}
+		if err := p.publisher.PublishProjectEvent(ctx, event); err != nil {
+			log.Printf("warning: failed to publish project update event: %v", err)
+		}
+	}
 	return updProject, nil
 }
 
@@ -134,6 +150,17 @@ func (p *projectCore) DeleteProject(ctx context.Context, projectID string) error
 		return err
 	}
 	log.Printf("project %s deleted successfully", projectID)
+
+	if p.publisher != nil {
+		event := &nats.ProjectEvent{
+			EventType: ev.EventTypeProjectDeleted,
+			ProjectID: projectID,
+			Timestamp: time.Now(),
+		}
+		if err := p.publisher.PublishProjectEvent(ctx, event); err != nil {
+			log.Printf("warning: failed to publish project delete event: %v", err)
+		}
+	}
 	return nil
 }
 
@@ -151,8 +178,8 @@ func (p *projectCore) CreateTask(ctx context.Context, createTask *models.CreateT
 	}
 
 	if p.publisher != nil {
-		event := &events.TaskEvent{
-			EventType:   events.EventTypeTaskCreated,
+		event := &nats.TaskEvent{
+			EventType:   ev.EventTypeTaskCreated,
 			TaskID:      newTask.ID,
 			ProjectID:   newTask.ProjectID,
 			Status:      newTask.Status.String(),
@@ -205,8 +232,8 @@ func (p *projectCore) UpdateTask(ctx context.Context, updRequest *models.UpdateT
 	}
 
 	if p.publisher != nil {
-		event := &events.TaskEvent{
-			EventType:   events.EventTypeTaskUpdated,
+		event := &nats.TaskEvent{
+			EventType:   ev.EventTypeTaskUpdated,
 			TaskID:      updTask.ID,
 			ProjectID:   updTask.ProjectID,
 			Status:      updTask.Status.String(),
@@ -218,7 +245,7 @@ func (p *projectCore) UpdateTask(ctx context.Context, updRequest *models.UpdateT
 			Timestamp:   time.Now(),
 		}
 		if oldTask != nil && updRequest.Status != nil && oldTask.Status != *updRequest.Status {
-			event.EventType = events.EventTypeTaskStatusChanged
+			event.EventType = ev.EventTypeTaskStatusChanged
 			event.OldStatus = oldTask.Status.String()
 		}
 		if err := p.publisher.PublishTaskEvent(ctx, event); err != nil {
@@ -240,6 +267,17 @@ func (p *projectCore) DeleteTask(ctx context.Context, taskID string) error {
 		return err
 	}
 	log.Printf("task %s deleted successfully", taskID)
+
+	if p.publisher != nil {
+		event := &nats.TaskEvent{
+			EventType:   ev.EventTypeTaskDeleted,
+			TaskID:      taskID,
+			Timestamp:   time.Now(),
+		}
+		if err := p.publisher.PublishTaskEvent(ctx, event); err != nil {
+			log.Printf("warning: failed to publish task delete event: %v", err)
+		}
+	}
 	return nil
 }
 
@@ -250,15 +288,14 @@ func (p *projectCore) MoveTask(ctx context.Context, moveRequest *models.MoveTask
 	}
 
 	oldTask, _ := p.project.GetTask(ctx, moveRequest.TaskID)
-
 	movedTask, err := p.project.MoveTask(ctx, moveRequest)
 	if err != nil {
 		return nil, err
 	}
 
 	if p.publisher != nil && oldTask != nil {
-		event := &events.TaskEvent{
-			EventType:   events.EventTypeTaskStatusChanged,
+		event := &nats.TaskEvent{
+			EventType:   ev.EventTypeTaskStatusChanged,
 			TaskID:      movedTask.ID,
 			ProjectID:   movedTask.ProjectID,
 			Status:      movedTask.Status.String(),
@@ -274,7 +311,6 @@ func (p *projectCore) MoveTask(ctx context.Context, moveRequest *models.MoveTask
 			log.Printf("warning: failed to publish task moved event: %v", err)
 		}
 	}
-
 	return movedTask, nil
 }
 
@@ -301,6 +337,20 @@ func (p *projectCore) AssignTask(ctx context.Context, assignRequest *models.Assi
 	if err != nil {
 		return nil, err
 	}
+
+	if p.publisher != nil {
+		event := &nats.TaskEvent{
+			EventType:   ev.EventTypeTaskAssigned,
+			TaskID:      assignedTask.ID,
+			ProjectID: 	 task.ProjectID,
+			Timestamp:   time.Now(),
+			AssigneeID:  assignRequest.AssigneeID,
+		}
+		if err := p.publisher.PublishTaskEvent(ctx, event); err != nil {
+			log.Printf("warning: failed to publish task delete event: %v", err)
+		}
+	}
+
 	return assignedTask, nil
 }
 
@@ -326,6 +376,18 @@ func (p *projectCore) AddMemberToProject(ctx context.Context, projectID, userID 
 		log.Printf("failed to add member %s to project %s: %v", userID, projectID, err)
 		return err
 	}
+
+	if p.publisher != nil {
+		event := &nats.ProjectEvent{
+			EventType: ev.EventTypeProjectMemberAdd,
+			ProjectID: projectID,
+			MemberID:  userID,
+			Timestamp: time.Now(),
+		}
+		if err := p.publisher.PublishProjectEvent(ctx, event); err != nil {
+			log.Printf("warning: failed to publish project addMember event: %v", err)
+		}
+	}
 	log.Printf("member %s added to project %s successfully", userID, projectID)
 	return nil
 }
@@ -341,6 +403,18 @@ func (p *projectCore) RemoveMemberFromProject(ctx context.Context, projectID, us
 		return err
 	}
 	log.Printf("member %s removed from project %s successfully", userID, projectID)
+
+	if p.publisher != nil {
+		event := &nats.ProjectEvent{
+			EventType: ev.EventTypeProjectMemberDel,
+			ProjectID: projectID,
+			MemberID:  userID,
+			Timestamp: time.Now(),
+		}
+		if err := p.publisher.PublishProjectEvent(ctx, event); err != nil {
+			log.Printf("warning: failed to publish project delMember event: %v", err)
+		}
+	}
 	return nil
 }
 

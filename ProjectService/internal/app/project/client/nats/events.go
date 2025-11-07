@@ -1,4 +1,4 @@
-package events
+package nats
 
 import (
 	"encoding/json"
@@ -7,18 +7,8 @@ import (
 
 type EventType string
 
-const (
-	EventTypeTaskCreated       EventType = "task.created"
-	EventTypeTaskUpdated       EventType = "task.updated"
-	EventTypeTaskStatusChanged EventType = "task.status_changed"
-	EventTypeTaskDeleted       EventType = "task.deleted"
-	EventTypeProjectCreated    EventType = "project.created"
-	EventTypeProjectUpdated    EventType = "project.updated"
-	EventTypeProjectDeleted    EventType = "project.deleted"
-)
-
 type TaskEvent struct {
-	EventType   EventType  `json:"event_type"`
+	EventType   string     `json:"event_type"`
 	TaskID      string     `json:"task_id"`
 	ProjectID   string     `json:"project_id"`
 	Status      string     `json:"status,omitempty"`
@@ -33,9 +23,10 @@ type TaskEvent struct {
 }
 
 type ProjectEvent struct {
-	EventType EventType  `json:"event_type"`
+	EventType string  	 `json:"event_type"`
 	ProjectID string     `json:"project_id"`
 	ManagerID string     `json:"manager_id,omitempty"`
+	MemberID  string	 `json:"member_id,omitempty"`
 	Status    string     `json:"status,omitempty"`
 	OldStatus string     `json:"old_status,omitempty"`
 	DueDate   *time.Time `json:"due_date,omitempty"`

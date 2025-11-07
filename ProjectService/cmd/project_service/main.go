@@ -10,7 +10,7 @@ import (
 
 	natsclient "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/client/nats"
 	projectCore "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/core"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/events"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/client/nats"
 	project "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/repo"
 	projectServer "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/server"
 
@@ -70,7 +70,7 @@ func main() {
 	}
 	log.Println("NATS subscriber started")
 
-	publisher := events.NewPublisher(natsClient)
+	publisher := nats.NewPublisher(natsClient)
 	log.Println("NATS publisher initialized")
 
 	projectCore := projectCore.NewCore(*projectStorage, publisher)
