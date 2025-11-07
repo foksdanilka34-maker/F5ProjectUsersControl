@@ -12,7 +12,7 @@ import (
 )
 
 type projectCore struct {
-	project   repo.ProjectStorage
+	project   repo.Storage
 	publisher *events.Publisher
 }
 
@@ -34,12 +34,9 @@ type CoreLogic interface {
 	AddMemberToProject(ctx context.Context, projectID, userID string) error
 	RemoveMemberFromProject(ctx context.Context, projectID, userID string) error
 	ListProjectMembers(ctx context.Context, projectID string) (*models.ProjectMembersResponse, error)
-
-	GetTaskStatusHistory(ctx context.Context, taskID string, pageSize, pageNumber int32) (*models.TaskStatusHistoryResponse, error)
-	GetProjectMetrics(ctx context.Context, projectID string) (*models.ProjectMetrics, error)
 }
 
-func NewCore(project repo.ProjectStorage, publisher *events.Publisher) CoreLogic {
+func NewCore(project repo.Storage, publisher *events.Publisher) CoreLogic {
 	return &projectCore{
 		project:   project,
 		publisher: publisher,
@@ -357,36 +354,6 @@ func (p *projectCore) ListProjectMembers(ctx context.Context, projectID string) 
 		return nil, err
 	}
 	return members, nil
-}
-
-func (p *projectCore) GetTaskStatusHistory(ctx context.Context, taskID string, pageSize, pageNumber int32) (*models.TaskStatusHistoryResponse, error) {
-	if taskID == "" {
-		log.Printf("empty taskID provided for getting status history")
-		return nil, fmt.Errorf("taskID cannot be empty")
-	}
-	if pageSize <= 0 {
-		pageSize = 10
-	}
-	if pageNumber <= 0 {
-		pageNumber = 1
-	}
-	history, err := p.project.GetTaskStatusHistory(ctx, taskID, pageSize, pageNumber)
-	if err != nil {
-		return nil, err
-	}
-	return history, nil
-}
-
-func (p *projectCore) GetProjectMetrics(ctx context.Context, projectID string) (*models.ProjectMetrics, error) {
-	if projectID == "" {
-		log.Printf("empty projectID provided for getting metrics")
-		return nil, fmt.Errorf("projectID cannot be empty")
-	}
-	metrics, err := p.project.GetProjectMetrics(ctx, projectID)
-	if err != nil {
-		return nil, err
-	}
-	return metrics, nil
 }
 
 func (p *projectCore) validateProjectMember(ctx context.Context, projectID, userID string) error {

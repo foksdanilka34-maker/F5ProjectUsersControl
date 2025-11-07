@@ -38,12 +38,6 @@ func main() {
 		DBName: storage.GetEnv("PROJECT_DB", ""),
 	}
 
-	redisConfig := storage.RedisConfig{
-		Addr:     storage.GetEnv("PROJECT_REDIS_ADDR", "localhost:6380"),
-		Password: storage.GetEnv("PROJECT_REDIS_PASSWORD", ""),
-		DB:       2,
-	}
-
 	listenAddr := storage.GetEnv("GRPC_PROJECT_LISTEN_ADDR", "0.0.0.0:50053")
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -56,17 +50,8 @@ func main() {
 	defer pgPool.Close()
 	log.Println("Postgres connected")
 
-	redisClient, err := storage.NewRedisClient(ctx, redisConfig)
-	if err != nil {
-		log.Fatalf("redis connection error: %v", err)
-	}
-	defer redisClient.Close()
-	log.Println("Redis connected for project service")
 
 	projectStorage := project.NewStorage(pgPool)
-	projectCache := project.NewCacheStorage(redisClient)
-
-	cachedProjectStorage := project.NewCachedProjectStorage(projectStorage, projectCache)
 
 	natsConfig := &storage.NatsConfig{
 		URL: storage.GetEnv("NATS_URL", "nats://localhost:4222"),
@@ -88,7 +73,7 @@ func main() {
 	publisher := events.NewPublisher(natsClient)
 	log.Println("NATS publisher initialized")
 
-	projectCore := projectCore.NewCore(cachedProjectStorage, publisher)
+	projectCore := projectCore.NewCore(*projectStorage, publisher)
 	grpcServerImpl := projectServer.NewProjectServer(projectCore)
 
 	lis, err := net.Listen("tcp", listenAddr)

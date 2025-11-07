@@ -23,9 +23,6 @@ func NewProjectHandler(projectService *service.ProjectServiceClient) *ProjectHan
 	}
 }
 
-// Project handlers
-
-// CreateProject - только manager и director
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 	role := middleware.GetRoleFromContext(c)
@@ -40,7 +37,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 
 	protoReq := &projectpb.CreateProjectRequest{
 		Name:      req.Name,
-		ManagerId: req.ManagerID,
+		ManagerId: userID,
 	}
 
 	if req.Description != nil {
@@ -191,12 +188,9 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Project deleted successfully")
 }
 
-// Task handlers
-
-// CreateTask - только manager (создатель проекта)
 func (h *ProjectHandler) CreateTask(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
-	projectID := c.Param("projectId")
+	projectID := c.Param("id")
 
 	log.Printf("User %s creating task in project: %s", userID, projectID)
 
@@ -236,13 +230,14 @@ func (h *ProjectHandler) CreateTask(c *gin.Context) {
 }
 
 func (h *ProjectHandler) GetTask(c *gin.Context) {
-	taskID := c.Param("id")
+	projectID := c.Param("id")
+	taskID := c.Param("taskId")
 	if taskID == "" {
 		response.BadRequest(c, "Task ID is required")
 		return
 	}
 
-	log.Printf("Getting task: id=%s", taskID)
+	log.Printf("Getting task: projectID=%s, taskID=%s", projectID, taskID)
 
 	task, err := h.projectService.GetTask(c.Request.Context(), taskID)
 	if err != nil {
@@ -251,18 +246,35 @@ func (h *ProjectHandler) GetTask(c *gin.Context) {
 		return
 	}
 
+	if task.ProjectId != projectID {
+		response.BadRequest(c, "Task does not belong to the specified project")
+		return
+	}
+
 	response.Success(c, http.StatusOK, task, "Task retrieved successfully")
 }
 
 func (h *ProjectHandler) UpdateTask(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
-	taskID := c.Param("id")
+	projectID := c.Param("id")
+	taskID := c.Param("taskId")
 	if taskID == "" {
 		response.BadRequest(c, "Task ID is required")
 		return
 	}
 
-	log.Printf("User %s updating task: id=%s", userID, taskID)
+	log.Printf("User %s updating task: projectID=%s, taskID=%s", userID, projectID, taskID)
+
+	existingTask, err := h.projectService.GetTask(c.Request.Context(), taskID)
+	if err != nil {
+		log.Printf("UpdateTask: failed to get existing task: %v", err)
+		response.NotFound(c, "Task not found")
+		return
+	}
+	if existingTask.ProjectId != projectID {
+		response.BadRequest(c, "Task does not belong to the specified project")
+		return
+	}
 
 	var req models.UpdateTaskRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -309,15 +321,27 @@ func (h *ProjectHandler) UpdateTask(c *gin.Context) {
 
 func (h *ProjectHandler) DeleteTask(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
-	taskID := c.Param("id")
+	projectID := c.Param("id")
+	taskID := c.Param("taskId")
 	if taskID == "" {
 		response.BadRequest(c, "Task ID is required")
 		return
 	}
 
-	log.Printf("User %s deleting task: id=%s", userID, taskID)
+	log.Printf("User %s deleting task: projectID=%s, taskID=%s", userID, projectID, taskID)
 
-	err := h.projectService.DeleteTask(c.Request.Context(), taskID)
+	existingTask, err := h.projectService.GetTask(c.Request.Context(), taskID)
+	if err != nil {
+		log.Printf("DeleteTask: failed to get existing task: %v", err)
+		response.NotFound(c, "Task not found")
+		return
+	}
+	if existingTask.ProjectId != projectID {
+		response.BadRequest(c, "Task does not belong to the specified project")
+		return
+	}
+
+	err = h.projectService.DeleteTask(c.Request.Context(), taskID)
 	if err != nil {
 		log.Printf("DeleteTask service error: %v", err)
 		response.InternalServerError(c, "Failed to delete task: "+err.Error())
@@ -330,13 +354,25 @@ func (h *ProjectHandler) DeleteTask(c *gin.Context) {
 
 func (h *ProjectHandler) MoveTask(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
-	taskID := c.Param("id")
+	projectID := c.Param("id")
+	taskID := c.Param("taskId")
 	if taskID == "" {
 		response.BadRequest(c, "Task ID is required")
 		return
 	}
 
-	log.Printf("User %s moving task: id=%s", userID, taskID)
+	log.Printf("User %s moving task: projectID=%s, taskID=%s", userID, projectID, taskID)
+
+	existingTask, err := h.projectService.GetTask(c.Request.Context(), taskID)
+	if err != nil {
+		log.Printf("MoveTask: failed to get existing task: %v", err)
+		response.NotFound(c, "Task not found")
+		return
+	}
+	if existingTask.ProjectId != projectID {
+		response.BadRequest(c, "Task does not belong to the specified project")
+		return
+	}
 
 	var req models.MoveTaskRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -362,16 +398,27 @@ func (h *ProjectHandler) MoveTask(c *gin.Context) {
 	response.Success(c, http.StatusOK, task, "Task moved successfully")
 }
 
-// AssignTask - только manager (создатель проекта)
 func (h *ProjectHandler) AssignTask(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
-	taskID := c.Param("id")
+	projectID := c.Param("id")
+	taskID := c.Param("taskId")
 	if taskID == "" {
 		response.BadRequest(c, "Task ID is required")
 		return
 	}
 
-	log.Printf("User %s assigning task: id=%s", userID, taskID)
+	log.Printf("User %s assigning task: projectID=%s, taskID=%s", userID, projectID, taskID)
+
+	existingTask, err := h.projectService.GetTask(c.Request.Context(), taskID)
+	if err != nil {
+		log.Printf("AssignTask: failed to get existing task: %v", err)
+		response.NotFound(c, "Task not found")
+		return
+	}
+	if existingTask.ProjectId != projectID {
+		response.BadRequest(c, "Task does not belong to the specified project")
+		return
+	}
 
 	var req models.AssignTaskRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -392,7 +439,7 @@ func (h *ProjectHandler) AssignTask(c *gin.Context) {
 }
 
 func (h *ProjectHandler) ListTasksByProject(c *gin.Context) {
-	projectID := c.Param("projectId")
+	projectID := c.Param("id")
 	if projectID == "" {
 		response.BadRequest(c, "Project ID is required")
 		return
@@ -433,12 +480,9 @@ func (h *ProjectHandler) ListTasksByProject(c *gin.Context) {
 	response.Success(c, http.StatusOK, tasks, "Tasks retrieved successfully")
 }
 
-// Project Members handlers
-
-// AddMemberToProject - только manager (создатель проекта)
 func (h *ProjectHandler) AddMemberToProject(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
-	projectID := c.Param("projectId")
+	projectID := c.Param("id")
 	if projectID == "" {
 		response.BadRequest(c, "Project ID is required")
 		return
@@ -464,10 +508,9 @@ func (h *ProjectHandler) AddMemberToProject(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Member added to project successfully")
 }
 
-// RemoveMemberFromProject - только manager (создатель проекта)
 func (h *ProjectHandler) RemoveMemberFromProject(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
-	projectID := c.Param("projectId")
+	projectID := c.Param("id")
 	memberID := c.Param("memberId")
 
 	if projectID == "" || memberID == "" {
@@ -489,7 +532,7 @@ func (h *ProjectHandler) RemoveMemberFromProject(c *gin.Context) {
 }
 
 func (h *ProjectHandler) ListProjectMembers(c *gin.Context) {
-	projectID := c.Param("projectId")
+	projectID := c.Param("id")
 	if projectID == "" {
 		response.BadRequest(c, "Project ID is required")
 		return
@@ -506,8 +549,6 @@ func (h *ProjectHandler) ListProjectMembers(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, members, "Project members retrieved successfully")
 }
-
-// History and Metrics handlers
 
 func (h *ProjectHandler) GetTaskStatusHistory(c *gin.Context) {
 	taskID := c.Param("id")

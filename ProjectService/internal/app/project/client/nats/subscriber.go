@@ -6,6 +6,7 @@ import (
 	"log"
 
 	repo "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/repo"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 	"github.com/nats-io/nats.go"
 )
 
@@ -28,29 +29,29 @@ func NewSubscriber(conn *nats.Conn, storage repo.UserMetaStorage) *Subscriber {
 }
 
 func (s *Subscriber) Start(ctx context.Context) error {
-	_, err := s.conn.Subscribe(EmployeeCreatedEvent, func(msg *nats.Msg) {
+	_, err := s.conn.Subscribe(eventbus.EmployeeCreatedEventTopic, func(msg *nats.Msg) {
 		s.handleEmployeeCreated(ctx, msg)
 	})
 	if err != nil {
 		return err
 	}
-	log.Printf("NATS: subscribed to %s", EmployeeCreatedEvent)
+	log.Printf("NATS: subscribed to %s", eventbus.EmployeeCreatedEventTopic)
 
-	_, err = s.conn.Subscribe(EmployeeUpdatedEvent, func(msg *nats.Msg) {
+	_, err = s.conn.Subscribe(eventbus.EmployeeUpdatedEventTopic, func(msg *nats.Msg) {
 		s.handleEmployeeUpdated(ctx, msg)
 	})
 	if err != nil {
 		return err
 	}
-	log.Printf("NATS: subscribed to %s", EmployeeUpdatedEvent)
+	log.Printf("NATS: subscribed to %s", eventbus.EmployeeUpdatedEventTopic)
 
-	_, err = s.conn.Subscribe(EmployeeDeletedEvent, func(msg *nats.Msg) {
+	_, err = s.conn.Subscribe(eventbus.EmployeeDeletedEventTopic, func(msg *nats.Msg) {
 		s.handleEmployeeDeleted(ctx, msg)
 	})
 	if err != nil {
 		return err
 	}
-	log.Printf("NATS: subscribed to %s", EmployeeDeletedEvent)
+	log.Printf("NATS: subscribed to %s", eventbus.EmployeeDeletedEventTopic)
 
 	return nil
 }

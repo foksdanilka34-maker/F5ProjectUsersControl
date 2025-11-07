@@ -6,6 +6,7 @@ import (
 	"log"
 
 	methods "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/core"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 	"github.com/nats-io/nats.go"
 )
 
@@ -27,11 +28,11 @@ type DeactivateUserCommand struct {
 }
 
 func (s *NatsConn) Start() {
-	_, err := s.n.Subscribe(DeactivateUserCommandSubject, s.handleChangeUserStatus)
+	_, err := s.n.Subscribe(eventbus.LoginDeactivateUserCommandTopic, s.handleChangeUserStatus)
 	if err != nil {
 		log.Printf("NATS: Failed to subscribe to: %v", err)
 	}
-	log.Printf("NATS: Subscribed to %s", DeactivateUserCommandSubject)
+	log.Printf("NATS: Subscribed to %s", eventbus.LoginDeactivateUserCommandTopic)
 
 	select {}
 }

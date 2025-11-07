@@ -4,6 +4,13 @@ CREATE TYPE project.task_status AS ENUM ('TASK_STATUS_UNSPECIFIED', 'TODO', 'IN_
 CREATE TYPE project.task_priority AS ENUM ('PRIORITY_UNSPECIFIED', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
 CREATE TYPE project.project_status AS ENUM ('PROJECT_STATUS_UNSPECIFIED', 'ACTIVE', 'ON_HOLD', 'ARCHIVED');
 
+CREATE TABLE IF NOT EXISTS project.users_meta (
+    user_id UUID UNIQUE NOT NULL,
+    user_name VARCHAR(255) NOT NULL,
+    user_photo VARCHAR(255),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS project.projects (
     project_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_name VARCHAR(255) NOT NULL,
@@ -14,7 +21,11 @@ CREATE TABLE IF NOT EXISTS project.projects (
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    due_date TIMESTAMPTZ
+    due_date TIMESTAMPTZ,
+    
+    CONSTRAINT fk_projects_manager
+    FOREIGN KEY (manager_id) 
+    REFERENCES project.users_meta(user_id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS project.tasks (
@@ -33,14 +44,23 @@ CREATE TABLE IF NOT EXISTS project.tasks (
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    due_date TIMESTAMPTZ NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS project.users_meta (
-    user_id UUID UNIQUE NOT NULL,
-    user_name VARCHAR(255) NOT NULL,
-    user_photo VARCHAR(255),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    due_date TIMESTAMPTZ NOT NULL,
+    
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    
+    CONSTRAINT fk_tasks_creator
+    FOREIGN KEY (creator_id) 
+    REFERENCES project.users_meta(user_id) 
+    ON DELETE RESTRICT,
+    
+    CONSTRAINT fk_tasks_assignee
+    FOREIGN KEY (assign_id) 
+    REFERENCES project.users_meta(user_id) 
+    ON DELETE SET NULL,
+    
+    CONSTRAINT check_task_completion_after_start
+ CHECK (completed_at IS NULL OR started_at IS NULL OR completed_at >= started_at)
 );
 
 CREATE TABLE IF NOT EXISTS project.project_members (
@@ -48,11 +68,11 @@ CREATE TABLE IF NOT EXISTS project.project_members (
     user_id UUID NOT NULL,
     role VARCHAR(50) NOT NULL,
     added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (project_id, user_id)
+    PRIMARY KEY (project_id, user_id),
+    
+    CONSTRAINT fk_project_members_user
+    FOREIGN KEY (user_id) 
+    REFERENCES project.users_meta(user_id) 
+    ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_projects_manager_status_created_at
-    ON project.projects (manager_id, project_status, created_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_tasks_project_status_order
-    ON project.tasks (project_id, task_status, order_index);

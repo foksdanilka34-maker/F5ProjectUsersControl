@@ -182,7 +182,7 @@ func (h *EmployeeHandler) ChangeUserStatus(c *gin.Context) {
 		return
 	}
 
-	err := h.employeeService.ChangeUserStatusProfile(c.Request.Context(), userID, req.Status)
+	err := h.employeeService.ChangeUserStatusProfile(c.Request.Context(), userID, *req.Status)
 	if err != nil {
 		log.Printf("ChangeUserStatus service error: %v", err)
 		response.InternalServerError(c, "Failed to change user status: "+err.Error())
@@ -190,7 +190,7 @@ func (h *EmployeeHandler) ChangeUserStatus(c *gin.Context) {
 	}
 
 	statusStr := "activated"
-	if !req.Status {
+	if !*req.Status {
 		statusStr = "deactivated"
 	}
 
@@ -198,7 +198,6 @@ func (h *EmployeeHandler) ChangeUserStatus(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "User status changed successfully")
 }
 
-// Department handlers
 func (h *EmployeeHandler) CreateDepartment(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	log.Printf("Admin %s creating new department", adminID)
@@ -302,7 +301,6 @@ func (h *EmployeeHandler) DeleteDepartment(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Department deleted successfully")
 }
 
-// Position handlers
 func (h *EmployeeHandler) CreatePosition(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	log.Printf("Admin %s creating new position", adminID)
@@ -492,7 +490,6 @@ func (h *EmployeeHandler) RemoveSkillFromEmployee(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Skill removed from employee successfully")
 }
 
-// Helper function to parse int32 from string
 func parseInt32(s string) (int32, error) {
 	i, err := strconv.ParseInt(s, 10, 32)
 	if err != nil {

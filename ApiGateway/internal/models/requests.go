@@ -47,7 +47,7 @@ type ListProfilesRequest struct {
 }
 
 type ChangeUserStatusRequest struct {
-	Status bool `json:"status" binding:"required"`
+	Status *bool `json:"status" binding:"required"`
 }
 
 type CreateDepartmentRequest struct {
@@ -81,7 +81,6 @@ type RemoveSkillFromEmployeeRequest struct {
 type CreateProjectRequest struct {
 	Name        string     `json:"name" binding:"required,min=2"`
 	Description *string    `json:"description,omitempty"`
-	ManagerID   string     `json:"manager_id" binding:"required"`
 	DueDate     *time.Time `json:"due_date,omitempty"`
 }
 
@@ -100,7 +99,6 @@ type ListProjectsRequest struct {
 }
 
 type CreateTaskRequest struct {
-	ProjectID   string    `json:"project_id" binding:"required"`
 	Title       string    `json:"title" binding:"required,min=2"`
 	Description string    `json:"description"`
 	Priority    *int32    `json:"priority,omitempty" binding:"omitempty,min=0,max=4"`

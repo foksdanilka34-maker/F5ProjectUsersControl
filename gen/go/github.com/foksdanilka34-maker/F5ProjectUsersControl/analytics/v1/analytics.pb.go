@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.31.1
-// source: analytics_service/analytics.proto
+// source: api/analytics_service/analytics.proto
 
 package analyticsv1
 
@@ -22,128 +22,25 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Period int32
-
-const (
-	Period_PERIOD_UNSPECIFIED Period = 0
-	Period_PERIOD_DAILY       Period = 1
-	Period_PERIOD_WEEKLY      Period = 2
-	Period_PERIOD_MONTHLY     Period = 3
-)
-
-// Enum value maps for Period.
-var (
-	Period_name = map[int32]string{
-		0: "PERIOD_UNSPECIFIED",
-		1: "PERIOD_DAILY",
-		2: "PERIOD_WEEKLY",
-		3: "PERIOD_MONTHLY",
-	}
-	Period_value = map[string]int32{
-		"PERIOD_UNSPECIFIED": 0,
-		"PERIOD_DAILY":       1,
-		"PERIOD_WEEKLY":      2,
-		"PERIOD_MONTHLY":     3,
-	}
-)
-
-func (x Period) Enum() *Period {
-	p := new(Period)
-	*p = x
-	return p
-}
-
-func (x Period) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (Period) Descriptor() protoreflect.EnumDescriptor {
-	return file_analytics_service_analytics_proto_enumTypes[0].Descriptor()
-}
-
-func (Period) Type() protoreflect.EnumType {
-	return &file_analytics_service_analytics_proto_enumTypes[0]
-}
-
-func (x Period) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use Period.Descriptor instead.
-func (Period) EnumDescriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{0}
-}
-
-type HealthStatus int32
-
-const (
-	HealthStatus_HEALTH_STATUS_UNSPECIFIED HealthStatus = 0
-	HealthStatus_HEALTH_STATUS_HEALTHY     HealthStatus = 1
-	HealthStatus_HEALTH_STATUS_AT_RISK     HealthStatus = 2
-	HealthStatus_HEALTH_STATUS_CRITICAL    HealthStatus = 3
-)
-
-// Enum value maps for HealthStatus.
-var (
-	HealthStatus_name = map[int32]string{
-		0: "HEALTH_STATUS_UNSPECIFIED",
-		1: "HEALTH_STATUS_HEALTHY",
-		2: "HEALTH_STATUS_AT_RISK",
-		3: "HEALTH_STATUS_CRITICAL",
-	}
-	HealthStatus_value = map[string]int32{
-		"HEALTH_STATUS_UNSPECIFIED": 0,
-		"HEALTH_STATUS_HEALTHY":     1,
-		"HEALTH_STATUS_AT_RISK":     2,
-		"HEALTH_STATUS_CRITICAL":    3,
-	}
-)
-
-func (x HealthStatus) Enum() *HealthStatus {
-	p := new(HealthStatus)
-	*p = x
-	return p
-}
-
-func (x HealthStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (HealthStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_analytics_service_analytics_proto_enumTypes[1].Descriptor()
-}
-
-func (HealthStatus) Type() protoreflect.EnumType {
-	return &file_analytics_service_analytics_proto_enumTypes[1]
-}
-
-func (x HealthStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use HealthStatus.Descriptor instead.
-func (HealthStatus) EnumDescriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{1}
-}
-
 type EmployeeMetrics struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	EmployeeId           string                 `protobuf:"bytes,1,opt,name=employee_id,json=employeeId,proto3" json:"employee_id,omitempty"`
-	MetricDate           *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=metric_date,json=metricDate,proto3" json:"metric_date,omitempty"`
-	AssignedTasks        int32                  `protobuf:"varint,3,opt,name=assigned_tasks,json=assignedTasks,proto3" json:"assigned_tasks,omitempty"`
-	CompletedTasks       int32                  `protobuf:"varint,4,opt,name=completed_tasks,json=completedTasks,proto3" json:"completed_tasks,omitempty"`
-	InProgressTasks      int32                  `protobuf:"varint,5,opt,name=in_progress_tasks,json=inProgressTasks,proto3" json:"in_progress_tasks,omitempty"`
-	OverdueTasks         int32                  `protobuf:"varint,6,opt,name=overdue_tasks,json=overdueTasks,proto3" json:"overdue_tasks,omitempty"`
-	EfficiencyScore      float64                `protobuf:"fixed64,7,opt,name=efficiency_score,json=efficiencyScore,proto3" json:"efficiency_score,omitempty"`
-	TaskCompletionRate   float64                `protobuf:"fixed64,8,opt,name=task_completion_rate,json=taskCompletionRate,proto3" json:"task_completion_rate,omitempty"`
-	OnTimeCompletionRate float64                `protobuf:"fixed64,9,opt,name=on_time_completion_rate,json=onTimeCompletionRate,proto3" json:"on_time_completion_rate,omitempty"`
+	EmployeeName         string                 `protobuf:"bytes,2,opt,name=employee_name,json=employeeName,proto3" json:"employee_name,omitempty"`
+	MetricDate           *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=metric_date,json=metricDate,proto3" json:"metric_date,omitempty"`
+	AssignedTasks        int32                  `protobuf:"varint,4,opt,name=assigned_tasks,json=assignedTasks,proto3" json:"assigned_tasks,omitempty"`
+	CompletedTasks       int32                  `protobuf:"varint,5,opt,name=completed_tasks,json=completedTasks,proto3" json:"completed_tasks,omitempty"`
+	InProgressTasks      int32                  `protobuf:"varint,6,opt,name=in_progress_tasks,json=inProgressTasks,proto3" json:"in_progress_tasks,omitempty"`
+	OverdueTasks         int32                  `protobuf:"varint,7,opt,name=overdue_tasks,json=overdueTasks,proto3" json:"overdue_tasks,omitempty"`
+	EfficiencyScore      float64                `protobuf:"fixed64,8,opt,name=efficiency_score,json=efficiencyScore,proto3" json:"efficiency_score,omitempty"`
+	TaskCompletionRate   float64                `protobuf:"fixed64,9,opt,name=task_completion_rate,json=taskCompletionRate,proto3" json:"task_completion_rate,omitempty"`
+	OnTimeCompletionRate float64                `protobuf:"fixed64,10,opt,name=on_time_completion_rate,json=onTimeCompletionRate,proto3" json:"on_time_completion_rate,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
 
 func (x *EmployeeMetrics) Reset() {
 	*x = EmployeeMetrics{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[0]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -155,7 +52,7 @@ func (x *EmployeeMetrics) String() string {
 func (*EmployeeMetrics) ProtoMessage() {}
 
 func (x *EmployeeMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[0]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -168,12 +65,19 @@ func (x *EmployeeMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmployeeMetrics.ProtoReflect.Descriptor instead.
 func (*EmployeeMetrics) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{0}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *EmployeeMetrics) GetEmployeeId() string {
 	if x != nil {
 		return x.EmployeeId
+	}
+	return ""
+}
+
+func (x *EmployeeMetrics) GetEmployeeName() string {
+	if x != nil {
+		return x.EmployeeName
 	}
 	return ""
 }
@@ -237,13 +141,15 @@ func (x *EmployeeMetrics) GetOnTimeCompletionRate() float64 {
 type GetEmployeeMetricsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EmployeeId    string                 `protobuf:"bytes,1,opt,name=employee_id,json=employeeId,proto3" json:"employee_id,omitempty"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=start_date,json=startDate,proto3,oneof" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=end_date,json=endDate,proto3,oneof" json:"end_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetEmployeeMetricsRequest) Reset() {
 	*x = GetEmployeeMetricsRequest{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[1]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -255,7 +161,7 @@ func (x *GetEmployeeMetricsRequest) String() string {
 func (*GetEmployeeMetricsRequest) ProtoMessage() {}
 
 func (x *GetEmployeeMetricsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[1]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -268,7 +174,7 @@ func (x *GetEmployeeMetricsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetEmployeeMetricsRequest.ProtoReflect.Descriptor instead.
 func (*GetEmployeeMetricsRequest) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{1}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetEmployeeMetricsRequest) GetEmployeeId() string {
@@ -278,16 +184,31 @@ func (x *GetEmployeeMetricsRequest) GetEmployeeId() string {
 	return ""
 }
 
+func (x *GetEmployeeMetricsRequest) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *GetEmployeeMetricsRequest) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
 type EmployeeMetricsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Metrics       *EmployeeMetrics       `protobuf:"bytes,1,opt,name=metrics,proto3" json:"metrics,omitempty"`
+	Metrics       []*EmployeeMetrics     `protobuf:"bytes,1,rep,name=metrics,proto3" json:"metrics,omitempty"`
+	CalculatedAt  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=calculated_at,json=calculatedAt,proto3" json:"calculated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EmployeeMetricsResponse) Reset() {
 	*x = EmployeeMetricsResponse{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[2]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -299,7 +220,7 @@ func (x *EmployeeMetricsResponse) String() string {
 func (*EmployeeMetricsResponse) ProtoMessage() {}
 
 func (x *EmployeeMetricsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[2]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -312,20 +233,27 @@ func (x *EmployeeMetricsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmployeeMetricsResponse.ProtoReflect.Descriptor instead.
 func (*EmployeeMetricsResponse) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{2}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *EmployeeMetricsResponse) GetMetrics() *EmployeeMetrics {
+func (x *EmployeeMetricsResponse) GetMetrics() []*EmployeeMetrics {
 	if x != nil {
 		return x.Metrics
 	}
 	return nil
 }
 
+func (x *EmployeeMetricsResponse) GetCalculatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CalculatedAt
+	}
+	return nil
+}
+
 type ListEmployeeMetricsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	PageSize      *int32                 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3,oneof" json:"page_size,omitempty"`
-	PageNumber    *int32                 `protobuf:"varint,2,opt,name=page_number,json=pageNumber,proto3,oneof" json:"page_number,omitempty"`
+	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageNumber    int32                  `protobuf:"varint,2,opt,name=page_number,json=pageNumber,proto3" json:"page_number,omitempty"`
 	DepartmentId  *string                `protobuf:"bytes,3,opt,name=department_id,json=departmentId,proto3,oneof" json:"department_id,omitempty"`
 	StartDate     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=start_date,json=startDate,proto3,oneof" json:"start_date,omitempty"`
 	EndDate       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=end_date,json=endDate,proto3,oneof" json:"end_date,omitempty"`
@@ -335,7 +263,7 @@ type ListEmployeeMetricsRequest struct {
 
 func (x *ListEmployeeMetricsRequest) Reset() {
 	*x = ListEmployeeMetricsRequest{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[3]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -347,7 +275,7 @@ func (x *ListEmployeeMetricsRequest) String() string {
 func (*ListEmployeeMetricsRequest) ProtoMessage() {}
 
 func (x *ListEmployeeMetricsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[3]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -360,19 +288,19 @@ func (x *ListEmployeeMetricsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEmployeeMetricsRequest.ProtoReflect.Descriptor instead.
 func (*ListEmployeeMetricsRequest) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{3}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListEmployeeMetricsRequest) GetPageSize() int32 {
-	if x != nil && x.PageSize != nil {
-		return *x.PageSize
+	if x != nil {
+		return x.PageSize
 	}
 	return 0
 }
 
 func (x *ListEmployeeMetricsRequest) GetPageNumber() int32 {
-	if x != nil && x.PageNumber != nil {
-		return *x.PageNumber
+	if x != nil {
+		return x.PageNumber
 	}
 	return 0
 }
@@ -408,7 +336,7 @@ type ListEmployeeMetricsResponse struct {
 
 func (x *ListEmployeeMetricsResponse) Reset() {
 	*x = ListEmployeeMetricsResponse{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[4]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -420,7 +348,7 @@ func (x *ListEmployeeMetricsResponse) String() string {
 func (*ListEmployeeMetricsResponse) ProtoMessage() {}
 
 func (x *ListEmployeeMetricsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[4]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -433,7 +361,7 @@ func (x *ListEmployeeMetricsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListEmployeeMetricsResponse.ProtoReflect.Descriptor instead.
 func (*ListEmployeeMetricsResponse) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{4}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListEmployeeMetricsResponse) GetMetrics() []*EmployeeMetrics {
@@ -462,7 +390,7 @@ type GetTopPerformersRequest struct {
 
 func (x *GetTopPerformersRequest) Reset() {
 	*x = GetTopPerformersRequest{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[5]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -474,7 +402,7 @@ func (x *GetTopPerformersRequest) String() string {
 func (*GetTopPerformersRequest) ProtoMessage() {}
 
 func (x *GetTopPerformersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[5]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -487,7 +415,7 @@ func (x *GetTopPerformersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTopPerformersRequest.ProtoReflect.Descriptor instead.
 func (*GetTopPerformersRequest) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{5}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetTopPerformersRequest) GetLimit() int32 {
@@ -521,33 +449,35 @@ func (x *GetTopPerformersRequest) GetEndDate() *timestamppb.Timestamp {
 type ProjectMetrics struct {
 	state                   protoimpl.MessageState `protogen:"open.v1"`
 	ProjectId               string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	ManagerId               string                 `protobuf:"bytes,2,opt,name=manager_id,json=managerId,proto3" json:"manager_id,omitempty"`
-	MetricDate              *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=metric_date,json=metricDate,proto3" json:"metric_date,omitempty"`
-	TotalTasks              int32                  `protobuf:"varint,4,opt,name=total_tasks,json=totalTasks,proto3" json:"total_tasks,omitempty"`
-	CompletedTasks          int32                  `protobuf:"varint,5,opt,name=completed_tasks,json=completedTasks,proto3" json:"completed_tasks,omitempty"`
-	InProgressTasks         int32                  `protobuf:"varint,6,opt,name=in_progress_tasks,json=inProgressTasks,proto3" json:"in_progress_tasks,omitempty"`
-	OverdueTasks            int32                  `protobuf:"varint,7,opt,name=overdue_tasks,json=overdueTasks,proto3" json:"overdue_tasks,omitempty"`
-	DeliveryPerformance     float64                `protobuf:"fixed64,8,opt,name=delivery_performance,json=deliveryPerformance,proto3" json:"delivery_performance,omitempty"`
-	SchedulePerformance     float64                `protobuf:"fixed64,9,opt,name=schedule_performance,json=schedulePerformance,proto3" json:"schedule_performance,omitempty"`
-	QualityPerformance      float64                `protobuf:"fixed64,10,opt,name=quality_performance,json=qualityPerformance,proto3" json:"quality_performance,omitempty"`
-	TeamPerformance         float64                `protobuf:"fixed64,11,opt,name=team_performance,json=teamPerformance,proto3" json:"team_performance,omitempty"`
-	HealthIndex             float64                `protobuf:"fixed64,12,opt,name=health_index,json=healthIndex,proto3" json:"health_index,omitempty"`
-	RiskScore               float64                `protobuf:"fixed64,13,opt,name=risk_score,json=riskScore,proto3" json:"risk_score,omitempty"`
-	HealthStatus            HealthStatus           `protobuf:"varint,14,opt,name=health_status,json=healthStatus,proto3,enum=analytics.HealthStatus" json:"health_status,omitempty"`
-	Velocity                float64                `protobuf:"fixed64,15,opt,name=velocity,proto3" json:"velocity,omitempty"`
-	ProjectedEndDate        *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=projected_end_date,json=projectedEndDate,proto3,oneof" json:"projected_end_date,omitempty"`
-	TeamCapacityUtilization float64                `protobuf:"fixed64,17,opt,name=team_capacity_utilization,json=teamCapacityUtilization,proto3" json:"team_capacity_utilization,omitempty"`
-	TeamSize                int32                  `protobuf:"varint,18,opt,name=team_size,json=teamSize,proto3" json:"team_size,omitempty"`
-	AvgTeamEfficiency       float64                `protobuf:"fixed64,19,opt,name=avg_team_efficiency,json=avgTeamEfficiency,proto3" json:"avg_team_efficiency,omitempty"`
-	IsAtRisk                bool                   `protobuf:"varint,20,opt,name=is_at_risk,json=isAtRisk,proto3" json:"is_at_risk,omitempty"`
-	DaysUntilDue            *int32                 `protobuf:"varint,21,opt,name=days_until_due,json=daysUntilDue,proto3,oneof" json:"days_until_due,omitempty"`
+	ProjectName             string                 `protobuf:"bytes,2,opt,name=project_name,json=projectName,proto3" json:"project_name,omitempty"`
+	ManagerId               string                 `protobuf:"bytes,3,opt,name=manager_id,json=managerId,proto3" json:"manager_id,omitempty"`
+	ManagerName             string                 `protobuf:"bytes,4,opt,name=manager_name,json=managerName,proto3" json:"manager_name,omitempty"`
+	MetricDate              *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=metric_date,json=metricDate,proto3" json:"metric_date,omitempty"`
+	TotalTasks              int32                  `protobuf:"varint,6,opt,name=total_tasks,json=totalTasks,proto3" json:"total_tasks,omitempty"`
+	CompletedTasks          int32                  `protobuf:"varint,7,opt,name=completed_tasks,json=completedTasks,proto3" json:"completed_tasks,omitempty"`
+	InProgressTasks         int32                  `protobuf:"varint,8,opt,name=in_progress_tasks,json=inProgressTasks,proto3" json:"in_progress_tasks,omitempty"`
+	OverdueTasks            int32                  `protobuf:"varint,9,opt,name=overdue_tasks,json=overdueTasks,proto3" json:"overdue_tasks,omitempty"`
+	DeliveryPerformance     float64                `protobuf:"fixed64,10,opt,name=delivery_performance,json=deliveryPerformance,proto3" json:"delivery_performance,omitempty"`
+	SchedulePerformance     float64                `protobuf:"fixed64,11,opt,name=schedule_performance,json=schedulePerformance,proto3" json:"schedule_performance,omitempty"`
+	QualityPerformance      float64                `protobuf:"fixed64,12,opt,name=quality_performance,json=qualityPerformance,proto3" json:"quality_performance,omitempty"`
+	TeamPerformance         float64                `protobuf:"fixed64,13,opt,name=team_performance,json=teamPerformance,proto3" json:"team_performance,omitempty"`
+	HealthIndex             float64                `protobuf:"fixed64,14,opt,name=health_index,json=healthIndex,proto3" json:"health_index,omitempty"`
+	RiskScore               float64                `protobuf:"fixed64,15,opt,name=risk_score,json=riskScore,proto3" json:"risk_score,omitempty"`
+	HealthStatus            string                 `protobuf:"bytes,16,opt,name=health_status,json=healthStatus,proto3" json:"health_status,omitempty"`
+	Velocity                float64                `protobuf:"fixed64,17,opt,name=velocity,proto3" json:"velocity,omitempty"`
+	ProjectedEndDate        *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=projected_end_date,json=projectedEndDate,proto3,oneof" json:"projected_end_date,omitempty"`
+	TeamCapacityUtilization float64                `protobuf:"fixed64,19,opt,name=team_capacity_utilization,json=teamCapacityUtilization,proto3" json:"team_capacity_utilization,omitempty"`
+	TeamSize                int32                  `protobuf:"varint,20,opt,name=team_size,json=teamSize,proto3" json:"team_size,omitempty"`
+	AvgTeamEfficiency       float64                `protobuf:"fixed64,21,opt,name=avg_team_efficiency,json=avgTeamEfficiency,proto3" json:"avg_team_efficiency,omitempty"`
+	IsAtRisk                bool                   `protobuf:"varint,22,opt,name=is_at_risk,json=isAtRisk,proto3" json:"is_at_risk,omitempty"`
+	DaysUntilDue            *int32                 `protobuf:"varint,23,opt,name=days_until_due,json=daysUntilDue,proto3,oneof" json:"days_until_due,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ProjectMetrics) Reset() {
 	*x = ProjectMetrics{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[6]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -559,7 +489,7 @@ func (x *ProjectMetrics) String() string {
 func (*ProjectMetrics) ProtoMessage() {}
 
 func (x *ProjectMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[6]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -572,7 +502,7 @@ func (x *ProjectMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProjectMetrics.ProtoReflect.Descriptor instead.
 func (*ProjectMetrics) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{6}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ProjectMetrics) GetProjectId() string {
@@ -582,9 +512,23 @@ func (x *ProjectMetrics) GetProjectId() string {
 	return ""
 }
 
+func (x *ProjectMetrics) GetProjectName() string {
+	if x != nil {
+		return x.ProjectName
+	}
+	return ""
+}
+
 func (x *ProjectMetrics) GetManagerId() string {
 	if x != nil {
 		return x.ManagerId
+	}
+	return ""
+}
+
+func (x *ProjectMetrics) GetManagerName() string {
+	if x != nil {
+		return x.ManagerName
 	}
 	return ""
 }
@@ -666,11 +610,11 @@ func (x *ProjectMetrics) GetRiskScore() float64 {
 	return 0
 }
 
-func (x *ProjectMetrics) GetHealthStatus() HealthStatus {
+func (x *ProjectMetrics) GetHealthStatus() string {
 	if x != nil {
 		return x.HealthStatus
 	}
-	return HealthStatus_HEALTH_STATUS_UNSPECIFIED
+	return ""
 }
 
 func (x *ProjectMetrics) GetVelocity() float64 {
@@ -733,7 +677,7 @@ type GetProjectMetricsRequest struct {
 
 func (x *GetProjectMetricsRequest) Reset() {
 	*x = GetProjectMetricsRequest{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[7]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -745,7 +689,7 @@ func (x *GetProjectMetricsRequest) String() string {
 func (*GetProjectMetricsRequest) ProtoMessage() {}
 
 func (x *GetProjectMetricsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[7]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -758,7 +702,7 @@ func (x *GetProjectMetricsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProjectMetricsRequest.ProtoReflect.Descriptor instead.
 func (*GetProjectMetricsRequest) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{7}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetProjectMetricsRequest) GetProjectId() string {
@@ -784,7 +728,7 @@ func (x *GetProjectMetricsRequest) GetEndDate() *timestamppb.Timestamp {
 
 type ProjectMetricsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Metrics       *ProjectMetrics        `protobuf:"bytes,1,opt,name=metrics,proto3" json:"metrics,omitempty"`
+	Metrics       []*ProjectMetrics      `protobuf:"bytes,1,rep,name=metrics,proto3" json:"metrics,omitempty"`
 	CalculatedAt  *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=calculated_at,json=calculatedAt,proto3" json:"calculated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -792,7 +736,7 @@ type ProjectMetricsResponse struct {
 
 func (x *ProjectMetricsResponse) Reset() {
 	*x = ProjectMetricsResponse{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[8]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -804,7 +748,7 @@ func (x *ProjectMetricsResponse) String() string {
 func (*ProjectMetricsResponse) ProtoMessage() {}
 
 func (x *ProjectMetricsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[8]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -817,10 +761,10 @@ func (x *ProjectMetricsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProjectMetricsResponse.ProtoReflect.Descriptor instead.
 func (*ProjectMetricsResponse) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{8}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *ProjectMetricsResponse) GetMetrics() *ProjectMetrics {
+func (x *ProjectMetricsResponse) GetMetrics() []*ProjectMetrics {
 	if x != nil {
 		return x.Metrics
 	}
@@ -836,8 +780,8 @@ func (x *ProjectMetricsResponse) GetCalculatedAt() *timestamppb.Timestamp {
 
 type ListProjectMetricsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	PageSize      *int32                 `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3,oneof" json:"page_size,omitempty"`
-	PageNumber    *int32                 `protobuf:"varint,2,opt,name=page_number,json=pageNumber,proto3,oneof" json:"page_number,omitempty"`
+	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageNumber    int32                  `protobuf:"varint,2,opt,name=page_number,json=pageNumber,proto3" json:"page_number,omitempty"`
 	ManagerId     *string                `protobuf:"bytes,3,opt,name=manager_id,json=managerId,proto3,oneof" json:"manager_id,omitempty"`
 	StartDate     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=start_date,json=startDate,proto3,oneof" json:"start_date,omitempty"`
 	EndDate       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=end_date,json=endDate,proto3,oneof" json:"end_date,omitempty"`
@@ -847,7 +791,7 @@ type ListProjectMetricsRequest struct {
 
 func (x *ListProjectMetricsRequest) Reset() {
 	*x = ListProjectMetricsRequest{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[9]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -859,7 +803,7 @@ func (x *ListProjectMetricsRequest) String() string {
 func (*ListProjectMetricsRequest) ProtoMessage() {}
 
 func (x *ListProjectMetricsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[9]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -872,19 +816,19 @@ func (x *ListProjectMetricsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProjectMetricsRequest.ProtoReflect.Descriptor instead.
 func (*ListProjectMetricsRequest) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{9}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListProjectMetricsRequest) GetPageSize() int32 {
-	if x != nil && x.PageSize != nil {
-		return *x.PageSize
+	if x != nil {
+		return x.PageSize
 	}
 	return 0
 }
 
 func (x *ListProjectMetricsRequest) GetPageNumber() int32 {
-	if x != nil && x.PageNumber != nil {
-		return *x.PageNumber
+	if x != nil {
+		return x.PageNumber
 	}
 	return 0
 }
@@ -920,7 +864,7 @@ type ListProjectMetricsResponse struct {
 
 func (x *ListProjectMetricsResponse) Reset() {
 	*x = ListProjectMetricsResponse{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[10]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -932,7 +876,7 @@ func (x *ListProjectMetricsResponse) String() string {
 func (*ListProjectMetricsResponse) ProtoMessage() {}
 
 func (x *ListProjectMetricsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[10]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -945,7 +889,7 @@ func (x *ListProjectMetricsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProjectMetricsResponse.ProtoReflect.Descriptor instead.
 func (*ListProjectMetricsResponse) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{10}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListProjectMetricsResponse) GetMetrics() []*ProjectMetrics {
@@ -973,7 +917,7 @@ type SubscribeToMetricsUpdatesRequest struct {
 
 func (x *SubscribeToMetricsUpdatesRequest) Reset() {
 	*x = SubscribeToMetricsUpdatesRequest{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[11]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -985,7 +929,7 @@ func (x *SubscribeToMetricsUpdatesRequest) String() string {
 func (*SubscribeToMetricsUpdatesRequest) ProtoMessage() {}
 
 func (x *SubscribeToMetricsUpdatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[11]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -998,7 +942,7 @@ func (x *SubscribeToMetricsUpdatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeToMetricsUpdatesRequest.ProtoReflect.Descriptor instead.
 func (*SubscribeToMetricsUpdatesRequest) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{11}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SubscribeToMetricsUpdatesRequest) GetEmployeeId() string {
@@ -1036,7 +980,7 @@ type MetricsUpdate struct {
 
 func (x *MetricsUpdate) Reset() {
 	*x = MetricsUpdate{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[12]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1048,7 +992,7 @@ func (x *MetricsUpdate) String() string {
 func (*MetricsUpdate) ProtoMessage() {}
 
 func (x *MetricsUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[12]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1061,7 +1005,7 @@ func (x *MetricsUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsUpdate.ProtoReflect.Descriptor instead.
 func (*MetricsUpdate) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{12}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *MetricsUpdate) GetUpdate() isMetricsUpdate_Update {
@@ -1115,14 +1059,14 @@ func (*MetricsUpdate_ProjectMetrics) isMetricsUpdate_Update() {}
 type ProductivityTrendsResponse struct {
 	state         protoimpl.MessageState    `protogen:"open.v1"`
 	Entries       []*ProductivityTrendEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
-	Period        Period                    `protobuf:"varint,2,opt,name=period,proto3,enum=analytics.Period" json:"period,omitempty"`
+	Period        string                    `protobuf:"bytes,2,opt,name=period,proto3" json:"period,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ProductivityTrendsResponse) Reset() {
 	*x = ProductivityTrendsResponse{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[13]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1134,7 +1078,7 @@ func (x *ProductivityTrendsResponse) String() string {
 func (*ProductivityTrendsResponse) ProtoMessage() {}
 
 func (x *ProductivityTrendsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[13]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1147,7 +1091,7 @@ func (x *ProductivityTrendsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProductivityTrendsResponse.ProtoReflect.Descriptor instead.
 func (*ProductivityTrendsResponse) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{13}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ProductivityTrendsResponse) GetEntries() []*ProductivityTrendEntry {
@@ -1157,11 +1101,11 @@ func (x *ProductivityTrendsResponse) GetEntries() []*ProductivityTrendEntry {
 	return nil
 }
 
-func (x *ProductivityTrendsResponse) GetPeriod() Period {
+func (x *ProductivityTrendsResponse) GetPeriod() string {
 	if x != nil {
 		return x.Period
 	}
-	return Period_PERIOD_UNSPECIFIED
+	return ""
 }
 
 type ProductivityTrendEntry struct {
@@ -1176,7 +1120,7 @@ type ProductivityTrendEntry struct {
 
 func (x *ProductivityTrendEntry) Reset() {
 	*x = ProductivityTrendEntry{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[14]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1188,7 +1132,7 @@ func (x *ProductivityTrendEntry) String() string {
 func (*ProductivityTrendEntry) ProtoMessage() {}
 
 func (x *ProductivityTrendEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[14]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1201,7 +1145,7 @@ func (x *ProductivityTrendEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProductivityTrendEntry.ProtoReflect.Descriptor instead.
 func (*ProductivityTrendEntry) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{14}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ProductivityTrendEntry) GetDate() *timestamppb.Timestamp {
@@ -1234,7 +1178,7 @@ func (x *ProductivityTrendEntry) GetTotalEmployeesActive() int32 {
 
 type GetProductivityTrendsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Period        Period                 `protobuf:"varint,1,opt,name=period,proto3,enum=analytics.Period" json:"period,omitempty"`
+	Period        string                 `protobuf:"bytes,1,opt,name=period,proto3" json:"period,omitempty"`
 	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	DepartmentId  *string                `protobuf:"bytes,3,opt,name=department_id,json=departmentId,proto3,oneof" json:"department_id,omitempty"`
 	EmployeeId    *string                `protobuf:"bytes,4,opt,name=employee_id,json=employeeId,proto3,oneof" json:"employee_id,omitempty"`
@@ -1244,7 +1188,7 @@ type GetProductivityTrendsRequest struct {
 
 func (x *GetProductivityTrendsRequest) Reset() {
 	*x = GetProductivityTrendsRequest{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[15]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1256,7 +1200,7 @@ func (x *GetProductivityTrendsRequest) String() string {
 func (*GetProductivityTrendsRequest) ProtoMessage() {}
 
 func (x *GetProductivityTrendsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[15]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1269,14 +1213,14 @@ func (x *GetProductivityTrendsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProductivityTrendsRequest.ProtoReflect.Descriptor instead.
 func (*GetProductivityTrendsRequest) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{15}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *GetProductivityTrendsRequest) GetPeriod() Period {
+func (x *GetProductivityTrendsRequest) GetPeriod() string {
 	if x != nil {
 		return x.Period
 	}
-	return Period_PERIOD_UNSPECIFIED
+	return ""
 }
 
 func (x *GetProductivityTrendsRequest) GetLimit() int32 {
@@ -1303,14 +1247,14 @@ func (x *GetProductivityTrendsRequest) GetEmployeeId() string {
 type CompletionRateTrendsResponse struct {
 	state         protoimpl.MessageState      `protogen:"open.v1"`
 	Entries       []*CompletionRateTrendEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
-	Period        Period                      `protobuf:"varint,2,opt,name=period,proto3,enum=analytics.Period" json:"period,omitempty"`
+	Period        string                      `protobuf:"bytes,2,opt,name=period,proto3" json:"period,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CompletionRateTrendsResponse) Reset() {
 	*x = CompletionRateTrendsResponse{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[16]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1322,7 +1266,7 @@ func (x *CompletionRateTrendsResponse) String() string {
 func (*CompletionRateTrendsResponse) ProtoMessage() {}
 
 func (x *CompletionRateTrendsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[16]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1335,7 +1279,7 @@ func (x *CompletionRateTrendsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompletionRateTrendsResponse.ProtoReflect.Descriptor instead.
 func (*CompletionRateTrendsResponse) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{16}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CompletionRateTrendsResponse) GetEntries() []*CompletionRateTrendEntry {
@@ -1345,11 +1289,11 @@ func (x *CompletionRateTrendsResponse) GetEntries() []*CompletionRateTrendEntry 
 	return nil
 }
 
-func (x *CompletionRateTrendsResponse) GetPeriod() Period {
+func (x *CompletionRateTrendsResponse) GetPeriod() string {
 	if x != nil {
 		return x.Period
 	}
-	return Period_PERIOD_UNSPECIFIED
+	return ""
 }
 
 type CompletionRateTrendEntry struct {
@@ -1365,7 +1309,7 @@ type CompletionRateTrendEntry struct {
 
 func (x *CompletionRateTrendEntry) Reset() {
 	*x = CompletionRateTrendEntry{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[17]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1377,7 +1321,7 @@ func (x *CompletionRateTrendEntry) String() string {
 func (*CompletionRateTrendEntry) ProtoMessage() {}
 
 func (x *CompletionRateTrendEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[17]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1390,7 +1334,7 @@ func (x *CompletionRateTrendEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompletionRateTrendEntry.ProtoReflect.Descriptor instead.
 func (*CompletionRateTrendEntry) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{17}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CompletionRateTrendEntry) GetDate() *timestamppb.Timestamp {
@@ -1430,7 +1374,7 @@ func (x *CompletionRateTrendEntry) GetOverdueCount() int32 {
 
 type GetCompletionRateTrendsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Period        Period                 `protobuf:"varint,1,opt,name=period,proto3,enum=analytics.Period" json:"period,omitempty"`
+	Period        string                 `protobuf:"bytes,1,opt,name=period,proto3" json:"period,omitempty"`
 	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	ProjectId     *string                `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3,oneof" json:"project_id,omitempty"`
 	DepartmentId  *string                `protobuf:"bytes,4,opt,name=department_id,json=departmentId,proto3,oneof" json:"department_id,omitempty"`
@@ -1440,7 +1384,7 @@ type GetCompletionRateTrendsRequest struct {
 
 func (x *GetCompletionRateTrendsRequest) Reset() {
 	*x = GetCompletionRateTrendsRequest{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[18]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1452,7 +1396,7 @@ func (x *GetCompletionRateTrendsRequest) String() string {
 func (*GetCompletionRateTrendsRequest) ProtoMessage() {}
 
 func (x *GetCompletionRateTrendsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[18]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1465,14 +1409,14 @@ func (x *GetCompletionRateTrendsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCompletionRateTrendsRequest.ProtoReflect.Descriptor instead.
 func (*GetCompletionRateTrendsRequest) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{18}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *GetCompletionRateTrendsRequest) GetPeriod() Period {
+func (x *GetCompletionRateTrendsRequest) GetPeriod() string {
 	if x != nil {
 		return x.Period
 	}
-	return Period_PERIOD_UNSPECIFIED
+	return ""
 }
 
 func (x *GetCompletionRateTrendsRequest) GetLimit() int32 {
@@ -1516,7 +1460,7 @@ type DashboardStatsResponse struct {
 
 func (x *DashboardStatsResponse) Reset() {
 	*x = DashboardStatsResponse{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[19]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1528,7 +1472,7 @@ func (x *DashboardStatsResponse) String() string {
 func (*DashboardStatsResponse) ProtoMessage() {}
 
 func (x *DashboardStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[19]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1541,7 +1485,7 @@ func (x *DashboardStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DashboardStatsResponse.ProtoReflect.Descriptor instead.
 func (*DashboardStatsResponse) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{19}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *DashboardStatsResponse) GetTotalEmployees() int32 {
@@ -1631,15 +1575,16 @@ func (x *DashboardStatsResponse) GetCalculatedAt() *timestamppb.Timestamp {
 type TopEmployee struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	EmployeeId      string                 `protobuf:"bytes,1,opt,name=employee_id,json=employeeId,proto3" json:"employee_id,omitempty"`
-	EfficiencyScore float64                `protobuf:"fixed64,2,opt,name=efficiency_score,json=efficiencyScore,proto3" json:"efficiency_score,omitempty"`
-	TasksCompleted  int32                  `protobuf:"varint,3,opt,name=tasks_completed,json=tasksCompleted,proto3" json:"tasks_completed,omitempty"`
+	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	EfficiencyScore float64                `protobuf:"fixed64,3,opt,name=efficiency_score,json=efficiencyScore,proto3" json:"efficiency_score,omitempty"`
+	TasksCompleted  int32                  `protobuf:"varint,4,opt,name=tasks_completed,json=tasksCompleted,proto3" json:"tasks_completed,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *TopEmployee) Reset() {
 	*x = TopEmployee{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[20]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1651,7 +1596,7 @@ func (x *TopEmployee) String() string {
 func (*TopEmployee) ProtoMessage() {}
 
 func (x *TopEmployee) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[20]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1664,12 +1609,19 @@ func (x *TopEmployee) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TopEmployee.ProtoReflect.Descriptor instead.
 func (*TopEmployee) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{20}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *TopEmployee) GetEmployeeId() string {
 	if x != nil {
 		return x.EmployeeId
+	}
+	return ""
+}
+
+func (x *TopEmployee) GetName() string {
+	if x != nil {
+		return x.Name
 	}
 	return ""
 }
@@ -1691,15 +1643,16 @@ func (x *TopEmployee) GetTasksCompleted() int32 {
 type BottomProject struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	HealthScore   float64                `protobuf:"fixed64,2,opt,name=health_score,json=healthScore,proto3" json:"health_score,omitempty"`
-	OnTimeRate    float64                `protobuf:"fixed64,3,opt,name=on_time_rate,json=onTimeRate,proto3" json:"on_time_rate,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	HealthScore   float64                `protobuf:"fixed64,3,opt,name=health_score,json=healthScore,proto3" json:"health_score,omitempty"`
+	OnTimeRate    float64                `protobuf:"fixed64,4,opt,name=on_time_rate,json=onTimeRate,proto3" json:"on_time_rate,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BottomProject) Reset() {
 	*x = BottomProject{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[21]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1711,7 +1664,7 @@ func (x *BottomProject) String() string {
 func (*BottomProject) ProtoMessage() {}
 
 func (x *BottomProject) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[21]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1724,12 +1677,19 @@ func (x *BottomProject) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BottomProject.ProtoReflect.Descriptor instead.
 func (*BottomProject) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{21}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *BottomProject) GetProjectId() string {
 	if x != nil {
 		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *BottomProject) GetName() string {
+	if x != nil {
+		return x.Name
 	}
 	return ""
 }
@@ -1758,7 +1718,7 @@ type GetDashboardStatsRequest struct {
 
 func (x *GetDashboardStatsRequest) Reset() {
 	*x = GetDashboardStatsRequest{}
-	mi := &file_analytics_service_analytics_proto_msgTypes[22]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1770,7 +1730,7 @@ func (x *GetDashboardStatsRequest) String() string {
 func (*GetDashboardStatsRequest) ProtoMessage() {}
 
 func (x *GetDashboardStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_analytics_service_analytics_proto_msgTypes[22]
+	mi := &file_api_analytics_service_analytics_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1783,7 +1743,7 @@ func (x *GetDashboardStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDashboardStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetDashboardStatsRequest) Descriptor() ([]byte, []int) {
-	return file_analytics_service_analytics_proto_rawDescGZIP(), []int{22}
+	return file_api_analytics_service_analytics_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetDashboardStatsRequest) GetStartDate() *timestamppb.Timestamp {
@@ -1800,39 +1760,44 @@ func (x *GetDashboardStatsRequest) GetEndDate() *timestamppb.Timestamp {
 	return nil
 }
 
-var File_analytics_service_analytics_proto protoreflect.FileDescriptor
+var File_api_analytics_service_analytics_proto protoreflect.FileDescriptor
 
-const file_analytics_service_analytics_proto_rawDesc = "" +
+const file_api_analytics_service_analytics_proto_rawDesc = "" +
 	"\n" +
-	"!analytics_service/analytics.proto\x12\tanalytics\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa4\x03\n" +
+	"%api/analytics_service/analytics.proto\x12\tanalytics\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc9\x03\n" +
 	"\x0fEmployeeMetrics\x12\x1f\n" +
 	"\vemployee_id\x18\x01 \x01(\tR\n" +
-	"employeeId\x12;\n" +
-	"\vmetric_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"employeeId\x12#\n" +
+	"\remployee_name\x18\x02 \x01(\tR\femployeeName\x12;\n" +
+	"\vmetric_date\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"metricDate\x12%\n" +
-	"\x0eassigned_tasks\x18\x03 \x01(\x05R\rassignedTasks\x12'\n" +
-	"\x0fcompleted_tasks\x18\x04 \x01(\x05R\x0ecompletedTasks\x12*\n" +
-	"\x11in_progress_tasks\x18\x05 \x01(\x05R\x0finProgressTasks\x12#\n" +
-	"\roverdue_tasks\x18\x06 \x01(\x05R\foverdueTasks\x12)\n" +
-	"\x10efficiency_score\x18\a \x01(\x01R\x0fefficiencyScore\x120\n" +
-	"\x14task_completion_rate\x18\b \x01(\x01R\x12taskCompletionRate\x125\n" +
-	"\x17on_time_completion_rate\x18\t \x01(\x01R\x14onTimeCompletionRate\"<\n" +
+	"\x0eassigned_tasks\x18\x04 \x01(\x05R\rassignedTasks\x12'\n" +
+	"\x0fcompleted_tasks\x18\x05 \x01(\x05R\x0ecompletedTasks\x12*\n" +
+	"\x11in_progress_tasks\x18\x06 \x01(\x05R\x0finProgressTasks\x12#\n" +
+	"\roverdue_tasks\x18\a \x01(\x05R\foverdueTasks\x12)\n" +
+	"\x10efficiency_score\x18\b \x01(\x01R\x0fefficiencyScore\x120\n" +
+	"\x14task_completion_rate\x18\t \x01(\x01R\x12taskCompletionRate\x125\n" +
+	"\x17on_time_completion_rate\x18\n" +
+	" \x01(\x01R\x14onTimeCompletionRate\"\xd4\x01\n" +
 	"\x19GetEmployeeMetricsRequest\x12\x1f\n" +
 	"\vemployee_id\x18\x01 \x01(\tR\n" +
-	"employeeId\"O\n" +
+	"employeeId\x12>\n" +
+	"\n" +
+	"start_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\tstartDate\x88\x01\x01\x12:\n" +
+	"\bend_date\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\aendDate\x88\x01\x01B\r\n" +
+	"\v_start_dateB\v\n" +
+	"\t_end_date\"\x90\x01\n" +
 	"\x17EmployeeMetricsResponse\x124\n" +
-	"\ametrics\x18\x01 \x01(\v2\x1a.analytics.EmployeeMetricsR\ametrics\"\xd6\x02\n" +
-	"\x1aListEmployeeMetricsRequest\x12 \n" +
-	"\tpage_size\x18\x01 \x01(\x05H\x00R\bpageSize\x88\x01\x01\x12$\n" +
-	"\vpage_number\x18\x02 \x01(\x05H\x01R\n" +
-	"pageNumber\x88\x01\x01\x12(\n" +
-	"\rdepartment_id\x18\x03 \x01(\tH\x02R\fdepartmentId\x88\x01\x01\x12>\n" +
+	"\ametrics\x18\x01 \x03(\v2\x1a.analytics.EmployeeMetricsR\ametrics\x12?\n" +
+	"\rcalculated_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fcalculatedAt\"\xae\x02\n" +
+	"\x1aListEmployeeMetricsRequest\x12\x1b\n" +
+	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1f\n" +
+	"\vpage_number\x18\x02 \x01(\x05R\n" +
+	"pageNumber\x12(\n" +
+	"\rdepartment_id\x18\x03 \x01(\tH\x00R\fdepartmentId\x88\x01\x01\x12>\n" +
 	"\n" +
-	"start_date\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x03R\tstartDate\x88\x01\x01\x12:\n" +
-	"\bend_date\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\aendDate\x88\x01\x01B\f\n" +
-	"\n" +
-	"_page_sizeB\x0e\n" +
-	"\f_page_numberB\x10\n" +
+	"start_date\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\tstartDate\x88\x01\x01\x12:\n" +
+	"\bend_date\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x02R\aendDate\x88\x01\x01B\x10\n" +
 	"\x0e_department_idB\r\n" +
 	"\v_start_dateB\v\n" +
 	"\t_end_date\"t\n" +
@@ -1848,36 +1813,38 @@ const file_analytics_service_analytics_proto_rawDesc = "" +
 	"\bend_date\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x02R\aendDate\x88\x01\x01B\x10\n" +
 	"\x0e_department_idB\r\n" +
 	"\v_start_dateB\v\n" +
-	"\t_end_date\"\xcf\a\n" +
+	"\t_end_date\"\xfc\a\n" +
 	"\x0eProjectMetrics\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x1d\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\x12!\n" +
+	"\fproject_name\x18\x02 \x01(\tR\vprojectName\x12\x1d\n" +
 	"\n" +
-	"manager_id\x18\x02 \x01(\tR\tmanagerId\x12;\n" +
-	"\vmetric_date\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"manager_id\x18\x03 \x01(\tR\tmanagerId\x12!\n" +
+	"\fmanager_name\x18\x04 \x01(\tR\vmanagerName\x12;\n" +
+	"\vmetric_date\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"metricDate\x12\x1f\n" +
-	"\vtotal_tasks\x18\x04 \x01(\x05R\n" +
+	"\vtotal_tasks\x18\x06 \x01(\x05R\n" +
 	"totalTasks\x12'\n" +
-	"\x0fcompleted_tasks\x18\x05 \x01(\x05R\x0ecompletedTasks\x12*\n" +
-	"\x11in_progress_tasks\x18\x06 \x01(\x05R\x0finProgressTasks\x12#\n" +
-	"\roverdue_tasks\x18\a \x01(\x05R\foverdueTasks\x121\n" +
-	"\x14delivery_performance\x18\b \x01(\x01R\x13deliveryPerformance\x121\n" +
-	"\x14schedule_performance\x18\t \x01(\x01R\x13schedulePerformance\x12/\n" +
-	"\x13quality_performance\x18\n" +
-	" \x01(\x01R\x12qualityPerformance\x12)\n" +
-	"\x10team_performance\x18\v \x01(\x01R\x0fteamPerformance\x12!\n" +
-	"\fhealth_index\x18\f \x01(\x01R\vhealthIndex\x12\x1d\n" +
+	"\x0fcompleted_tasks\x18\a \x01(\x05R\x0ecompletedTasks\x12*\n" +
+	"\x11in_progress_tasks\x18\b \x01(\x05R\x0finProgressTasks\x12#\n" +
+	"\roverdue_tasks\x18\t \x01(\x05R\foverdueTasks\x121\n" +
+	"\x14delivery_performance\x18\n" +
+	" \x01(\x01R\x13deliveryPerformance\x121\n" +
+	"\x14schedule_performance\x18\v \x01(\x01R\x13schedulePerformance\x12/\n" +
+	"\x13quality_performance\x18\f \x01(\x01R\x12qualityPerformance\x12)\n" +
+	"\x10team_performance\x18\r \x01(\x01R\x0fteamPerformance\x12!\n" +
+	"\fhealth_index\x18\x0e \x01(\x01R\vhealthIndex\x12\x1d\n" +
 	"\n" +
-	"risk_score\x18\r \x01(\x01R\triskScore\x12<\n" +
-	"\rhealth_status\x18\x0e \x01(\x0e2\x17.analytics.HealthStatusR\fhealthStatus\x12\x1a\n" +
-	"\bvelocity\x18\x0f \x01(\x01R\bvelocity\x12M\n" +
-	"\x12projected_end_date\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\x10projectedEndDate\x88\x01\x01\x12:\n" +
-	"\x19team_capacity_utilization\x18\x11 \x01(\x01R\x17teamCapacityUtilization\x12\x1b\n" +
-	"\tteam_size\x18\x12 \x01(\x05R\bteamSize\x12.\n" +
-	"\x13avg_team_efficiency\x18\x13 \x01(\x01R\x11avgTeamEfficiency\x12\x1c\n" +
+	"risk_score\x18\x0f \x01(\x01R\triskScore\x12#\n" +
+	"\rhealth_status\x18\x10 \x01(\tR\fhealthStatus\x12\x1a\n" +
+	"\bvelocity\x18\x11 \x01(\x01R\bvelocity\x12M\n" +
+	"\x12projected_end_date\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\x10projectedEndDate\x88\x01\x01\x12:\n" +
+	"\x19team_capacity_utilization\x18\x13 \x01(\x01R\x17teamCapacityUtilization\x12\x1b\n" +
+	"\tteam_size\x18\x14 \x01(\x05R\bteamSize\x12.\n" +
+	"\x13avg_team_efficiency\x18\x15 \x01(\x01R\x11avgTeamEfficiency\x12\x1c\n" +
 	"\n" +
-	"is_at_risk\x18\x14 \x01(\bR\bisAtRisk\x12)\n" +
-	"\x0edays_until_due\x18\x15 \x01(\x05H\x01R\fdaysUntilDue\x88\x01\x01B\x15\n" +
+	"is_at_risk\x18\x16 \x01(\bR\bisAtRisk\x12)\n" +
+	"\x0edays_until_due\x18\x17 \x01(\x05H\x01R\fdaysUntilDue\x88\x01\x01B\x15\n" +
 	"\x13_projected_end_dateB\x11\n" +
 	"\x0f_days_until_due\"\xd1\x01\n" +
 	"\x18GetProjectMetricsRequest\x12\x1d\n" +
@@ -1889,20 +1856,17 @@ const file_analytics_service_analytics_proto_rawDesc = "" +
 	"\v_start_dateB\v\n" +
 	"\t_end_date\"\x8e\x01\n" +
 	"\x16ProjectMetricsResponse\x123\n" +
-	"\ametrics\x18\x01 \x01(\v2\x19.analytics.ProjectMetricsR\ametrics\x12?\n" +
-	"\rcalculated_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fcalculatedAt\"\xcc\x02\n" +
-	"\x19ListProjectMetricsRequest\x12 \n" +
-	"\tpage_size\x18\x01 \x01(\x05H\x00R\bpageSize\x88\x01\x01\x12$\n" +
-	"\vpage_number\x18\x02 \x01(\x05H\x01R\n" +
-	"pageNumber\x88\x01\x01\x12\"\n" +
+	"\ametrics\x18\x01 \x03(\v2\x19.analytics.ProjectMetricsR\ametrics\x12?\n" +
+	"\rcalculated_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fcalculatedAt\"\xa4\x02\n" +
+	"\x19ListProjectMetricsRequest\x12\x1b\n" +
+	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1f\n" +
+	"\vpage_number\x18\x02 \x01(\x05R\n" +
+	"pageNumber\x12\"\n" +
 	"\n" +
-	"manager_id\x18\x03 \x01(\tH\x02R\tmanagerId\x88\x01\x01\x12>\n" +
+	"manager_id\x18\x03 \x01(\tH\x00R\tmanagerId\x88\x01\x01\x12>\n" +
 	"\n" +
-	"start_date\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x03R\tstartDate\x88\x01\x01\x12:\n" +
-	"\bend_date\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x04R\aendDate\x88\x01\x01B\f\n" +
-	"\n" +
-	"_page_sizeB\x0e\n" +
-	"\f_page_numberB\r\n" +
+	"start_date\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\tstartDate\x88\x01\x01\x12:\n" +
+	"\bend_date\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x02R\aendDate\x88\x01\x01B\r\n" +
 	"\v_manager_idB\r\n" +
 	"\v_start_dateB\v\n" +
 	"\t_end_date\"r\n" +
@@ -1923,35 +1887,35 @@ const file_analytics_service_analytics_proto_rawDesc = "" +
 	"\x0fproject_metrics\x18\x02 \x01(\v2\x19.analytics.ProjectMetricsH\x00R\x0eprojectMetrics\x129\n" +
 	"\n" +
 	"updated_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAtB\b\n" +
-	"\x06update\"\x84\x01\n" +
+	"\x06update\"q\n" +
 	"\x1aProductivityTrendsResponse\x12;\n" +
-	"\aentries\x18\x01 \x03(\v2!.analytics.ProductivityTrendEntryR\aentries\x12)\n" +
-	"\x06period\x18\x02 \x01(\x0e2\x11.analytics.PeriodR\x06period\"\xd9\x01\n" +
+	"\aentries\x18\x01 \x03(\v2!.analytics.ProductivityTrendEntryR\aentries\x12\x16\n" +
+	"\x06period\x18\x02 \x01(\tR\x06period\"\xd9\x01\n" +
 	"\x16ProductivityTrendEntry\x12.\n" +
 	"\x04date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04date\x12%\n" +
 	"\x0eavg_efficiency\x18\x02 \x01(\x01R\ravgEfficiency\x122\n" +
 	"\x15total_tasks_completed\x18\x03 \x01(\x05R\x13totalTasksCompleted\x124\n" +
-	"\x16total_employees_active\x18\x04 \x01(\x05R\x14totalEmployeesActive\"\xd1\x01\n" +
-	"\x1cGetProductivityTrendsRequest\x12)\n" +
-	"\x06period\x18\x01 \x01(\x0e2\x11.analytics.PeriodR\x06period\x12\x14\n" +
+	"\x16total_employees_active\x18\x04 \x01(\x05R\x14totalEmployeesActive\"\xbe\x01\n" +
+	"\x1cGetProductivityTrendsRequest\x12\x16\n" +
+	"\x06period\x18\x01 \x01(\tR\x06period\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12(\n" +
 	"\rdepartment_id\x18\x03 \x01(\tH\x00R\fdepartmentId\x88\x01\x01\x12$\n" +
 	"\vemployee_id\x18\x04 \x01(\tH\x01R\n" +
 	"employeeId\x88\x01\x01B\x10\n" +
 	"\x0e_department_idB\x0e\n" +
-	"\f_employee_id\"\x88\x01\n" +
+	"\f_employee_id\"u\n" +
 	"\x1cCompletionRateTrendsResponse\x12=\n" +
-	"\aentries\x18\x01 \x03(\v2#.analytics.CompletionRateTrendEntryR\aentries\x12)\n" +
-	"\x06period\x18\x02 \x01(\x0e2\x11.analytics.PeriodR\x06period\"\xdd\x01\n" +
+	"\aentries\x18\x01 \x03(\v2#.analytics.CompletionRateTrendEntryR\aentries\x12\x16\n" +
+	"\x06period\x18\x02 \x01(\tR\x06period\"\xdd\x01\n" +
 	"\x18CompletionRateTrendEntry\x12.\n" +
 	"\x04date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04date\x12 \n" +
 	"\fon_time_rate\x18\x02 \x01(\x01R\n" +
 	"onTimeRate\x12!\n" +
 	"\foverall_rate\x18\x03 \x01(\x01R\voverallRate\x12'\n" +
 	"\x0fcompleted_count\x18\x04 \x01(\x05R\x0ecompletedCount\x12#\n" +
-	"\roverdue_count\x18\x05 \x01(\x05R\foverdueCount\"\xd0\x01\n" +
-	"\x1eGetCompletionRateTrendsRequest\x12)\n" +
-	"\x06period\x18\x01 \x01(\x0e2\x11.analytics.PeriodR\x06period\x12\x14\n" +
+	"\roverdue_count\x18\x05 \x01(\x05R\foverdueCount\"\xbd\x01\n" +
+	"\x1eGetCompletionRateTrendsRequest\x12\x16\n" +
+	"\x06period\x18\x01 \x01(\tR\x06period\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\"\n" +
 	"\n" +
 	"project_id\x18\x03 \x01(\tH\x00R\tprojectId\x88\x01\x01\x12(\n" +
@@ -1972,34 +1936,26 @@ const file_analytics_service_analytics_proto_rawDesc = "" +
 	"\rtop_employees\x18\n" +
 	" \x03(\v2\x16.analytics.TopEmployeeR\ftopEmployees\x12K\n" +
 	"\x14problematic_projects\x18\v \x03(\v2\x18.analytics.BottomProjectR\x13problematicProjects\x12?\n" +
-	"\rcalculated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\fcalculatedAt\"\x82\x01\n" +
+	"\rcalculated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\fcalculatedAt\"\x96\x01\n" +
 	"\vTopEmployee\x12\x1f\n" +
 	"\vemployee_id\x18\x01 \x01(\tR\n" +
-	"employeeId\x12)\n" +
-	"\x10efficiency_score\x18\x02 \x01(\x01R\x0fefficiencyScore\x12'\n" +
-	"\x0ftasks_completed\x18\x03 \x01(\x05R\x0etasksCompleted\"s\n" +
+	"employeeId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12)\n" +
+	"\x10efficiency_score\x18\x03 \x01(\x01R\x0fefficiencyScore\x12'\n" +
+	"\x0ftasks_completed\x18\x04 \x01(\x05R\x0etasksCompleted\"\x87\x01\n" +
 	"\rBottomProject\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\x12!\n" +
-	"\fhealth_score\x18\x02 \x01(\x01R\vhealthScore\x12 \n" +
-	"\fon_time_rate\x18\x03 \x01(\x01R\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
+	"\fhealth_score\x18\x03 \x01(\x01R\vhealthScore\x12 \n" +
+	"\fon_time_rate\x18\x04 \x01(\x01R\n" +
 	"onTimeRate\"\xb2\x01\n" +
 	"\x18GetDashboardStatsRequest\x12>\n" +
 	"\n" +
 	"start_date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\tstartDate\x88\x01\x01\x12:\n" +
 	"\bend_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\aendDate\x88\x01\x01B\r\n" +
 	"\v_start_dateB\v\n" +
-	"\t_end_date*Y\n" +
-	"\x06Period\x12\x16\n" +
-	"\x12PERIOD_UNSPECIFIED\x10\x00\x12\x10\n" +
-	"\fPERIOD_DAILY\x10\x01\x12\x11\n" +
-	"\rPERIOD_WEEKLY\x10\x02\x12\x12\n" +
-	"\x0ePERIOD_MONTHLY\x10\x03*\x7f\n" +
-	"\fHealthStatus\x12\x1d\n" +
-	"\x19HEALTH_STATUS_UNSPECIFIED\x10\x00\x12\x19\n" +
-	"\x15HEALTH_STATUS_HEALTHY\x10\x01\x12\x19\n" +
-	"\x15HEALTH_STATUS_AT_RISK\x10\x02\x12\x1a\n" +
-	"\x16HEALTH_STATUS_CRITICAL\x10\x032\x93\a\n" +
+	"\t_end_date2\x93\a\n" +
 	"\x10AnalyticsService\x12^\n" +
 	"\x12GetEmployeeMetrics\x12$.analytics.GetEmployeeMetricsRequest\x1a\".analytics.EmployeeMetricsResponse\x12d\n" +
 	"\x13ListEmployeeMetrics\x12%.analytics.ListEmployeeMetricsRequest\x1a&.analytics.ListEmployeeMetricsResponse\x12^\n" +
@@ -2012,140 +1968,135 @@ const file_analytics_service_analytics_proto_rawDesc = "" +
 	"\x11GetDashboardStats\x12#.analytics.GetDashboardStatsRequest\x1a!.analytics.DashboardStatsResponseBOZMgithub.com/foksdanilka34-maker/F5ProjectUsersControl/analytics/v1;analyticsv1b\x06proto3"
 
 var (
-	file_analytics_service_analytics_proto_rawDescOnce sync.Once
-	file_analytics_service_analytics_proto_rawDescData []byte
+	file_api_analytics_service_analytics_proto_rawDescOnce sync.Once
+	file_api_analytics_service_analytics_proto_rawDescData []byte
 )
 
-func file_analytics_service_analytics_proto_rawDescGZIP() []byte {
-	file_analytics_service_analytics_proto_rawDescOnce.Do(func() {
-		file_analytics_service_analytics_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_analytics_service_analytics_proto_rawDesc), len(file_analytics_service_analytics_proto_rawDesc)))
+func file_api_analytics_service_analytics_proto_rawDescGZIP() []byte {
+	file_api_analytics_service_analytics_proto_rawDescOnce.Do(func() {
+		file_api_analytics_service_analytics_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_analytics_service_analytics_proto_rawDesc), len(file_api_analytics_service_analytics_proto_rawDesc)))
 	})
-	return file_analytics_service_analytics_proto_rawDescData
+	return file_api_analytics_service_analytics_proto_rawDescData
 }
 
-var file_analytics_service_analytics_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_analytics_service_analytics_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
-var file_analytics_service_analytics_proto_goTypes = []any{
-	(Period)(0),                              // 0: analytics.Period
-	(HealthStatus)(0),                        // 1: analytics.HealthStatus
-	(*EmployeeMetrics)(nil),                  // 2: analytics.EmployeeMetrics
-	(*GetEmployeeMetricsRequest)(nil),        // 3: analytics.GetEmployeeMetricsRequest
-	(*EmployeeMetricsResponse)(nil),          // 4: analytics.EmployeeMetricsResponse
-	(*ListEmployeeMetricsRequest)(nil),       // 5: analytics.ListEmployeeMetricsRequest
-	(*ListEmployeeMetricsResponse)(nil),      // 6: analytics.ListEmployeeMetricsResponse
-	(*GetTopPerformersRequest)(nil),          // 7: analytics.GetTopPerformersRequest
-	(*ProjectMetrics)(nil),                   // 8: analytics.ProjectMetrics
-	(*GetProjectMetricsRequest)(nil),         // 9: analytics.GetProjectMetricsRequest
-	(*ProjectMetricsResponse)(nil),           // 10: analytics.ProjectMetricsResponse
-	(*ListProjectMetricsRequest)(nil),        // 11: analytics.ListProjectMetricsRequest
-	(*ListProjectMetricsResponse)(nil),       // 12: analytics.ListProjectMetricsResponse
-	(*SubscribeToMetricsUpdatesRequest)(nil), // 13: analytics.SubscribeToMetricsUpdatesRequest
-	(*MetricsUpdate)(nil),                    // 14: analytics.MetricsUpdate
-	(*ProductivityTrendsResponse)(nil),       // 15: analytics.ProductivityTrendsResponse
-	(*ProductivityTrendEntry)(nil),           // 16: analytics.ProductivityTrendEntry
-	(*GetProductivityTrendsRequest)(nil),     // 17: analytics.GetProductivityTrendsRequest
-	(*CompletionRateTrendsResponse)(nil),     // 18: analytics.CompletionRateTrendsResponse
-	(*CompletionRateTrendEntry)(nil),         // 19: analytics.CompletionRateTrendEntry
-	(*GetCompletionRateTrendsRequest)(nil),   // 20: analytics.GetCompletionRateTrendsRequest
-	(*DashboardStatsResponse)(nil),           // 21: analytics.DashboardStatsResponse
-	(*TopEmployee)(nil),                      // 22: analytics.TopEmployee
-	(*BottomProject)(nil),                    // 23: analytics.BottomProject
-	(*GetDashboardStatsRequest)(nil),         // 24: analytics.GetDashboardStatsRequest
-	(*timestamppb.Timestamp)(nil),            // 25: google.protobuf.Timestamp
+var file_api_analytics_service_analytics_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_api_analytics_service_analytics_proto_goTypes = []any{
+	(*EmployeeMetrics)(nil),                  // 0: analytics.EmployeeMetrics
+	(*GetEmployeeMetricsRequest)(nil),        // 1: analytics.GetEmployeeMetricsRequest
+	(*EmployeeMetricsResponse)(nil),          // 2: analytics.EmployeeMetricsResponse
+	(*ListEmployeeMetricsRequest)(nil),       // 3: analytics.ListEmployeeMetricsRequest
+	(*ListEmployeeMetricsResponse)(nil),      // 4: analytics.ListEmployeeMetricsResponse
+	(*GetTopPerformersRequest)(nil),          // 5: analytics.GetTopPerformersRequest
+	(*ProjectMetrics)(nil),                   // 6: analytics.ProjectMetrics
+	(*GetProjectMetricsRequest)(nil),         // 7: analytics.GetProjectMetricsRequest
+	(*ProjectMetricsResponse)(nil),           // 8: analytics.ProjectMetricsResponse
+	(*ListProjectMetricsRequest)(nil),        // 9: analytics.ListProjectMetricsRequest
+	(*ListProjectMetricsResponse)(nil),       // 10: analytics.ListProjectMetricsResponse
+	(*SubscribeToMetricsUpdatesRequest)(nil), // 11: analytics.SubscribeToMetricsUpdatesRequest
+	(*MetricsUpdate)(nil),                    // 12: analytics.MetricsUpdate
+	(*ProductivityTrendsResponse)(nil),       // 13: analytics.ProductivityTrendsResponse
+	(*ProductivityTrendEntry)(nil),           // 14: analytics.ProductivityTrendEntry
+	(*GetProductivityTrendsRequest)(nil),     // 15: analytics.GetProductivityTrendsRequest
+	(*CompletionRateTrendsResponse)(nil),     // 16: analytics.CompletionRateTrendsResponse
+	(*CompletionRateTrendEntry)(nil),         // 17: analytics.CompletionRateTrendEntry
+	(*GetCompletionRateTrendsRequest)(nil),   // 18: analytics.GetCompletionRateTrendsRequest
+	(*DashboardStatsResponse)(nil),           // 19: analytics.DashboardStatsResponse
+	(*TopEmployee)(nil),                      // 20: analytics.TopEmployee
+	(*BottomProject)(nil),                    // 21: analytics.BottomProject
+	(*GetDashboardStatsRequest)(nil),         // 22: analytics.GetDashboardStatsRequest
+	(*timestamppb.Timestamp)(nil),            // 23: google.protobuf.Timestamp
 }
-var file_analytics_service_analytics_proto_depIdxs = []int32{
-	25, // 0: analytics.EmployeeMetrics.metric_date:type_name -> google.protobuf.Timestamp
-	2,  // 1: analytics.EmployeeMetricsResponse.metrics:type_name -> analytics.EmployeeMetrics
-	25, // 2: analytics.ListEmployeeMetricsRequest.start_date:type_name -> google.protobuf.Timestamp
-	25, // 3: analytics.ListEmployeeMetricsRequest.end_date:type_name -> google.protobuf.Timestamp
-	2,  // 4: analytics.ListEmployeeMetricsResponse.metrics:type_name -> analytics.EmployeeMetrics
-	25, // 5: analytics.GetTopPerformersRequest.start_date:type_name -> google.protobuf.Timestamp
-	25, // 6: analytics.GetTopPerformersRequest.end_date:type_name -> google.protobuf.Timestamp
-	25, // 7: analytics.ProjectMetrics.metric_date:type_name -> google.protobuf.Timestamp
-	1,  // 8: analytics.ProjectMetrics.health_status:type_name -> analytics.HealthStatus
-	25, // 9: analytics.ProjectMetrics.projected_end_date:type_name -> google.protobuf.Timestamp
-	25, // 10: analytics.GetProjectMetricsRequest.start_date:type_name -> google.protobuf.Timestamp
-	25, // 11: analytics.GetProjectMetricsRequest.end_date:type_name -> google.protobuf.Timestamp
-	8,  // 12: analytics.ProjectMetricsResponse.metrics:type_name -> analytics.ProjectMetrics
-	25, // 13: analytics.ProjectMetricsResponse.calculated_at:type_name -> google.protobuf.Timestamp
-	25, // 14: analytics.ListProjectMetricsRequest.start_date:type_name -> google.protobuf.Timestamp
-	25, // 15: analytics.ListProjectMetricsRequest.end_date:type_name -> google.protobuf.Timestamp
-	8,  // 16: analytics.ListProjectMetricsResponse.metrics:type_name -> analytics.ProjectMetrics
-	2,  // 17: analytics.MetricsUpdate.employee_metrics:type_name -> analytics.EmployeeMetrics
-	8,  // 18: analytics.MetricsUpdate.project_metrics:type_name -> analytics.ProjectMetrics
-	25, // 19: analytics.MetricsUpdate.updated_at:type_name -> google.protobuf.Timestamp
-	16, // 20: analytics.ProductivityTrendsResponse.entries:type_name -> analytics.ProductivityTrendEntry
-	0,  // 21: analytics.ProductivityTrendsResponse.period:type_name -> analytics.Period
-	25, // 22: analytics.ProductivityTrendEntry.date:type_name -> google.protobuf.Timestamp
-	0,  // 23: analytics.GetProductivityTrendsRequest.period:type_name -> analytics.Period
-	19, // 24: analytics.CompletionRateTrendsResponse.entries:type_name -> analytics.CompletionRateTrendEntry
-	0,  // 25: analytics.CompletionRateTrendsResponse.period:type_name -> analytics.Period
-	25, // 26: analytics.CompletionRateTrendEntry.date:type_name -> google.protobuf.Timestamp
-	0,  // 27: analytics.GetCompletionRateTrendsRequest.period:type_name -> analytics.Period
-	22, // 28: analytics.DashboardStatsResponse.top_employees:type_name -> analytics.TopEmployee
-	23, // 29: analytics.DashboardStatsResponse.problematic_projects:type_name -> analytics.BottomProject
-	25, // 30: analytics.DashboardStatsResponse.calculated_at:type_name -> google.protobuf.Timestamp
-	25, // 31: analytics.GetDashboardStatsRequest.start_date:type_name -> google.protobuf.Timestamp
-	25, // 32: analytics.GetDashboardStatsRequest.end_date:type_name -> google.protobuf.Timestamp
-	3,  // 33: analytics.AnalyticsService.GetEmployeeMetrics:input_type -> analytics.GetEmployeeMetricsRequest
-	5,  // 34: analytics.AnalyticsService.ListEmployeeMetrics:input_type -> analytics.ListEmployeeMetricsRequest
-	7,  // 35: analytics.AnalyticsService.GetTopPerformers:input_type -> analytics.GetTopPerformersRequest
-	9,  // 36: analytics.AnalyticsService.GetProjectMetrics:input_type -> analytics.GetProjectMetricsRequest
-	11, // 37: analytics.AnalyticsService.ListProjectMetrics:input_type -> analytics.ListProjectMetricsRequest
-	13, // 38: analytics.AnalyticsService.SubscribeToMetricsUpdates:input_type -> analytics.SubscribeToMetricsUpdatesRequest
-	17, // 39: analytics.AnalyticsService.GetProductivityTrends:input_type -> analytics.GetProductivityTrendsRequest
-	20, // 40: analytics.AnalyticsService.GetCompletionRateTrends:input_type -> analytics.GetCompletionRateTrendsRequest
-	24, // 41: analytics.AnalyticsService.GetDashboardStats:input_type -> analytics.GetDashboardStatsRequest
-	4,  // 42: analytics.AnalyticsService.GetEmployeeMetrics:output_type -> analytics.EmployeeMetricsResponse
-	6,  // 43: analytics.AnalyticsService.ListEmployeeMetrics:output_type -> analytics.ListEmployeeMetricsResponse
-	6,  // 44: analytics.AnalyticsService.GetTopPerformers:output_type -> analytics.ListEmployeeMetricsResponse
-	10, // 45: analytics.AnalyticsService.GetProjectMetrics:output_type -> analytics.ProjectMetricsResponse
-	12, // 46: analytics.AnalyticsService.ListProjectMetrics:output_type -> analytics.ListProjectMetricsResponse
-	14, // 47: analytics.AnalyticsService.SubscribeToMetricsUpdates:output_type -> analytics.MetricsUpdate
-	15, // 48: analytics.AnalyticsService.GetProductivityTrends:output_type -> analytics.ProductivityTrendsResponse
-	18, // 49: analytics.AnalyticsService.GetCompletionRateTrends:output_type -> analytics.CompletionRateTrendsResponse
-	21, // 50: analytics.AnalyticsService.GetDashboardStats:output_type -> analytics.DashboardStatsResponse
-	42, // [42:51] is the sub-list for method output_type
-	33, // [33:42] is the sub-list for method input_type
-	33, // [33:33] is the sub-list for extension type_name
-	33, // [33:33] is the sub-list for extension extendee
-	0,  // [0:33] is the sub-list for field type_name
+var file_api_analytics_service_analytics_proto_depIdxs = []int32{
+	23, // 0: analytics.EmployeeMetrics.metric_date:type_name -> google.protobuf.Timestamp
+	23, // 1: analytics.GetEmployeeMetricsRequest.start_date:type_name -> google.protobuf.Timestamp
+	23, // 2: analytics.GetEmployeeMetricsRequest.end_date:type_name -> google.protobuf.Timestamp
+	0,  // 3: analytics.EmployeeMetricsResponse.metrics:type_name -> analytics.EmployeeMetrics
+	23, // 4: analytics.EmployeeMetricsResponse.calculated_at:type_name -> google.protobuf.Timestamp
+	23, // 5: analytics.ListEmployeeMetricsRequest.start_date:type_name -> google.protobuf.Timestamp
+	23, // 6: analytics.ListEmployeeMetricsRequest.end_date:type_name -> google.protobuf.Timestamp
+	0,  // 7: analytics.ListEmployeeMetricsResponse.metrics:type_name -> analytics.EmployeeMetrics
+	23, // 8: analytics.GetTopPerformersRequest.start_date:type_name -> google.protobuf.Timestamp
+	23, // 9: analytics.GetTopPerformersRequest.end_date:type_name -> google.protobuf.Timestamp
+	23, // 10: analytics.ProjectMetrics.metric_date:type_name -> google.protobuf.Timestamp
+	23, // 11: analytics.ProjectMetrics.projected_end_date:type_name -> google.protobuf.Timestamp
+	23, // 12: analytics.GetProjectMetricsRequest.start_date:type_name -> google.protobuf.Timestamp
+	23, // 13: analytics.GetProjectMetricsRequest.end_date:type_name -> google.protobuf.Timestamp
+	6,  // 14: analytics.ProjectMetricsResponse.metrics:type_name -> analytics.ProjectMetrics
+	23, // 15: analytics.ProjectMetricsResponse.calculated_at:type_name -> google.protobuf.Timestamp
+	23, // 16: analytics.ListProjectMetricsRequest.start_date:type_name -> google.protobuf.Timestamp
+	23, // 17: analytics.ListProjectMetricsRequest.end_date:type_name -> google.protobuf.Timestamp
+	6,  // 18: analytics.ListProjectMetricsResponse.metrics:type_name -> analytics.ProjectMetrics
+	0,  // 19: analytics.MetricsUpdate.employee_metrics:type_name -> analytics.EmployeeMetrics
+	6,  // 20: analytics.MetricsUpdate.project_metrics:type_name -> analytics.ProjectMetrics
+	23, // 21: analytics.MetricsUpdate.updated_at:type_name -> google.protobuf.Timestamp
+	14, // 22: analytics.ProductivityTrendsResponse.entries:type_name -> analytics.ProductivityTrendEntry
+	23, // 23: analytics.ProductivityTrendEntry.date:type_name -> google.protobuf.Timestamp
+	17, // 24: analytics.CompletionRateTrendsResponse.entries:type_name -> analytics.CompletionRateTrendEntry
+	23, // 25: analytics.CompletionRateTrendEntry.date:type_name -> google.protobuf.Timestamp
+	20, // 26: analytics.DashboardStatsResponse.top_employees:type_name -> analytics.TopEmployee
+	21, // 27: analytics.DashboardStatsResponse.problematic_projects:type_name -> analytics.BottomProject
+	23, // 28: analytics.DashboardStatsResponse.calculated_at:type_name -> google.protobuf.Timestamp
+	23, // 29: analytics.GetDashboardStatsRequest.start_date:type_name -> google.protobuf.Timestamp
+	23, // 30: analytics.GetDashboardStatsRequest.end_date:type_name -> google.protobuf.Timestamp
+	1,  // 31: analytics.AnalyticsService.GetEmployeeMetrics:input_type -> analytics.GetEmployeeMetricsRequest
+	3,  // 32: analytics.AnalyticsService.ListEmployeeMetrics:input_type -> analytics.ListEmployeeMetricsRequest
+	5,  // 33: analytics.AnalyticsService.GetTopPerformers:input_type -> analytics.GetTopPerformersRequest
+	7,  // 34: analytics.AnalyticsService.GetProjectMetrics:input_type -> analytics.GetProjectMetricsRequest
+	9,  // 35: analytics.AnalyticsService.ListProjectMetrics:input_type -> analytics.ListProjectMetricsRequest
+	11, // 36: analytics.AnalyticsService.SubscribeToMetricsUpdates:input_type -> analytics.SubscribeToMetricsUpdatesRequest
+	15, // 37: analytics.AnalyticsService.GetProductivityTrends:input_type -> analytics.GetProductivityTrendsRequest
+	18, // 38: analytics.AnalyticsService.GetCompletionRateTrends:input_type -> analytics.GetCompletionRateTrendsRequest
+	22, // 39: analytics.AnalyticsService.GetDashboardStats:input_type -> analytics.GetDashboardStatsRequest
+	2,  // 40: analytics.AnalyticsService.GetEmployeeMetrics:output_type -> analytics.EmployeeMetricsResponse
+	4,  // 41: analytics.AnalyticsService.ListEmployeeMetrics:output_type -> analytics.ListEmployeeMetricsResponse
+	4,  // 42: analytics.AnalyticsService.GetTopPerformers:output_type -> analytics.ListEmployeeMetricsResponse
+	8,  // 43: analytics.AnalyticsService.GetProjectMetrics:output_type -> analytics.ProjectMetricsResponse
+	10, // 44: analytics.AnalyticsService.ListProjectMetrics:output_type -> analytics.ListProjectMetricsResponse
+	12, // 45: analytics.AnalyticsService.SubscribeToMetricsUpdates:output_type -> analytics.MetricsUpdate
+	13, // 46: analytics.AnalyticsService.GetProductivityTrends:output_type -> analytics.ProductivityTrendsResponse
+	16, // 47: analytics.AnalyticsService.GetCompletionRateTrends:output_type -> analytics.CompletionRateTrendsResponse
+	19, // 48: analytics.AnalyticsService.GetDashboardStats:output_type -> analytics.DashboardStatsResponse
+	40, // [40:49] is the sub-list for method output_type
+	31, // [31:40] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
-func init() { file_analytics_service_analytics_proto_init() }
-func file_analytics_service_analytics_proto_init() {
-	if File_analytics_service_analytics_proto != nil {
+func init() { file_api_analytics_service_analytics_proto_init() }
+func file_api_analytics_service_analytics_proto_init() {
+	if File_api_analytics_service_analytics_proto != nil {
 		return
 	}
-	file_analytics_service_analytics_proto_msgTypes[3].OneofWrappers = []any{}
-	file_analytics_service_analytics_proto_msgTypes[5].OneofWrappers = []any{}
-	file_analytics_service_analytics_proto_msgTypes[6].OneofWrappers = []any{}
-	file_analytics_service_analytics_proto_msgTypes[7].OneofWrappers = []any{}
-	file_analytics_service_analytics_proto_msgTypes[9].OneofWrappers = []any{}
-	file_analytics_service_analytics_proto_msgTypes[11].OneofWrappers = []any{}
-	file_analytics_service_analytics_proto_msgTypes[12].OneofWrappers = []any{
+	file_api_analytics_service_analytics_proto_msgTypes[1].OneofWrappers = []any{}
+	file_api_analytics_service_analytics_proto_msgTypes[3].OneofWrappers = []any{}
+	file_api_analytics_service_analytics_proto_msgTypes[5].OneofWrappers = []any{}
+	file_api_analytics_service_analytics_proto_msgTypes[6].OneofWrappers = []any{}
+	file_api_analytics_service_analytics_proto_msgTypes[7].OneofWrappers = []any{}
+	file_api_analytics_service_analytics_proto_msgTypes[9].OneofWrappers = []any{}
+	file_api_analytics_service_analytics_proto_msgTypes[11].OneofWrappers = []any{}
+	file_api_analytics_service_analytics_proto_msgTypes[12].OneofWrappers = []any{
 		(*MetricsUpdate_EmployeeMetrics)(nil),
 		(*MetricsUpdate_ProjectMetrics)(nil),
 	}
-	file_analytics_service_analytics_proto_msgTypes[15].OneofWrappers = []any{}
-	file_analytics_service_analytics_proto_msgTypes[18].OneofWrappers = []any{}
-	file_analytics_service_analytics_proto_msgTypes[22].OneofWrappers = []any{}
+	file_api_analytics_service_analytics_proto_msgTypes[15].OneofWrappers = []any{}
+	file_api_analytics_service_analytics_proto_msgTypes[18].OneofWrappers = []any{}
+	file_api_analytics_service_analytics_proto_msgTypes[22].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_analytics_service_analytics_proto_rawDesc), len(file_analytics_service_analytics_proto_rawDesc)),
-			NumEnums:      2,
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_analytics_service_analytics_proto_rawDesc), len(file_api_analytics_service_analytics_proto_rawDesc)),
+			NumEnums:      0,
 			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_analytics_service_analytics_proto_goTypes,
-		DependencyIndexes: file_analytics_service_analytics_proto_depIdxs,
-		EnumInfos:         file_analytics_service_analytics_proto_enumTypes,
-		MessageInfos:      file_analytics_service_analytics_proto_msgTypes,
+		GoTypes:           file_api_analytics_service_analytics_proto_goTypes,
+		DependencyIndexes: file_api_analytics_service_analytics_proto_depIdxs,
+		MessageInfos:      file_api_analytics_service_analytics_proto_msgTypes,
 	}.Build()
-	File_analytics_service_analytics_proto = out.File
-	file_analytics_service_analytics_proto_goTypes = nil
-	file_analytics_service_analytics_proto_depIdxs = nil
+	File_api_analytics_service_analytics_proto = out.File
+	file_api_analytics_service_analytics_proto_goTypes = nil
+	file_api_analytics_service_analytics_proto_depIdxs = nil
 }

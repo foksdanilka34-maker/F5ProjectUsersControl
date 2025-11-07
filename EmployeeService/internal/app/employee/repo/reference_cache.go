@@ -102,8 +102,6 @@ func (c *ReferenceCache) InvalidateDepartment(ctx context.Context, id string) er
 	return c.redis.HDel(ctx, DepartmentHashKey, id).Err()
 }
 
-// ============= Position Cache (используем Hash) =============
-
 func (c *ReferenceCache) SetPositionsList(ctx context.Context, positions []*emp.Position) error {
 	if len(positions) == 0 {
 		return nil

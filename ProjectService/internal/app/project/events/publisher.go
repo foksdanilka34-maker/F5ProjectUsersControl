@@ -5,12 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 	"github.com/nats-io/nats.go"
-)
-
-const (
-	SubjectTaskEvents    = "project.tasks"
-	SubjectProjectEvents = "project.projects"
 )
 
 type Publisher struct {
@@ -34,7 +30,7 @@ func (p *Publisher) PublishTaskEvent(ctx context.Context, event *TaskEvent) erro
 		return fmt.Errorf("failed to marshal task event: %w", err)
 	}
 
-	err = p.nc.Publish(SubjectTaskEvents, data)
+	err = p.nc.Publish(eventbus.ProjectTasksTopic, data)
 	if err != nil {
 		return fmt.Errorf("failed to publish task event: %w", err)
 	}
@@ -54,7 +50,7 @@ func (p *Publisher) PublishProjectEvent(ctx context.Context, event *ProjectEvent
 		return fmt.Errorf("failed to marshal project event: %w", err)
 	}
 
-	err = p.nc.Publish(SubjectProjectEvents, data)
+	err = p.nc.Publish(eventbus.ProjectProjectsTopic, data)
 	if err != nil {
 		return fmt.Errorf("failed to publish project event: %w", err)
 	}

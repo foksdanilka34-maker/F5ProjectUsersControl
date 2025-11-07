@@ -67,14 +67,6 @@ func (c *AnalyticsServiceClient) ListProjectMetrics(ctx context.Context, req *an
 	return c.client.ListProjectMetrics(ctx, req)
 }
 
-func (c *AnalyticsServiceClient) GetDepartmentMetrics(ctx context.Context, req *analyticsv1.GetDepartmentMetricsRequest) (*analyticsv1.DepartmentMetricsResponse, error) {
-	return c.client.GetDepartmentMetrics(ctx, req)
-}
-
-func (c *AnalyticsServiceClient) ListDepartmentMetrics(ctx context.Context, req *analyticsv1.ListDepartmentMetricsRequest) (*analyticsv1.ListDepartmentMetricsResponse, error) {
-	return c.client.ListDepartmentMetrics(ctx, req)
-}
-
 func (c *AnalyticsServiceClient) GetProductivityTrends(ctx context.Context, req *analyticsv1.GetProductivityTrendsRequest) (*analyticsv1.ProductivityTrendsResponse, error) {
 	return c.client.GetProductivityTrends(ctx, req)
 }

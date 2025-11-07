@@ -28,17 +28,7 @@ func (s *AnalyticsServer) Register(grpcServer *grpc.Server) {
 }
 
 func (s *AnalyticsServer) GetEmployeeMetrics(ctx context.Context, req *analyticsv1.GetEmployeeMetricsRequest) (*analyticsv1.EmployeeMetricsResponse, error) {
-	startDate := time.Now().AddDate(0, 0, -7)
-	endDate := time.Now()
-
-	if req.StartDate != nil {
-		startDate = req.StartDate.AsTime()
-	}
-	if req.EndDate != nil {
-		endDate = req.EndDate.AsTime()
-	}
-
-	metrics, err := s.core.GetEmployeeMetrics(ctx, req.EmployeeId, startDate, endDate)
+	metrics, err := s.core.GetEmployeeMetrics(ctx, req.EmployeeId)
 	if err != nil {
 		log.Printf("failed to get employee metrics: %v", err)
 		return nil, err
@@ -182,62 +172,6 @@ func (s *AnalyticsServer) ListProjectMetrics(ctx context.Context, req *analytics
 	}, nil
 }
 
-func (s *AnalyticsServer) GetDepartmentMetrics(ctx context.Context, req *analyticsv1.GetDepartmentMetricsRequest) (*analyticsv1.DepartmentMetricsResponse, error) {
-	startDate := time.Now().AddDate(0, 0, -7)
-	endDate := time.Now()
-
-	if req.StartDate != nil {
-		startDate = req.StartDate.AsTime()
-	}
-	if req.EndDate != nil {
-		endDate = req.EndDate.AsTime()
-	}
-
-	metrics, err := s.core.GetDepartmentMetrics(ctx, req.DepartmentId, startDate, endDate)
-	if err != nil {
-		log.Printf("failed to get department metrics: %v", err)
-		return nil, err
-	}
-
-	protoMetrics := make([]*analyticsv1.DepartmentMetrics, len(metrics))
-	for i, m := range metrics {
-		protoMetrics[i] = s.departmentMetricsToProto(m)
-	}
-
-	return &analyticsv1.DepartmentMetricsResponse{
-		Metrics:      protoMetrics,
-		CalculatedAt: timestamppb.Now(),
-	}, nil
-}
-
-func (s *AnalyticsServer) ListDepartmentMetrics(ctx context.Context, req *analyticsv1.ListDepartmentMetricsRequest) (*analyticsv1.ListDepartmentMetricsResponse, error) {
-	startDate := time.Now().AddDate(0, -1, 0)
-	endDate := time.Now()
-
-	if req.StartDate != nil {
-		startDate = req.StartDate.AsTime()
-	}
-	if req.EndDate != nil {
-		endDate = req.EndDate.AsTime()
-	}
-
-	metrics, totalCount, err := s.core.ListDepartmentMetrics(ctx, req.PageSize, req.PageNumber, startDate, endDate)
-	if err != nil {
-		log.Printf("failed to list department metrics: %v", err)
-		return nil, err
-	}
-
-	protoMetrics := make([]*analyticsv1.DepartmentMetrics, len(metrics))
-	for i, m := range metrics {
-		protoMetrics[i] = s.departmentMetricsToProto(m)
-	}
-
-	return &analyticsv1.ListDepartmentMetricsResponse{
-		Metrics:    protoMetrics,
-		TotalCount: totalCount,
-	}, nil
-}
-
 func (s *AnalyticsServer) SubscribeToMetricsUpdates(req *analyticsv1.SubscribeToMetricsUpdatesRequest, stream analyticsv1.AnalyticsService_SubscribeToMetricsUpdatesServer) error {
 	ticker := time.NewTicker(time.Duration(req.UpdateIntervalSeconds) * time.Second)
 	defer ticker.Stop()
@@ -274,19 +208,6 @@ func (s *AnalyticsServer) SubscribeToMetricsUpdates(req *analyticsv1.SubscribeTo
 				if len(metrics) > 0 {
 					update = &analyticsv1.MetricsUpdate{
 						Update:    &analyticsv1.MetricsUpdate_ProjectMetrics{ProjectMetrics: s.projectMetricsToProto(metrics[0])},
-						UpdatedAt: timestamppb.Now(),
-					}
-				}
-			} else if req.DepartmentId != nil && *req.DepartmentId != "" {
-				metrics, err := s.core.GetDepartmentMetrics(ctx, *req.DepartmentId, time.Now().AddDate(0, 0, -1), time.Now())
-				if err != nil {
-					log.Printf("failed to get department metrics for streaming: %v", err)
-					continue
-				}
-
-				if len(metrics) > 0 {
-					update = &analyticsv1.MetricsUpdate{
-						Update:    &analyticsv1.MetricsUpdate_DepartmentMetrics{DepartmentMetrics: s.departmentMetricsToProto(metrics[0])},
 						UpdatedAt: timestamppb.Now(),
 					}
 				}
@@ -412,7 +333,7 @@ func (s *AnalyticsServer) GetDashboardStats(ctx context.Context, req *analyticsv
 		TotalTasks:           stats["total_tasks"].(int32),
 		CompletedTasks:       stats["completed_tasks"].(int32),
 		OverdueTasks:         stats["overdue_tasks"].(int32),
-		AvgCompanyEfficiency: stats["avg_efficiency"].(float64),
+		AvgCompanyEfficiency: stats["avg_company_efficiency"].(float64),
 		AvgOnTimeRate:        stats["avg_on_time_rate"].(float64),
 		TopEmployees:         topEmployees,
 		CalculatedAt:         timestamppb.Now(),
@@ -421,53 +342,52 @@ func (s *AnalyticsServer) GetDashboardStats(ctx context.Context, req *analyticsv
 
 func (s *AnalyticsServer) employeeMetricsToProto(m *analytics.EmployeeMetrics) *analyticsv1.EmployeeMetrics {
 	return &analyticsv1.EmployeeMetrics{
-		EmployeeId:             m.EmployeeID,
-		EmployeeName:           m.EmployeeName,
-		Department:             m.DepartmentID,
-		Position:               m.PositionID,
-		MetricDate:             timestamppb.New(m.MetricDate),
-		TasksCompleted:         m.TasksCompleted,
-		TasksAssigned:          m.TasksAssigned,
-		AvgCompletionTimeHours: m.AvgCompletionTimeHours,
-		OnTimeCompletionRate:   m.OnTimeCompletionRate,
-		AvgTaskPriority:        m.AvgTaskPriority,
-		SkillsUsed:             m.SkillsUsed,
-		ProjectsInvolved:       m.ProjectsInvolved,
-		EfficiencyScore:        m.EfficiencyScore,
+		EmployeeId:           m.EmployeeID,
+		EmployeeName:         m.EmployeeName,
+		MetricDate:           timestamppb.New(m.MetricDate),
+		AssignedTasks:        m.TasksAssigned,
+		CompletedTasks:       m.TasksCompleted,
+		InProgressTasks:      m.InProgressTasks,
+		OverdueTasks:         m.OverdueTasks,
+		EfficiencyScore:      m.EfficiencyScore,
+		TaskCompletionRate:   m.TaskCompletionRate,
+		OnTimeCompletionRate: m.OnTimeCompletionRate,
 	}
 }
 
 func (s *AnalyticsServer) projectMetricsToProto(m *analytics.ProjectMetrics) *analyticsv1.ProjectMetrics {
-	return &analyticsv1.ProjectMetrics{
-		ProjectId:            m.ProjectID,
-		ProjectName:          m.ProjectName,
-		ManagerId:            m.ManagerID,
-		ManagerName:          m.ManagerName,
-		MetricDate:           timestamppb.New(m.MetricDate),
-		TotalTasks:           m.TotalTasks,
-		CompletedTasks:       m.CompletedTasks,
-		InProgressTasks:      m.InProgressTasks,
-		OverdueTasks:         m.OverdueTasks,
-		CompletionRate:       m.CompletionRate,
-		OnTimeCompletionRate: m.OnTimeCompletionRate,
-		TeamSize:             m.TeamSize,
-		AvgTaskDurationHours: m.AvgTaskDurationHours,
-		ProjectHealthScore:   m.ProjectHealthScore,
+	projProto := &analyticsv1.ProjectMetrics{
+		ProjectId:               m.ProjectID,
+		ProjectName:             m.ProjectName,
+		ManagerId:               m.ManagerID,
+		ManagerName:             m.ManagerName,
+		MetricDate:              timestamppb.New(m.MetricDate),
+		TotalTasks:              m.TotalTasks,
+		CompletedTasks:          m.CompletedTasks,
+		InProgressTasks:         m.InProgressTasks,
+		OverdueTasks:            m.OverdueTasks,
+		DeliveryPerformance:     m.DeliveryPerformance,
+		SchedulePerformance:     m.SchedulePerformance,
+		QualityPerformance:      m.QualityPerformance,
+		TeamPerformance:         m.TeamPerformance,
+		HealthIndex:             m.HealthIndex,
+		RiskScore:               m.RiskScore,
+		HealthStatus:            m.HealthStatus,
+		Velocity:                m.Velocity,
+		TeamCapacityUtilization: m.TeamCapacityUtilization,
+		TeamSize:                m.TeamSize,
+		AvgTeamEfficiency:       m.AvgTeamEfficiency,
+		IsAtRisk:                m.IsAtRisk,
 	}
-}
 
-func (s *AnalyticsServer) departmentMetricsToProto(m *analytics.DepartmentMetrics) *analyticsv1.DepartmentMetrics {
-	return &analyticsv1.DepartmentMetrics{
-		DepartmentId:             m.DepartmentID,
-		DepartmentName:           m.DepartmentName,
-		MetricDate:               timestamppb.New(m.MetricDate),
-		TotalEmployees:           m.TotalEmployees,
-		ActiveProjects:           m.ActiveProjects,
-		TotalTasks:               m.TotalTasks,
-		CompletedTasks:           m.CompletedTasks,
-		AvgEmployeeEfficiency:    m.AvgEmployeeEfficiency,
-		DepartmentCompletionRate: m.DepartmentCompletionRate,
-		DepartmentOnTimeRate:     m.DepartmentOnTimeRate,
-		DepartmentHealthScore:    m.DepartmentHealthScore,
+	if m.ProjectedEndDate != nil {
+		projProto.ProjectedEndDate = timestamppb.New(*m.ProjectedEndDate)
 	}
+
+	if m.DaysUntilDue != nil {
+		days := *m.DaysUntilDue
+		projProto.DaysUntilDue = &days
+	}
+
+	return projProto
 }

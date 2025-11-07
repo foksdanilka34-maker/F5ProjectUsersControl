@@ -132,7 +132,6 @@ func main() {
 		{
 			projects.GET("", projectHandler.ListProjects)
 			projects.GET("/:id/members", projectHandler.ListProjectMembers)
-			projects.GET("/:id/tasks", projectHandler.ListTasksByProject)
 			projects.GET("/:id", projectHandler.GetProject)
 
 			managerOrDirector := projects.Group("")
@@ -154,32 +153,24 @@ func main() {
 				managerOnly.POST("/:id/members", projectHandler.AddMemberToProject)
 				managerOnly.DELETE("/:id/members/:memberId", projectHandler.RemoveMemberFromProject)
 			}
+
+			projectTasks := projects.Group("/:id/tasks")
+			projectTasks.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+			{
+				projectTasks.GET("", projectHandler.ListTasksByProject)
+				projectTasks.POST("", projectHandler.CreateTask)
+				projectTasks.GET("/:taskId", projectHandler.GetTask)
+				projectTasks.PATCH("/:taskId", projectHandler.UpdateTask)
+				projectTasks.DELETE("/:taskId", projectHandler.DeleteTask)
+				projectTasks.POST("/:taskId/move", projectHandler.MoveTask)
+
+				managerDirectorTasks := projectTasks.Group("")
+				managerDirectorTasks.Use(middleware.RoleMiddleware("manager", "director"))
+				{
+					managerDirectorTasks.POST("/:taskId/assign", projectHandler.AssignTask)
+				}
+			}
 		}
-
-		tasks := v1.Group("/tasks")
-		tasks.Use(middleware.AuthMiddleware(cfg.JWTSecret))
-		{
-			tasks.GET("/:id", projectHandler.GetTask)
-
-			tasks.PATCH("/:id", projectHandler.UpdateTask)
-			tasks.POST("/:id/move", projectHandler.MoveTask)
-			tasks.DELETE("/:id", projectHandler.DeleteTask)
-
-			managerDirectorTasks := tasks.Group("")
-			managerDirectorTasks.Use(middleware.RoleMiddleware("manager", "director"))
-		}
-
-		v1.POST("/projects/:id/tasks",
-			middleware.AuthMiddleware(cfg.JWTSecret),
-			middleware.RoleMiddleware("manager", "director"),
-			projectHandler.CreateTask,
-		)
-
-		v1.POST("/tasks/:id/assign",
-			middleware.AuthMiddleware(cfg.JWTSecret),
-			middleware.RoleMiddleware("manager", "director"),
-			projectHandler.AssignTask,
-		)
 
 		analytics := v1.Group("/analytics")
 		analytics.Use(middleware.AuthMiddleware(cfg.JWTSecret))
@@ -193,9 +184,6 @@ func main() {
 
 			analytics.GET("/projects/metrics", analyticsHandler.ListProjectMetrics)
 			analytics.GET("/projects/:id/metrics", analyticsHandler.GetProjectMetrics)
-
-			analytics.GET("/departments/metrics", analyticsHandler.ListDepartmentMetrics)
-			analytics.GET("/departments/:id/metrics", analyticsHandler.GetDepartmentMetrics)
 
 			analytics.GET("/trends/productivity", analyticsHandler.GetProductivityTrends)
 			analytics.GET("/trends/completion-rate", analyticsHandler.GetCompletionRateTrends)

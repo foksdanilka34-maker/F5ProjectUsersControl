@@ -2,7 +2,9 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics"
@@ -15,592 +17,450 @@ type Storage struct {
 }
 
 func NewStorage(pool *pgxpool.Pool) *Storage {
-	return &Storage{pool: pool}
+	return &Storage{
+		pool: pool,
+	}
+}
+
+type AnalyticsStorage interface {
+	GetEmployeeMetrics(ctx context.Context, emplID string) (*analytics.EmployeeMetrics, error)
+	// ListEmployeeMetrics(ctx context.Context, req *analytics.ListEmployeeMetrics) ([]*analytics.EmployeeMetrics, int, error)
+	// GetTopPerformers(ctx context.Context, limit int, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, int, error)
+
+	// GetProjectMetrics(ctx context.Context, projectID string, startDate, endDate *time.Time) (*analytics.ProjectMetrics, error)
+	// ListProjectMetrics(ctx context.Context, req *analytics.ListProjectMetrics) ([]*analytics.ProjectMetrics, int, error)
+
+	// GetProductivityTrends(ctx context.Context, pTrends analytics.ProductivityTrends) (*analytics.ProductivityTrendsResp, error);
+    // GetCompletionRateTrends(ctx context.Context, cTrend analytics.CompletionRateTrend) (*analytics.CompletionRateTrendResp, error);
+
+    // GetDashboardStats(ctx context.Context, startDate, endDate *time.Time) (*analytics.DashboardStats, error);
 }
 
 func (s *Storage) SaveEmployeeMetrics(ctx context.Context, metrics *analytics.EmployeeMetrics) error {
-	query := `
-		INSERT INTO analytics.employee_metrics (
-			employee_id, employee_name, department_id, position_id,
-			metric_date, tasks_completed, tasks_assigned,
-			avg_completion_time_hours, on_time_completion_rate,
-			avg_task_priority, skills_used, projects_involved,
-			efficiency_score
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
-		)
-		ON CONFLICT (employee_id, metric_date) DO UPDATE SET
-			employee_name = EXCLUDED.employee_name,
-			department_id = EXCLUDED.department_id,
-			position_id = EXCLUDED.position_id,
-			tasks_completed = EXCLUDED.tasks_completed,
-			tasks_assigned = EXCLUDED.tasks_assigned,
-			avg_completion_time_hours = EXCLUDED.avg_completion_time_hours,
-			on_time_completion_rate = EXCLUDED.on_time_completion_rate,
-			avg_task_priority = EXCLUDED.avg_task_priority,
-			skills_used = EXCLUDED.skills_used,
-			projects_involved = EXCLUDED.projects_involved,
-			efficiency_score = EXCLUDED.efficiency_score,
-			updated_at = NOW()
-		RETURNING id
-	`
+	query := `INSERT INTO analytics.employee_metrics 
+		(employee_id, metric_date, assigned_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
+		efficiency_score, task_completion_rate, on_time_completion_rate
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`
 
 	var id string
-	err := s.pool.QueryRow(ctx, query,
-		metrics.EmployeeID, metrics.EmployeeName, metrics.DepartmentID, metrics.PositionID,
-		metrics.MetricDate, metrics.TasksCompleted, metrics.TasksAssigned,
-		metrics.AvgCompletionTimeHours, metrics.OnTimeCompletionRate,
-		metrics.AvgTaskPriority, metrics.SkillsUsed, metrics.ProjectsInvolved,
-		metrics.EfficiencyScore,
+	err := s.pool.QueryRow(ctx, query, metrics.EmployeeID, metrics.MetricDate, metrics.AssignedTasks, 
+		metrics.CompletedTasks, metrics.InProgressTasks, metrics.OverdueTasks,
+		metrics.EfficiencyScore, metrics.TaskCompletionRate, metrics.OnTimeCompletionRate,
 	).Scan(&id)
 
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			log.Printf("ERROR saving employee metrics, no value returned: %v", err)
+			return err 
+		}
+		log.Printf("SYSTEM ERROR saving employee metrics: %v", err)
 		return fmt.Errorf("failed to save employee metrics: %w", err)
 	}
 
-	metrics.ID = id
+	log.Printf("Saved employee metrics with ID: %s", id)
 	return nil
 }
 
-func (s *Storage) GetEmployeeMetrics(ctx context.Context, employeeID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, error) {
-	query := `
-		SELECT 
-			id, employee_id, employee_name, department_id, position_id,
-			metric_date, tasks_completed, tasks_assigned,
-			avg_completion_time_hours, on_time_completion_rate,
-			avg_task_priority, skills_used, projects_involved,
-			efficiency_score, created_at, updated_at
-		FROM analytics.employee_metrics
-		WHERE employee_id = $1
-			AND metric_date >= $2
-			AND metric_date <= $3
-		ORDER BY metric_date DESC
-	`
+func (s *Storage) GetEmployeeMetrics(ctx context.Context, emplID string) (*analytics.EmployeeMetrics, error) {
+	query := `SELECT id, employee_id, employee_name, metric_date,
+			assigned_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
+			efficiency_score, task_completion_rate, on_time_completion_rate,
+			created_at, updated_at
+			FROM analytics.employee_metrics
+			WHERE employee_id = $1
+			ORDER BY metric_date DESC`
 
-	rows, err := s.pool.Query(ctx, query, employeeID, startDate, endDate)
+	analMetrics := &analytics.EmployeeMetrics{}
+	err := s.pool.QueryRow(ctx, query, employeeID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query employee metrics: %w", err)
 	}
-	defer rows.Close()
-
-	var metrics []*analytics.EmployeeMetrics
-	for rows.Next() {
-		m := &analytics.EmployeeMetrics{}
-		err := rows.Scan(
-			&m.ID, &m.EmployeeID, &m.EmployeeName, &m.DepartmentID, &m.PositionID,
-			&m.MetricDate, &m.TasksCompleted, &m.TasksAssigned,
-			&m.AvgCompletionTimeHours, &m.OnTimeCompletionRate,
-			&m.AvgTaskPriority, &m.SkillsUsed, &m.ProjectsInvolved,
-			&m.EfficiencyScore, &m.CreatedAt, &m.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan employee metrics: %w", err)
-		}
-		metrics = append(metrics, m)
-	}
+	
 
 	return metrics, rows.Err()
 }
 
-func (s *Storage) ListEmployeeMetrics(ctx context.Context, pageSize, pageNumber int32, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, int32, error) {
-	whereClause := "metric_date >= $1 AND metric_date <= $2"
-	args := []interface{}{startDate, endDate}
+// func (s *Storage) ListEmployeeMetrics(ctx context.Context, pageSize, pageNumber int32, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, int32, error) {
+// 	whereClause := "metric_date >= $1 AND metric_date <= $2"
+// 	args := []interface{}{startDate, endDate}
 
-	if departmentID != "" {
-		args = append(args, departmentID)
-		whereClause += fmt.Sprintf(" AND department_id = $%d", len(args))
-	}
+// 	countQuery := "SELECT COUNT(DISTINCT employee_id) FROM analytics.employee_metrics WHERE " + whereClause
+// 	var totalCount int32
+// 	err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
+// 	if err != nil {
+// 		return nil, 0, fmt.Errorf("failed to count employee metrics: %w", err)
+// 	}
 
-	countQuery := "SELECT COUNT(*) FROM analytics.employee_metrics WHERE " + whereClause
-	var totalCount int32
-	err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count employee metrics: %w", err)
-	}
+// 	offset := (pageNumber - 1) * pageSize
+// 	args = append(args, pageSize, offset)
+// 	query := `
+// 		SELECT 
+// 			id, employee_id, employee_name, metric_date,
+// 			assigned_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
+// 			efficiency_score, task_completion_rate, on_time_completion_rate,
+// 			created_at, updated_at
+// 		FROM analytics.employee_metrics
+// 		WHERE ` + whereClause + `
+// 		ORDER BY metric_date DESC, efficiency_score DESC
+// 		LIMIT $3 OFFSET $4
+// 	`
 
-	offset := (pageNumber - 1) * pageSize
-	args = append(args, pageSize, offset)
-	query := `
-		SELECT 
-			id, employee_id, employee_name, department_id, position_id,
-			metric_date, tasks_completed, tasks_assigned,
-			avg_completion_time_hours, on_time_completion_rate,
-			avg_task_priority, skills_used, projects_involved,
-			efficiency_score, created_at, updated_at
-		FROM analytics.employee_metrics
-		WHERE ` + whereClause + `
-		ORDER BY metric_date DESC, efficiency_score DESC
-		LIMIT $` + fmt.Sprintf("%d", len(args)-1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)) + ``
+// 	rows, err := s.pool.Query(ctx, query, args...)
+// 	if err != nil {
+// 		return nil, 0, fmt.Errorf("failed to query employee metrics: %w", err)
+// 	}
+// 	defer rows.Close()
 
-	rows, err := s.pool.Query(ctx, query, args...)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to query employee metrics: %w", err)
-	}
-	defer rows.Close()
+// 	var metrics []*analytics.EmployeeMetrics
+// 	for rows.Next() {
+// 		m := &analytics.EmployeeMetrics{}
+// 		err := rows.Scan(
+// 			&m.ID, &m.EmployeeID, &m.EmployeeName, &m.MetricDate,
+// 			&m.TasksAssigned, &m.TasksCompleted, &m.InProgressTasks, &m.OverdueTasks,
+// 			&m.EfficiencyScore, &m.TaskCompletionRate, &m.OnTimeCompletionRate,
+// 			&m.CreatedAt, &m.UpdatedAt,
+// 		)
+// 		if err != nil {
+// 			return nil, 0, fmt.Errorf("failed to scan employee metrics: %w", err)
+// 		}
+// 		metrics = append(metrics, m)
+// 	}
 
-	var metrics []*analytics.EmployeeMetrics
-	for rows.Next() {
-		m := &analytics.EmployeeMetrics{}
-		err := rows.Scan(
-			&m.ID, &m.EmployeeID, &m.EmployeeName, &m.DepartmentID, &m.PositionID,
-			&m.MetricDate, &m.TasksCompleted, &m.TasksAssigned,
-			&m.AvgCompletionTimeHours, &m.OnTimeCompletionRate,
-			&m.AvgTaskPriority, &m.SkillsUsed, &m.ProjectsInvolved,
-			&m.EfficiencyScore, &m.CreatedAt, &m.UpdatedAt,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to scan employee metrics: %w", err)
-		}
-		metrics = append(metrics, m)
-	}
+// 	return metrics, totalCount, rows.Err()
+// }
 
-	return metrics, totalCount, rows.Err()
-}
+// func (s *Storage) GetTopPerformers(ctx context.Context, limit int32, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, error) {
+// 	query := `
+// 		SELECT 
+// 			id, employee_id, employee_name, metric_date,
+// 			assigned_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
+// 			efficiency_score, task_completion_rate, on_time_completion_rate,
+// 			created_at, updated_at
+// 		FROM analytics.employee_metrics
+// 		WHERE metric_date >= $1 AND metric_date <= $2
+// 		ORDER BY efficiency_score DESC, metric_date DESC
+// 		LIMIT $3
+// 	`
 
-func (s *Storage) GetTopPerformers(ctx context.Context, limit int32, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, error) {
-	whereClause := "metric_date >= $1 AND metric_date <= $2"
-	args := []any{startDate, endDate, limit}
+// 	rows, err := s.pool.Query(ctx, query, startDate, endDate, limit)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to query top performers: %w", err)
+// 	}
+// 	defer rows.Close()
 
-	if departmentID != "" {
-		args = []any{startDate, endDate, departmentID, limit}
-		whereClause += " AND department_id = $3"
-		query := `
-			SELECT 
-				id, employee_id, employee_name, department_id, position_id,
-				metric_date, tasks_completed, tasks_assigned,
-				avg_completion_time_hours, on_time_completion_rate,
-				avg_task_priority, skills_used, projects_involved,
-				efficiency_score, created_at, updated_at
-			FROM analytics.employee_metrics
-			WHERE ` + whereClause + `
-			ORDER BY efficiency_score DESC, metric_date DESC
-			LIMIT $4
-		`
-		return s.scanEmployeeMetricsList(ctx, query, args...)
-	}
+// 	var metrics []*analytics.EmployeeMetrics
+// 	for rows.Next() {
+// 		m := &analytics.EmployeeMetrics{}
+// 		err := rows.Scan(
+// 			&m.ID, &m.EmployeeID, &m.EmployeeName, &m.MetricDate,
+// 			&m.TasksAssigned, &m.TasksCompleted, &m.InProgressTasks, &m.OverdueTasks,
+// 			&m.EfficiencyScore, &m.TaskCompletionRate, &m.OnTimeCompletionRate,
+// 			&m.CreatedAt, &m.UpdatedAt,
+// 		)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to scan top performers: %w", err)
+// 		}
+// 		metrics = append(metrics, m)
+// 	}
 
-	query := `
-		SELECT 
-			id, employee_id, employee_name, department_id, position_id,
-			metric_date, tasks_completed, tasks_assigned,
-			avg_completion_time_hours, on_time_completion_rate,
-			avg_task_priority, skills_used, projects_involved,
-			efficiency_score, created_at, updated_at
-		FROM analytics.employee_metrics
-		WHERE ` + whereClause + `
-		ORDER BY efficiency_score DESC, metric_date DESC
-		LIMIT $3
-	`
-	return s.scanEmployeeMetricsList(ctx, query, args...)
-}
+// 	return metrics, rows.Err()
+// }
 
-func (s *Storage) scanEmployeeMetricsList(ctx context.Context, query string, args ...any) ([]*analytics.EmployeeMetrics, error) {
-	rows, err := s.pool.Query(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query: %w", err)
-	}
-	defer rows.Close()
+// func (s *Storage) SaveProjectMetrics(ctx context.Context, metrics *analytics.ProjectMetrics) error {
+// 	query := `
+// 		INSERT INTO analytics.project_metrics (
+// 			project_id, project_name, manager_id, manager_name, metric_date,
+// 			total_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
+// 			delivery_performance, schedule_performance, quality_performance, team_performance,
+// 			health_index, risk_score, health_status, velocity, projected_end_date,
+// 			team_capacity_utilization, team_size, avg_team_efficiency, is_at_risk, days_until_due
+// 		) VALUES (
+// 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+// 		)
+// 		ON CONFLICT (project_id, metric_date) DO UPDATE SET
+// 			project_name = EXCLUDED.project_name,
+// 			manager_name = EXCLUDED.manager_name,
+// 			total_tasks = EXCLUDED.total_tasks,
+// 			completed_tasks = EXCLUDED.completed_tasks,
+// 			in_progress_tasks = EXCLUDED.in_progress_tasks,
+// 			overdue_tasks = EXCLUDED.overdue_tasks,
+// 			delivery_performance = EXCLUDED.delivery_performance,
+// 			schedule_performance = EXCLUDED.schedule_performance,
+// 			quality_performance = EXCLUDED.quality_performance,
+// 			team_performance = EXCLUDED.team_performance,
+// 			health_index = EXCLUDED.health_index,
+// 			risk_score = EXCLUDED.risk_score,
+// 			health_status = EXCLUDED.health_status,
+// 			velocity = EXCLUDED.velocity,
+// 			projected_end_date = EXCLUDED.projected_end_date,
+// 			team_capacity_utilization = EXCLUDED.team_capacity_utilization,
+// 			team_size = EXCLUDED.team_size,
+// 			avg_team_efficiency = EXCLUDED.avg_team_efficiency,
+// 			is_at_risk = EXCLUDED.is_at_risk,
+// 			days_until_due = EXCLUDED.days_until_due,
+// 			updated_at = NOW()
+// 		RETURNING id
+// 	`
 
-	var metrics []*analytics.EmployeeMetrics
-	for rows.Next() {
-		m := &analytics.EmployeeMetrics{}
-		err := rows.Scan(
-			&m.ID, &m.EmployeeID, &m.EmployeeName, &m.DepartmentID, &m.PositionID,
-			&m.MetricDate, &m.TasksCompleted, &m.TasksAssigned,
-			&m.AvgCompletionTimeHours, &m.OnTimeCompletionRate,
-			&m.AvgTaskPriority, &m.SkillsUsed, &m.ProjectsInvolved,
-			&m.EfficiencyScore, &m.CreatedAt, &m.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan: %w", err)
-		}
-		metrics = append(metrics, m)
-	}
+// 	var id string
+// 	err := s.pool.QueryRow(ctx, query,
+// 		metrics.ProjectID, metrics.ProjectName, metrics.ManagerID, metrics.ManagerName, metrics.MetricDate,
+// 		metrics.TotalTasks, metrics.CompletedTasks, metrics.InProgressTasks, metrics.OverdueTasks,
+// 		metrics.DeliveryPerformance, metrics.SchedulePerformance, metrics.QualityPerformance, metrics.TeamPerformance,
+// 		metrics.HealthIndex, metrics.RiskScore, metrics.HealthStatus, metrics.Velocity, metrics.ProjectedEndDate,
+// 		metrics.TeamCapacityUtilization, metrics.TeamSize, metrics.AvgTeamEfficiency, metrics.IsAtRisk, metrics.DaysUntilDue,
+// 	).Scan(&id)
 
-	return metrics, rows.Err()
-}
+// 	if err != nil {
+// 		return fmt.Errorf("failed to save project metrics: %w", err)
+// 	}
 
-func (s *Storage) SaveProjectMetrics(ctx context.Context, metrics *analytics.ProjectMetrics) error {
-	query := `
-		INSERT INTO analytics.project_metrics (
-			project_id, project_name, manager_id, manager_name,
-			metric_date, total_tasks, completed_tasks,
-			in_progress_tasks, overdue_tasks,
-			completion_rate, on_time_completion_rate,
-			team_size, avg_task_duration_hours,
-			project_health_score
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
-		)
-		ON CONFLICT (project_id, metric_date) DO UPDATE SET
-			project_name = EXCLUDED.project_name,
-			manager_id = EXCLUDED.manager_id,
-			manager_name = EXCLUDED.manager_name,
-			total_tasks = EXCLUDED.total_tasks,
-			completed_tasks = EXCLUDED.completed_tasks,
-			in_progress_tasks = EXCLUDED.in_progress_tasks,
-			overdue_tasks = EXCLUDED.overdue_tasks,
-			completion_rate = EXCLUDED.completion_rate,
-			on_time_completion_rate = EXCLUDED.on_time_completion_rate,
-			team_size = EXCLUDED.team_size,
-			avg_task_duration_hours = EXCLUDED.avg_task_duration_hours,
-			project_health_score = EXCLUDED.project_health_score,
-			updated_at = NOW()
-		RETURNING id
-	`
+// 	metrics.ID = id
+// 	return nil
+// }
 
-	var id string
-	err := s.pool.QueryRow(ctx, query,
-		metrics.ProjectID, metrics.ProjectName, metrics.ManagerID, metrics.ManagerName,
-		metrics.MetricDate, metrics.TotalTasks, metrics.CompletedTasks,
-		metrics.InProgressTasks, metrics.OverdueTasks,
-		metrics.CompletionRate, metrics.OnTimeCompletionRate,
-		metrics.TeamSize, metrics.AvgTaskDurationHours,
-		metrics.ProjectHealthScore,
-	).Scan(&id)
+// func (s *Storage) GetProjectMetrics(ctx context.Context, projectID string, startDate, endDate time.Time) ([]*analytics.ProjectMetrics, error) {
+// 	query := `
+// 		SELECT 
+// 			id, project_id, project_name, manager_id, manager_name, metric_date,
+// 			total_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
+// 			delivery_performance, schedule_performance, quality_performance, team_performance,
+// 			health_index, risk_score, health_status, velocity, projected_end_date,
+// 			team_capacity_utilization, team_size, avg_team_efficiency, is_at_risk, days_until_due,
+// 			created_at, updated_at
+// 		FROM analytics.project_metrics
+// 		WHERE project_id = $1
+// 			AND metric_date >= $2
+// 			AND metric_date <= $3
+// 		ORDER BY metric_date DESC
+// 	`
 
-	if err != nil {
-		return fmt.Errorf("failed to save project metrics: %w", err)
-	}
+// 	rows, err := s.pool.Query(ctx, query, projectID, startDate, endDate)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to query project metrics: %w", err)
+// 	}
+// 	defer rows.Close()
 
-	metrics.ID = id
-	return nil
-}
+// 	var metrics []*analytics.ProjectMetrics
+// 	for rows.Next() {
+// 		m := &analytics.ProjectMetrics{}
+// 		err := rows.Scan(
+// 			&m.ID, &m.ProjectID, &m.ProjectName, &m.ManagerID, &m.ManagerName, &m.MetricDate,
+// 			&m.TotalTasks, &m.CompletedTasks, &m.InProgressTasks, &m.OverdueTasks,
+// 			&m.DeliveryPerformance, &m.SchedulePerformance, &m.QualityPerformance, &m.TeamPerformance,
+// 			&m.HealthIndex, &m.RiskScore, &m.HealthStatus, &m.Velocity, &m.ProjectedEndDate,
+// 			&m.TeamCapacityUtilization, &m.TeamSize, &m.AvgTeamEfficiency, &m.IsAtRisk, &m.DaysUntilDue,
+// 			&m.CreatedAt, &m.UpdatedAt,
+// 		)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to scan project metrics: %w", err)
+// 		}
+// 		metrics = append(metrics, m)
+// 	}
 
-func (s *Storage) GetProjectMetrics(ctx context.Context, projectID string, startDate, endDate time.Time) ([]*analytics.ProjectMetrics, error) {
-	query := `
-		SELECT 
-			id, project_id, project_name, manager_id, manager_name,
-			metric_date, total_tasks, completed_tasks,
-			in_progress_tasks, overdue_tasks,
-			completion_rate, on_time_completion_rate,
-			team_size, avg_task_duration_hours,
-			project_health_score, created_at, updated_at
-		FROM analytics.project_metrics
-		WHERE project_id = $1
-			AND metric_date >= $2
-			AND metric_date <= $3
-		ORDER BY metric_date DESC
-	`
+// 	return metrics, rows.Err()
+// }
 
-	rows, err := s.pool.Query(ctx, query, projectID, startDate, endDate)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query project metrics: %w", err)
-	}
-	defer rows.Close()
+// func (s *Storage) ListProjectMetrics(ctx context.Context, pageSize, pageNumber int32, managerID string, startDate, endDate time.Time) ([]*analytics.ProjectMetrics, int32, error) {
+// 	whereClause := "metric_date >= $1 AND metric_date <= $2"
+// 	args := []interface{}{startDate, endDate}
 
-	var metrics []*analytics.ProjectMetrics
-	for rows.Next() {
-		m := &analytics.ProjectMetrics{}
-		err := rows.Scan(
-			&m.ID, &m.ProjectID, &m.ProjectName, &m.ManagerID, &m.ManagerName,
-			&m.MetricDate, &m.TotalTasks, &m.CompletedTasks,
-			&m.InProgressTasks, &m.OverdueTasks,
-			&m.CompletionRate, &m.OnTimeCompletionRate,
-			&m.TeamSize, &m.AvgTaskDurationHours,
-			&m.ProjectHealthScore, &m.CreatedAt, &m.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan project metrics: %w", err)
-		}
-		metrics = append(metrics, m)
-	}
+// 	countQuery := "SELECT COUNT(DISTINCT project_id) FROM analytics.project_metrics WHERE " + whereClause
+// 	var totalCount int32
+// 	err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
+// 	if err != nil {
+// 		return nil, 0, fmt.Errorf("failed to count project metrics: %w", err)
+// 	}
 
-	return metrics, rows.Err()
-}
+// 	offset := (pageNumber - 1) * pageSize
+// 	args = append(args, pageSize, offset)
+// 	query := `
+// 		SELECT 
+// 			id, project_id, project_name, manager_id, manager_name, metric_date,
+// 			total_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
+// 			delivery_performance, schedule_performance, quality_performance, team_performance,
+// 			health_index, risk_score, health_status, velocity, projected_end_date,
+// 			team_capacity_utilization, team_size, avg_team_efficiency, is_at_risk, days_until_due,
+// 			created_at, updated_at
+// 		FROM analytics.project_metrics
+// 		WHERE ` + whereClause + `
+// 		ORDER BY metric_date DESC, health_index DESC
+// 		LIMIT $3 OFFSET $4
+// 	`
 
-func (s *Storage) ListProjectMetrics(ctx context.Context, pageSize, pageNumber int32, managerID string, startDate, endDate time.Time) ([]*analytics.ProjectMetrics, int32, error) {
-	whereClause := "metric_date >= $1 AND metric_date <= $2"
-	args := []interface{}{startDate, endDate}
+// 	rows, err := s.pool.Query(ctx, query, args...)
+// 	if err != nil {
+// 		return nil, 0, fmt.Errorf("failed to query project metrics: %w", err)
+// 	}
+// 	defer rows.Close()
 
-	if managerID != "" {
-		args = append(args, managerID)
-		whereClause += fmt.Sprintf(" AND manager_id = $%d", len(args))
-	}
+// 	var metrics []*analytics.ProjectMetrics
+// 	for rows.Next() {
+// 		m := &analytics.ProjectMetrics{}
+// 		err := rows.Scan(
+// 			&m.ID, &m.ProjectID, &m.ProjectName, &m.ManagerID, &m.ManagerName, &m.MetricDate,
+// 			&m.TotalTasks, &m.CompletedTasks, &m.InProgressTasks, &m.OverdueTasks,
+// 			&m.DeliveryPerformance, &m.SchedulePerformance, &m.QualityPerformance, &m.TeamPerformance,
+// 			&m.HealthIndex, &m.RiskScore, &m.HealthStatus, &m.Velocity, &m.ProjectedEndDate,
+// 			&m.TeamCapacityUtilization, &m.TeamSize, &m.AvgTeamEfficiency, &m.IsAtRisk, &m.DaysUntilDue,
+// 			&m.CreatedAt, &m.UpdatedAt,
+// 		)
+// 		if err != nil {
+// 			return nil, 0, fmt.Errorf("failed to scan project metrics: %w", err)
+// 		}
+// 		metrics = append(metrics, m)
+// 	}
 
-	countQuery := "SELECT COUNT(*) FROM analytics.project_metrics WHERE " + whereClause
-	var totalCount int32
-	err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count project metrics: %w", err)
-	}
+// 	return metrics, totalCount, rows.Err()
+// }
 
-	offset := (pageNumber - 1) * pageSize
-	args = append(args, pageSize, offset)
-	query := `
-		SELECT 
-			id, project_id, project_name, manager_id, manager_name,
-			metric_date, total_tasks, completed_tasks,
-			in_progress_tasks, overdue_tasks,
-			completion_rate, on_time_completion_rate,
-			team_size, avg_task_duration_hours,
-			project_health_score, created_at, updated_at
-		FROM analytics.project_metrics
-		WHERE ` + whereClause + `
-		ORDER BY metric_date DESC, project_health_score DESC
-		LIMIT $` + fmt.Sprintf("%d", len(args)-1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)) + ``
+// func (s *Storage) CalculateProductivityTrends(ctx context.Context, period string, limit int32, departmentID, employeeID string) ([]map[string]interface{}, error) {
+// 	query := `
+// 		SELECT 
+// 			DATE(metric_date) as date,
+// 			AVG(efficiency_score) as avg_efficiency,
+// 			COUNT(*) as total_employees_active,
+// 			0 as total_tasks_completed
+// 		FROM analytics.employee_metrics
+// 		WHERE metric_date >= NOW() - INTERVAL '90 days'
+// 		GROUP BY DATE(metric_date)
+// 		ORDER BY DATE(metric_date) DESC
+// 		LIMIT $1
+// 	`
 
-	rows, err := s.pool.Query(ctx, query, args...)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to query project metrics: %w", err)
-	}
-	defer rows.Close()
+// 	rows, err := s.pool.Query(ctx, query, limit)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to query productivity trends: %w", err)
+// 	}
+// 	defer rows.Close()
 
-	var metrics []*analytics.ProjectMetrics
-	for rows.Next() {
-		m := &analytics.ProjectMetrics{}
-		err := rows.Scan(
-			&m.ID, &m.ProjectID, &m.ProjectName, &m.ManagerID, &m.ManagerName,
-			&m.MetricDate, &m.TotalTasks, &m.CompletedTasks,
-			&m.InProgressTasks, &m.OverdueTasks,
-			&m.CompletionRate, &m.OnTimeCompletionRate,
-			&m.TeamSize, &m.AvgTaskDurationHours,
-			&m.ProjectHealthScore, &m.CreatedAt, &m.UpdatedAt,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to scan project metrics: %w", err)
-		}
-		metrics = append(metrics, m)
-	}
+// 	var trends []map[string]interface{}
+// 	for rows.Next() {
+// 		var date time.Time
+// 		var avgEfficiency float64
+// 		var totalEmployeesActive int32
+// 		var totalTasksCompleted int32
 
-	return metrics, totalCount, rows.Err()
-}
+// 		err := rows.Scan(&date, &avgEfficiency, &totalEmployeesActive, &totalTasksCompleted)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to scan productivity trend: %w", err)
+// 		}
 
-func (s *Storage) SaveDepartmentMetrics(ctx context.Context, metrics *analytics.DepartmentMetrics) error {
-	query := `
-		INSERT INTO analytics.department_metrics (
-			department_id, department_name, metric_date,
-			total_employees, active_projects, total_tasks, completed_tasks,
-			avg_employee_efficiency, department_completion_rate,
-			department_on_time_rate, department_health_score
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-		)
-		ON CONFLICT (department_id, metric_date) DO UPDATE SET
-			department_name = EXCLUDED.department_name,
-			total_employees = EXCLUDED.total_employees,
-			active_projects = EXCLUDED.active_projects,
-			total_tasks = EXCLUDED.total_tasks,
-			completed_tasks = EXCLUDED.completed_tasks,
-			avg_employee_efficiency = EXCLUDED.avg_employee_efficiency,
-			department_completion_rate = EXCLUDED.department_completion_rate,
-			department_on_time_rate = EXCLUDED.department_on_time_rate,
-			department_health_score = EXCLUDED.department_health_score,
-			updated_at = NOW()
-		RETURNING id
-	`
+// 		trends = append(trends, map[string]interface{}{
+// 			"date":                   date,
+// 			"avg_efficiency":         avgEfficiency,
+// 			"total_employees_active": totalEmployeesActive,
+// 			"total_tasks_completed":  totalTasksCompleted,
+// 		})
+// 	}
 
-	var id string
-	err := s.pool.QueryRow(ctx, query,
-		metrics.DepartmentID, metrics.DepartmentName, metrics.MetricDate,
-		metrics.TotalEmployees, metrics.ActiveProjects, metrics.TotalTasks, metrics.CompletedTasks,
-		metrics.AvgEmployeeEfficiency, metrics.DepartmentCompletionRate,
-		metrics.DepartmentOnTimeRate, metrics.DepartmentHealthScore,
-	).Scan(&id)
+// 	return trends, rows.Err()
+// }
 
-	if err != nil {
-		return fmt.Errorf("failed to save department metrics: %w", err)
-	}
+// func (s *Storage) CalculateCompletionRateTrends(ctx context.Context, period string, limit int32, projectID, departmentID string) ([]map[string]interface{}, error) {
+// 	query := `
+// 		SELECT 
+// 			DATE(metric_date) as date,
+// 			AVG(CASE WHEN completed_tasks > 0 
+// 				THEN (completed_tasks - overdue_tasks)::float / completed_tasks 
+// 				ELSE 0 END) as on_time_rate,
+// 			AVG(CASE WHEN total_tasks > 0 
+// 				THEN completed_tasks::float / total_tasks 
+// 				ELSE 0 END) as overall_rate,
+// 			SUM(completed_tasks) as completed_count,
+// 			SUM(overdue_tasks) as overdue_count
+// 		FROM analytics.project_metrics
+// 		WHERE metric_date >= NOW() - INTERVAL '90 days'
+// 		GROUP BY DATE(metric_date)
+// 		ORDER BY DATE(metric_date) DESC
+// 		LIMIT $1
+// 	`
 
-	metrics.ID = id
-	return nil
-}
+// 	rows, err := s.pool.Query(ctx, query, limit)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to query completion rate trends: %w", err)
+// 	}
+// 	defer rows.Close()
 
-func (s *Storage) GetDepartmentMetrics(ctx context.Context, departmentID string, startDate, endDate time.Time) ([]*analytics.DepartmentMetrics, error) {
-	query := `
-		SELECT 
-			id, department_id, department_name, metric_date,
-			total_employees, active_projects, total_tasks, completed_tasks,
-			avg_employee_efficiency, department_completion_rate,
-			department_on_time_rate, department_health_score,
-			created_at, updated_at
-		FROM analytics.department_metrics
-		WHERE department_id = $1
-			AND metric_date >= $2
-			AND metric_date <= $3
-		ORDER BY metric_date DESC
-	`
+// 	var trends []map[string]interface{}
+// 	for rows.Next() {
+// 		var date time.Time
+// 		var onTimeRate, overallRate float64
+// 		var completedCount, overdueCount int32
 
-	rows, err := s.pool.Query(ctx, query, departmentID, startDate, endDate)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query department metrics: %w", err)
-	}
-	defer rows.Close()
+// 		err := rows.Scan(&date, &onTimeRate, &overallRate, &completedCount, &overdueCount)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to scan completion rate trend: %w", err)
+// 		}
 
-	var metrics []*analytics.DepartmentMetrics
-	for rows.Next() {
-		m := &analytics.DepartmentMetrics{}
-		err := rows.Scan(
-			&m.ID, &m.DepartmentID, &m.DepartmentName, &m.MetricDate,
-			&m.TotalEmployees, &m.ActiveProjects, &m.TotalTasks, &m.CompletedTasks,
-			&m.AvgEmployeeEfficiency, &m.DepartmentCompletionRate,
-			&m.DepartmentOnTimeRate, &m.DepartmentHealthScore,
-			&m.CreatedAt, &m.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan department metrics: %w", err)
-		}
-		metrics = append(metrics, m)
-	}
+// 		trends = append(trends, map[string]interface{}{
+// 			"date":            date,
+// 			"on_time_rate":    onTimeRate,
+// 			"overall_rate":    overallRate,
+// 			"completed_count": completedCount,
+// 			"overdue_count":   overdueCount,
+// 		})
+// 	}
 
-	return metrics, rows.Err()
-}
+// 	return trends, rows.Err()
+// }
 
-func (s *Storage) ListDepartmentMetrics(ctx context.Context, pageSize, pageNumber int32, startDate, endDate time.Time) ([]*analytics.DepartmentMetrics, int32, error) {
-	whereClause := "metric_date >= $1 AND metric_date <= $2"
-	args := []interface{}{startDate, endDate}
+// func (s *Storage) GetDashboardStats(ctx context.Context, startDate, endDate time.Time) (map[string]interface{}, error) {
+// 	query := `
+// 		WITH employee_stats AS (
+// 			SELECT 
+// 				COUNT(DISTINCT employee_id) AS total_employees,
+// 				COUNT(DISTINCT employee_id) FILTER (WHERE metric_date >= NOW() - INTERVAL '7 days') AS active_employees,
+// 				COALESCE(AVG(efficiency_score), 0) AS avg_company_efficiency,
+// 				COALESCE(AVG(on_time_completion_rate), 0) AS avg_on_time_rate
+// 			FROM analytics.employee_metrics
+// 			WHERE metric_date >= $1 AND metric_date <= $2
+// 		), project_stats AS (
+// 			SELECT 
+// 				COUNT(DISTINCT project_id) AS total_projects,
+// 				COUNT(DISTINCT project_id) FILTER (WHERE in_progress_tasks > 0) AS active_projects,
+// 				COALESCE(SUM(total_tasks), 0) AS total_tasks,
+// 				COALESCE(SUM(completed_tasks), 0) AS completed_tasks,
+// 				COALESCE(SUM(overdue_tasks), 0) AS overdue_tasks
+// 			FROM analytics.project_metrics
+// 			WHERE metric_date >= $1 AND metric_date <= $2
+// 		)
+// 		SELECT 
+// 			employee_stats.total_employees,
+// 			employee_stats.active_employees,
+// 			project_stats.total_projects,
+// 			project_stats.active_projects,
+// 			project_stats.total_tasks,
+// 			project_stats.completed_tasks,
+// 			project_stats.overdue_tasks,
+// 			employee_stats.avg_company_efficiency,
+// 			employee_stats.avg_on_time_rate
+// 		FROM employee_stats, project_stats
+// 	`
 
-	countQuery := "SELECT COUNT(*) FROM analytics.department_metrics WHERE " + whereClause
-	var totalCount int32
-	err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count department metrics: %w", err)
-	}
+// 	var totalEmployees, activeEmployees, totalProjects, activeProjects int32
+// 	var totalTasks, completedTasks, overdueTasks int32
+// 	var avgCompanyEfficiency, avgOnTimeRate float64
 
-	offset := (pageNumber - 1) * pageSize
-	args = append(args, pageSize, offset)
-	query := `
-		SELECT 
-			id, department_id, department_name, metric_date,
-			total_employees, active_projects, total_tasks, completed_tasks,
-			avg_employee_efficiency, department_completion_rate,
-			department_on_time_rate, department_health_score,
-			created_at, updated_at
-		FROM analytics.department_metrics
-		WHERE ` + whereClause + `
-		ORDER BY metric_date DESC, department_health_score DESC
-		LIMIT $` + fmt.Sprintf("%d", len(args)-1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)) + ``
+// 	err := s.pool.QueryRow(ctx, query, startDate, endDate).Scan(
+// 		&totalEmployees, &activeEmployees, &totalProjects, &activeProjects,
+// 		&totalTasks, &completedTasks, &overdueTasks,
+// 		&avgCompanyEfficiency, &avgOnTimeRate,
+// 	)
 
-	rows, err := s.pool.Query(ctx, query, args...)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to query department metrics: %w", err)
-	}
-	defer rows.Close()
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to get dashboard stats: %w", err)
+// 	}
 
-	var metrics []*analytics.DepartmentMetrics
-	for rows.Next() {
-		m := &analytics.DepartmentMetrics{}
-		err := rows.Scan(
-			&m.ID, &m.DepartmentID, &m.DepartmentName, &m.MetricDate,
-			&m.TotalEmployees, &m.ActiveProjects, &m.TotalTasks, &m.CompletedTasks,
-			&m.AvgEmployeeEfficiency, &m.DepartmentCompletionRate,
-			&m.DepartmentOnTimeRate, &m.DepartmentHealthScore,
-			&m.CreatedAt, &m.UpdatedAt,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to scan department metrics: %w", err)
-		}
-		metrics = append(metrics, m)
-	}
-
-	return metrics, totalCount, rows.Err()
-}
-
-func (s *Storage) SaveDailySnapshot(ctx context.Context, snapshot *analytics.DailySnapshot) error {
-	query := `
-		INSERT INTO analytics.daily_snapshots (
-			snapshot_date, total_employees, active_employees,
-			total_projects, active_projects, total_tasks,
-			completed_tasks, overdue_tasks,
-			avg_company_efficiency, avg_on_time_rate
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-		)
-		ON CONFLICT (snapshot_date) DO UPDATE SET
-			total_employees = EXCLUDED.total_employees,
-			active_employees = EXCLUDED.active_employees,
-			total_projects = EXCLUDED.total_projects,
-			active_projects = EXCLUDED.active_projects,
-			total_tasks = EXCLUDED.total_tasks,
-			completed_tasks = EXCLUDED.completed_tasks,
-			overdue_tasks = EXCLUDED.overdue_tasks,
-			avg_company_efficiency = EXCLUDED.avg_company_efficiency,
-			avg_on_time_rate = EXCLUDED.avg_on_time_rate,
-			updated_at = NOW()
-		RETURNING id
-	`
-
-	var id string
-	err := s.pool.QueryRow(ctx, query,
-		snapshot.SnapshotDate, snapshot.TotalEmployees, snapshot.ActiveEmployees,
-		snapshot.TotalProjects, snapshot.ActiveProjects, snapshot.TotalTasks,
-		snapshot.CompletedTasks, snapshot.OverdueTasks,
-		snapshot.AvgCompanyEfficiency, snapshot.AvgOnTimeRate,
-	).Scan(&id)
-
-	if err != nil {
-		return fmt.Errorf("failed to save daily snapshot: %w", err)
-	}
-
-	snapshot.ID = id
-	return nil
-}
-
-func (s *Storage) GetDailySnapshot(ctx context.Context, date time.Time) (*analytics.DailySnapshot, error) {
-	query := `
-		SELECT 
-			id, snapshot_date, total_employees, active_employees,
-			total_projects, active_projects, total_tasks,
-			completed_tasks, overdue_tasks,
-			avg_company_efficiency, avg_on_time_rate,
-			created_at, updated_at
-		FROM analytics.daily_snapshots
-		WHERE snapshot_date = $1
-	`
-
-	snapshot := &analytics.DailySnapshot{}
-	err := s.pool.QueryRow(ctx, query, date).Scan(
-		&snapshot.ID, &snapshot.SnapshotDate, &snapshot.TotalEmployees, &snapshot.ActiveEmployees,
-		&snapshot.TotalProjects, &snapshot.ActiveProjects, &snapshot.TotalTasks,
-		&snapshot.CompletedTasks, &snapshot.OverdueTasks,
-		&snapshot.AvgCompanyEfficiency, &snapshot.AvgOnTimeRate,
-		&snapshot.CreatedAt, &snapshot.UpdatedAt,
-	)
-
-	if err == pgx.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to query daily snapshot: %w", err)
-	}
-
-	return snapshot, nil
-}
-
-func (s *Storage) GetDailySnapshots(ctx context.Context, startDate, endDate time.Time) ([]*analytics.DailySnapshot, error) {
-	query := `
-		SELECT 
-			id, snapshot_date, total_employees, active_employees,
-			total_projects, active_projects, total_tasks,
-			completed_tasks, overdue_tasks,
-			avg_company_efficiency, avg_on_time_rate,
-			created_at, updated_at
-		FROM analytics.daily_snapshots
-		WHERE snapshot_date >= $1 AND snapshot_date <= $2
-		ORDER BY snapshot_date DESC
-	`
-
-	rows, err := s.pool.Query(ctx, query, startDate, endDate)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query daily snapshots: %w", err)
-	}
-	defer rows.Close()
-
-	var snapshots []*analytics.DailySnapshot
-	for rows.Next() {
-		snapshot := &analytics.DailySnapshot{}
-		err := rows.Scan(
-			&snapshot.ID, &snapshot.SnapshotDate, &snapshot.TotalEmployees, &snapshot.ActiveEmployees,
-			&snapshot.TotalProjects, &snapshot.ActiveProjects, &snapshot.TotalTasks,
-			&snapshot.CompletedTasks, &snapshot.OverdueTasks,
-			&snapshot.AvgCompanyEfficiency, &snapshot.AvgOnTimeRate,
-			&snapshot.CreatedAt, &snapshot.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan daily snapshot: %w", err)
-		}
-		snapshots = append(snapshots, snapshot)
-	}
-
-	return snapshots, rows.Err()
-}
+// 	return map[string]interface{}{
+// 		"total_employees":        totalEmployees,
+// 		"active_employees":       activeEmployees,
+// 		"total_projects":         totalProjects,
+// 		"active_projects":        activeProjects,
+// 		"total_tasks":            totalTasks,
+// 		"completed_tasks":        completedTasks,
+// 		"overdue_tasks":          overdueTasks,
+// 		"avg_company_efficiency": avgCompanyEfficiency,
+// 		"avg_on_time_rate":       avgOnTimeRate,
+// 	}, nil
+// }

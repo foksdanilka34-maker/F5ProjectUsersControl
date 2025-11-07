@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 	"github.com/nats-io/nats.go"
 )
 
@@ -42,7 +43,7 @@ func (p *Publisher) PublishDeactivateUserCommand(ctx context.Context, userID str
 	}
 
 	msg := &nats.Msg{
-		Subject: DeactivateUserCommandSubject,
+		Subject: eventbus.LoginDeactivateUserCommandTopic,
 		Data:    payload,
 	}
 
@@ -67,7 +68,7 @@ func (p *Publisher) PublishEmployeeCreated(ctx context.Context, userID, fullName
 	}
 
 	msg := &nats.Msg{
-		Subject: EmployeeCreatedEvent,
+		Subject: eventbus.EmployeeCreatedEventTopic,
 		Data:    payload,
 	}
 
@@ -93,7 +94,7 @@ func (p *Publisher) PublishEmployeeUpdated(ctx context.Context, userID, fullName
 	}
 
 	msg := &nats.Msg{
-		Subject: EmployeeUpdatedEvent,
+		Subject: eventbus.EmployeeUpdatedEventTopic,
 		Data:    payload,
 	}
 
@@ -117,7 +118,7 @@ func (p *Publisher) PublishEmployeeDeleted(ctx context.Context, userID string) e
 	}
 
 	msg := &nats.Msg{
-		Subject: EmployeeDeletedEvent,
+		Subject: eventbus.EmployeeDeletedEventTopic,
 		Data:    payload,
 	}
 

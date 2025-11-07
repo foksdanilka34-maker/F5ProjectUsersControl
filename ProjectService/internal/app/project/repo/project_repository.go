@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log"
-	"time"
 
 	models "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project"
 
@@ -40,10 +39,6 @@ type ProjectStorage interface {
 	AddMemberToProject(ctx context.Context, projectID, userID string) error
 	RemoveMemberFromProject(ctx context.Context, projectID, userID string) error
 	ListProjectMembers(ctx context.Context, projectID string) (*models.ProjectMembersResponse, error)
-
-	RecordStatusChange(ctx context.Context, taskID string, fromStatus, toStatus models.TaskStatus, actorID *string) error
-	GetTaskStatusHistory(ctx context.Context, taskID string, pageSize, pageNumber int32) (*models.TaskStatusHistoryResponse, error)
-	GetProjectMetrics(ctx context.Context, projectID string) (*models.ProjectMetrics, error)
 }
 
 type UserMetaStorage interface {
@@ -170,8 +165,14 @@ func (s *Storage) UpdateProject(ctx context.Context, updRequest *models.UpdatePr
 			RETURNING project_id, project_name, project_description, 
 			manager_id, project_status, created_at, updated_at, due_date`
 
+	var statusDB *string
+	if updRequest.Status != nil {
+		s := updRequest.Status.DBValue()
+		statusDB = &s
+	}
+
 	updProject := &models.Project{}
-	err := s.pgx.QueryRow(ctx, query, updRequest.Name, updRequest.Description, updRequest.Status.DBValue(), updRequest.DueDate, updRequest.ID).Scan(
+	err := s.pgx.QueryRow(ctx, query, updRequest.Name, updRequest.Description, statusDB, updRequest.DueDate, updRequest.ID).Scan(
 		&updProject.ID,
 		&updProject.Name,
 		&updProject.Description,
@@ -246,10 +247,6 @@ func (s *Storage) CreateTask(ctx context.Context, createTask *models.CreateTaskR
 		return nil, err
 	}
 
-	if err := s.RecordStatusChange(ctx, newTask.ID, "", newTask.Status, &createTask.CreatorID); err != nil {
-		log.Printf("warning: failed to record initial status change: %v", err)
-	}
-
 	return newTask, nil
 }
 
@@ -289,11 +286,6 @@ func (s *Storage) GetTask(ctx context.Context, taskID string) (*models.Task, err
 }
 
 func (s *Storage) UpdateTask(ctx context.Context, updRequest *models.UpdateTaskRequest) (*models.Task, error) {
-	currentTask, err := s.GetTask(ctx, updRequest.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	query := `UPDATE project.tasks SET
 			task_name = COALESCE($1, task_name),
 			task_description = COALESCE($2, task_description),
@@ -331,7 +323,7 @@ func (s *Storage) UpdateTask(ctx context.Context, updRequest *models.UpdateTaskR
 	}
 
 	updTask := &models.Task{}
-	err = s.pgx.QueryRow(ctx, query, updRequest.TaskName, updRequest.Description,
+	err := s.pgx.QueryRow(ctx, query, updRequest.TaskName, updRequest.Description,
 		statusDB, priorityDB, updRequest.AssigneeID, updRequest.DueDate,
 		updRequest.OrderIndex, updRequest.ID).Scan(
 		&updTask.ID,
@@ -359,12 +351,6 @@ func (s *Storage) UpdateTask(ctx context.Context, updRequest *models.UpdateTaskR
 		return nil, err
 	}
 
-	if updRequest.Status != nil && currentTask.Status != *updRequest.Status {
-		if err := s.RecordStatusChange(ctx, updTask.ID, currentTask.Status, *updRequest.Status, nil); err != nil {
-			log.Printf("warning: failed to record status change: %v", err)
-		}
-	}
-
 	return updTask, nil
 }
 
@@ -386,11 +372,6 @@ func (s *Storage) DeleteTask(ctx context.Context, taskID string) error {
 }
 
 func (s *Storage) MoveTask(ctx context.Context, moveRequest *models.MoveTaskRequest) (*models.Task, error) {
-	currentTask, err := s.GetTask(ctx, moveRequest.TaskID)
-	if err != nil {
-		return nil, err
-	}
-
 	query := `UPDATE project.tasks SET
 			task_status = $1::project.task_status,
 			order_index = $2,
@@ -411,7 +392,7 @@ func (s *Storage) MoveTask(ctx context.Context, moveRequest *models.MoveTaskRequ
 			created_at, updated_at, due_date, started_at, completed_at`
 
 	movedTask := &models.Task{}
-	err = s.pgx.QueryRow(ctx, query, moveRequest.NewStatus.DBValue(),
+	err := s.pgx.QueryRow(ctx, query, moveRequest.NewStatus.DBValue(),
 		moveRequest.NewOrderIndex, moveRequest.TaskID).Scan(
 		&movedTask.ID,
 		&movedTask.ProjectID,
@@ -436,12 +417,6 @@ func (s *Storage) MoveTask(ctx context.Context, moveRequest *models.MoveTaskRequ
 		}
 		log.Printf("system error while moving task: %v", err)
 		return nil, err
-	}
-
-	if currentTask.Status != moveRequest.NewStatus {
-		if err := s.RecordStatusChange(ctx, movedTask.ID, currentTask.Status, moveRequest.NewStatus, nil); err != nil {
-			log.Printf("warning: failed to record status change: %v", err)
-		}
 	}
 
 	return movedTask, nil
@@ -640,9 +615,9 @@ func (s *Storage) UpsertUserMeta(ctx context.Context, userID, userName, userPhot
 			VALUES ($1, $2, $3, NOW())
 			ON CONFLICT (user_id) 
 			DO UPDATE SET 
-				user_name = EXCLUDED.user_name,
-				user_photo = EXCLUDED.user_photo,
-				updated_at = NOW()`
+			user_name = EXCLUDED.user_name,
+			user_photo = EXCLUDED.user_photo,
+			updated_at = NOW()`
 
 	_, err := s.pgx.Exec(ctx, query, userID, userName, userPhoto)
 	if err != nil {
@@ -670,133 +645,4 @@ func (s *Storage) DeleteUserMeta(ctx context.Context, userID string) error {
 	}
 
 	return nil
-}
-
-func (s *Storage) RecordStatusChange(ctx context.Context, taskID string, fromStatus, toStatus models.TaskStatus, actorID *string) error {
-	query := `INSERT INTO project.task_status_history (task_id, from_status, to_status, actor_id)
-			VALUES ($1, $2, $3, $4)`
-
-	var fromStatusDB *string
-	if fromStatus != "" {
-		fs := fromStatus.DBValue()
-		fromStatusDB = &fs
-	}
-
-	_, err := s.pgx.Exec(ctx, query, taskID, fromStatusDB, toStatus.DBValue(), actorID)
-	if err != nil {
-		log.Printf("system error while recording status change: %v", err)
-		return err
-	}
-
-	log.Printf("status change recorded: taskID=%s, from=%v, to=%s", taskID, fromStatus, toStatus)
-	return nil
-}
-
-func (s *Storage) GetTaskStatusHistory(ctx context.Context, taskID string, pageSize, pageNumber int32) (*models.TaskStatusHistoryResponse, error) {
-	offset := (pageNumber - 1) * pageSize
-
-	query := `SELECT id, task_id, from_status, to_status, changed_at, actor_id
-			FROM project.task_status_history
-			WHERE task_id = $1
-			ORDER BY changed_at DESC
-			LIMIT $2 OFFSET $3`
-
-	rows, err := s.pgx.Query(ctx, query, taskID, pageSize, offset)
-	if err != nil {
-		log.Printf("query error while getting task status history: %v", err)
-		return nil, err
-	}
-	defer rows.Close()
-
-	history := make([]*models.TaskStatusHistoryEntry, 0)
-	for rows.Next() {
-		entry := &models.TaskStatusHistoryEntry{}
-		var fromStatusStr *string
-		err := rows.Scan(
-			&entry.ID,
-			&entry.TaskID,
-			&fromStatusStr,
-			&entry.ToStatus,
-			&entry.ChangedAt,
-			&entry.ActorID,
-		)
-		if err != nil {
-			log.Printf("error scanning history row: %v", err)
-			return nil, err
-		}
-		if fromStatusStr != nil {
-			fs := models.TaskStatusFromDB(*fromStatusStr)
-			entry.FromStatus = &fs
-		}
-		history = append(history, entry)
-	}
-
-	if err := rows.Err(); err != nil {
-		log.Printf("rows iteration error: %v", err)
-		return nil, err
-	}
-
-	countQuery := `SELECT COUNT(*) FROM project.task_status_history WHERE task_id = $1`
-	var totalCount int32
-	err = s.pgx.QueryRow(ctx, countQuery, taskID).Scan(&totalCount)
-	if err != nil {
-		log.Printf("error getting total count: %v", err)
-		totalCount = int32(len(history))
-	}
-
-	log.Printf("GetTaskStatusHistory found %d entries for task %s", len(history), taskID)
-
-	return &models.TaskStatusHistoryResponse{
-		History:    history,
-		TotalCount: totalCount,
-	}, nil
-}
-
-func (s *Storage) GetProjectMetrics(ctx context.Context, projectID string) (*models.ProjectMetrics, error) {
-	query := `SELECT 
-			COUNT(*) as total_tasks,
-			COUNT(*) FILTER (WHERE task_status = 'DONE') as completed_tasks,
-			COUNT(*) FILTER (WHERE due_date < NOW() AND task_status != 'DONE') as overdue_tasks,
-			COUNT(*) FILTER (WHERE task_status = 'IN_PROGRESS') as in_progress_tasks,
-			AVG(EXTRACT(EPOCH FROM (completed_at - started_at)) / 3600) FILTER (WHERE completed_at IS NOT NULL AND started_at IS NOT NULL) as avg_completion_hours,
-			CASE 
-				WHEN COUNT(*) FILTER (WHERE task_status = 'DONE') > 0 
-				THEN (COUNT(*) FILTER (WHERE task_status = 'DONE' AND completed_at <= due_date)::FLOAT / COUNT(*) FILTER (WHERE task_status = 'DONE')::FLOAT * 100)
-				ELSE 0
-			END as on_time_rate
-			FROM project.tasks
-			WHERE project_id = $1`
-
-	metrics := &models.ProjectMetrics{
-		ProjectID:    projectID,
-		CalculatedAt: time.Now(),
-	}
-
-	var avgHours *float64
-	err := s.pgx.QueryRow(ctx, query, projectID).Scan(
-		&metrics.TotalTasks,
-		&metrics.CompletedTasks,
-		&metrics.OverdueTasks,
-		&metrics.InProgressTasks,
-		&avgHours,
-		&metrics.OnTimeCompletionRate,
-	)
-
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			log.Printf("no tasks found for project %s", projectID)
-			return metrics, nil
-		}
-		log.Printf("error getting project metrics: %v", err)
-		return nil, err
-	}
-
-	if avgHours != nil {
-		metrics.AvgCompletionTimeHours = *avgHours
-	}
-
-	log.Printf("GetProjectMetrics for project %s: total=%d, completed=%d, overdue=%d",
-		projectID, metrics.TotalTasks, metrics.CompletedTasks, metrics.OverdueTasks)
-
-	return metrics, nil
 }

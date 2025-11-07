@@ -12,11 +12,13 @@ import (
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/repo"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/server"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/nats"
+	projectpb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/project_service"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/storage"
 
 	"github.com/joho/godotenv"
 	natsv1 "github.com/nats-io/nats.go"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -30,7 +32,7 @@ func main() {
 		User:     storage.GetEnv("ANALYTICS_DB_USER", "postgres"),
 		Password: storage.GetEnv("ANALYTICS_DB_PASSWORD", ""),
 		Host:     storage.GetEnv("ANALYTICS_DB_HOST", "localhost"),
-		Port:     storage.GetEnv("ANALYTICS_DB_PORT", "5434"),
+		Port:     storage.GetEnv("ANALYTICS_DB_PORT", "5436"),
 		DBName:   storage.GetEnv("ANALYTICS_DB", "analytics"),
 	}
 
@@ -42,9 +44,18 @@ func main() {
 
 	listenAddr := storage.GetEnv("GRPC_ANALYTICS_LISTEN_ADDR", "0.0.0.0:50054")
 	natsURL := storage.GetEnv("NATS_URL", "nats://localhost:4222")
+	projectServiceAddr := storage.GetEnv("PROJECT_SERVICE_ADDR", "localhost:50053")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	projectConn, err := grpc.NewClient(projectServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("failed to connect to ProjectService: %v", err)
+	}
+	defer projectConn.Close()
+	projectClient := projectpb.NewProjectServiceClient(projectConn)
+	log.Printf("Connected to ProjectService at %s", projectServiceAddr)
 
 	pgPool, err := storage.NewPostgresPool(ctx, pgConfig)
 	if err != nil {
@@ -69,9 +80,9 @@ func main() {
 	}
 
 	storageLayer := repo.NewStorage(pgPool)
-	cacheLayer := repo.NewRedisCache(redisClient)
+	// cacheLayer := repo.NewRedisCache(redisClient)
 
-	analyticsCore := core.NewCore(storageLayer, cacheLayer)
+	analyticsCore := core.NewCore(storageLayer)
 
 	grpcServerImpl := server.NewAnalyticsServer(analyticsCore)
 
@@ -94,7 +105,7 @@ func main() {
 	}()
 
 	if natsConn != nil {
-		subscriber := nats.NewSubscriber(natsConn, analyticsCore)
+		subscriber := nats.NewSubscriber(natsConn, analyticsCore, projectClient)
 		if err := subscriber.Start(ctx); err != nil {
 			log.Printf("failed to start NATS subscriber: %v", err)
 		}
