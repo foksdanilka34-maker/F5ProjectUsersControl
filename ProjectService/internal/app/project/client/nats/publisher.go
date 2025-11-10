@@ -2,6 +2,7 @@ package nats
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -19,13 +20,13 @@ func NewPublisher(nc *nats.Conn) *Publisher {
 	}
 }
 
-func (p *Publisher) PublishTaskEvent(ctx context.Context, event *TaskEvent) error {
+func (p *Publisher) PublishTaskEvent(ctx context.Context, topic string, event any) error {
 	if p.nc == nil {
 		log.Printf("NATS connection is nil, skipping event publication")
 		return nil
 	}
 
-	data, err := event.Marshal()
+	data, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal task event: %w", err)
 	}
@@ -35,17 +36,17 @@ func (p *Publisher) PublishTaskEvent(ctx context.Context, event *TaskEvent) erro
 		return fmt.Errorf("failed to publish task event: %w", err)
 	}
 
-	log.Printf("published task event: type=%s, taskID=%s", event.EventType, event.TaskID)
+	log.Println("published task event")
 	return nil
 }
 
-func (p *Publisher) PublishProjectEvent(ctx context.Context, event *ProjectEvent) error {
+func (p *Publisher) PublishProjectEvent(ctx context.Context, topic string, event any) error {
 	if p.nc == nil {
 		log.Printf("NATS connection is nil, skipping event publication")
 		return nil
 	}
 
-	data, err := event.Marshal()
+	data, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal project event: %w", err)
 	}
@@ -55,7 +56,7 @@ func (p *Publisher) PublishProjectEvent(ctx context.Context, event *ProjectEvent
 		return fmt.Errorf("failed to publish project event: %w", err)
 	}
 
-	log.Printf("published project event: type=%s, projectID=%s", event.EventType, event.ProjectID)
+	log.Println("published project event")
 	return nil
 }
 

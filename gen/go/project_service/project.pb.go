@@ -496,7 +496,7 @@ func (x *ProjectMember) GetRole() string {
 type CreateProjectRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description   *string                `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	ManagerId     string                 `protobuf:"bytes,3,opt,name=manager_id,json=managerId,proto3" json:"manager_id,omitempty"`
 	DueDate       *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=due_date,json=dueDate,proto3,oneof" json:"due_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -541,8 +541,8 @@ func (x *CreateProjectRequest) GetName() string {
 }
 
 func (x *CreateProjectRequest) GetDescription() string {
-	if x != nil && x.Description != nil {
-		return *x.Description
+	if x != nil {
+		return x.Description
 	}
 	return ""
 }
@@ -609,7 +609,7 @@ type ListProjectsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PageSize      int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	PageNumber    int32                  `protobuf:"varint,2,opt,name=page_number,json=pageNumber,proto3" json:"page_number,omitempty"`
-	ManagerId     *string                `protobuf:"bytes,3,opt,name=manager_id,json=managerId,proto3,oneof" json:"manager_id,omitempty"`
+	ManagerId     string                 `protobuf:"bytes,3,opt,name=manager_id,json=managerId,proto3" json:"manager_id,omitempty"`
 	Status        *ProjectStatus         `protobuf:"varint,4,opt,name=status,proto3,enum=project.ProjectStatus,oneof" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -660,8 +660,8 @@ func (x *ListProjectsRequest) GetPageNumber() int32 {
 }
 
 func (x *ListProjectsRequest) GetManagerId() string {
-	if x != nil && x.ManagerId != nil {
-		return *x.ManagerId
+	if x != nil {
+		return x.ManagerId
 	}
 	return ""
 }
@@ -728,8 +728,8 @@ func (x *ListProjectsResponse) GetTotalCount() int32 {
 type UpdateProjectRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Description   *string                `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	Status        *ProjectStatus         `protobuf:"varint,4,opt,name=status,proto3,enum=project.ProjectStatus,oneof" json:"status,omitempty"`
 	DueDate       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=due_date,json=dueDate,proto3,oneof" json:"due_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -774,15 +774,15 @@ func (x *UpdateProjectRequest) GetProjectId() string {
 }
 
 func (x *UpdateProjectRequest) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		return x.Name
 	}
 	return ""
 }
 
 func (x *UpdateProjectRequest) GetDescription() string {
-	if x != nil && x.Description != nil {
-		return *x.Description
+	if x != nil {
+		return x.Description
 	}
 	return ""
 }
@@ -852,7 +852,7 @@ type CreateTaskRequest struct {
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	Priority      *TaskPriority          `protobuf:"varint,4,opt,name=priority,proto3,enum=project.TaskPriority,oneof" json:"priority,omitempty"`
 	CreatorId     string                 `protobuf:"bytes,5,opt,name=creator_id,json=creatorId,proto3" json:"creator_id,omitempty"`
-	AssigneeId    *string                `protobuf:"bytes,6,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
+	AssigneeId    string                 `protobuf:"bytes,6,opt,name=assignee_id,json=assigneeId,proto3" json:"assignee_id,omitempty"`
 	DueDate       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -924,8 +924,8 @@ func (x *CreateTaskRequest) GetCreatorId() string {
 }
 
 func (x *CreateTaskRequest) GetAssigneeId() string {
-	if x != nil && x.AssigneeId != nil {
-		return *x.AssigneeId
+	if x != nil {
+		return x.AssigneeId
 	}
 	return ""
 }
@@ -984,11 +984,11 @@ func (x *GetTaskRequest) GetTaskId() string {
 type UpdateTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Title         *string                `protobuf:"bytes,2,opt,name=title,proto3,oneof" json:"title,omitempty"`
-	Description   *string                `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	Status        *TaskStatus            `protobuf:"varint,4,opt,name=status,proto3,enum=project.TaskStatus,oneof" json:"status,omitempty"`
 	Priority      *TaskPriority          `protobuf:"varint,5,opt,name=priority,proto3,enum=project.TaskPriority,oneof" json:"priority,omitempty"`
-	AssigneeId    *string                `protobuf:"bytes,6,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
+	AssigneeId    string                 `protobuf:"bytes,6,opt,name=assignee_id,json=assigneeId,proto3" json:"assignee_id,omitempty"`
 	DueDate       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=due_date,json=dueDate,proto3,oneof" json:"due_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1032,15 +1032,15 @@ func (x *UpdateTaskRequest) GetTaskId() string {
 }
 
 func (x *UpdateTaskRequest) GetTitle() string {
-	if x != nil && x.Title != nil {
-		return *x.Title
+	if x != nil {
+		return x.Title
 	}
 	return ""
 }
 
 func (x *UpdateTaskRequest) GetDescription() string {
-	if x != nil && x.Description != nil {
-		return *x.Description
+	if x != nil {
+		return x.Description
 	}
 	return ""
 }
@@ -1060,8 +1060,8 @@ func (x *UpdateTaskRequest) GetPriority() TaskPriority {
 }
 
 func (x *UpdateTaskRequest) GetAssigneeId() string {
-	if x != nil && x.AssigneeId != nil {
-		return *x.AssigneeId
+	if x != nil {
+		return x.AssigneeId
 	}
 	return ""
 }
@@ -1233,7 +1233,7 @@ type ListTasksByProjectRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	Status        *TaskStatus            `protobuf:"varint,2,opt,name=status,proto3,enum=project.TaskStatus,oneof" json:"status,omitempty"`
-	AssigneeId    *string                `protobuf:"bytes,3,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
+	AssigneeId    string                 `protobuf:"bytes,3,opt,name=assignee_id,json=assigneeId,proto3" json:"assignee_id,omitempty"`
 	Priority      *TaskPriority          `protobuf:"varint,4,opt,name=priority,proto3,enum=project.TaskPriority,oneof" json:"priority,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1284,8 +1284,8 @@ func (x *ListTasksByProjectRequest) GetStatus() TaskStatus {
 }
 
 func (x *ListTasksByProjectRequest) GetAssigneeId() string {
-	if x != nil && x.AssigneeId != nil {
-		return *x.AssigneeId
+	if x != nil {
+		return x.AssigneeId
 	}
 	return ""
 }
@@ -1578,45 +1578,41 @@ const file_project_service_project_proto_rawDesc = "" +
 	"\rProjectMember\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
 	"\tfull_name\x18\x02 \x01(\tR\bfullName\x12\x12\n" +
-	"\x04role\x18\x03 \x01(\tR\x04role\"\xc9\x01\n" +
+	"\x04role\x18\x03 \x01(\tR\x04role\"\xb4\x01\n" +
 	"\x14CreateProjectRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12%\n" +
-	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12\x1d\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1d\n" +
 	"\n" +
 	"manager_id\x18\x03 \x01(\tR\tmanagerId\x12:\n" +
-	"\bdue_date\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\adueDate\x88\x01\x01B\x0e\n" +
-	"\f_descriptionB\v\n" +
+	"\bdue_date\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\adueDate\x88\x01\x01B\v\n" +
 	"\t_due_date\"2\n" +
 	"\x11GetProjectRequest\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\"\xc6\x01\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\"\xb2\x01\n" +
 	"\x13ListProjectsRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1f\n" +
 	"\vpage_number\x18\x02 \x01(\x05R\n" +
-	"pageNumber\x12\"\n" +
+	"pageNumber\x12\x1d\n" +
 	"\n" +
-	"manager_id\x18\x03 \x01(\tH\x00R\tmanagerId\x88\x01\x01\x123\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x16.project.ProjectStatusH\x01R\x06status\x88\x01\x01B\r\n" +
-	"\v_manager_idB\t\n" +
+	"manager_id\x18\x03 \x01(\tR\tmanagerId\x123\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x16.project.ProjectStatusH\x00R\x06status\x88\x01\x01B\t\n" +
 	"\a_status\"e\n" +
 	"\x14ListProjectsResponse\x12,\n" +
 	"\bprojects\x18\x01 \x03(\v2\x10.project.ProjectR\bprojects\x12\x1f\n" +
 	"\vtotal_count\x18\x02 \x01(\x05R\n" +
-	"totalCount\"\x97\x02\n" +
+	"totalCount\"\xf4\x01\n" +
 	"\x14UpdateProjectRequest\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x17\n" +
-	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12%\n" +
-	"\vdescription\x18\x03 \x01(\tH\x01R\vdescription\x88\x01\x01\x123\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x16.project.ProjectStatusH\x02R\x06status\x88\x01\x01\x12:\n" +
-	"\bdue_date\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x03R\adueDate\x88\x01\x01B\a\n" +
-	"\x05_nameB\x0e\n" +
-	"\f_descriptionB\t\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x123\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x16.project.ProjectStatusH\x00R\x06status\x88\x01\x01\x12:\n" +
+	"\bdue_date\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\adueDate\x88\x01\x01B\t\n" +
 	"\a_statusB\v\n" +
 	"\t_due_date\"5\n" +
 	"\x14DeleteProjectRequest\x12\x1d\n" +
 	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\"\xbb\x02\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\"\xa6\x02\n" +
 	"\x11CreateTaskRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x14\n" +
@@ -1624,28 +1620,24 @@ const file_project_service_project_proto_rawDesc = "" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x126\n" +
 	"\bpriority\x18\x04 \x01(\x0e2\x15.project.TaskPriorityH\x00R\bpriority\x88\x01\x01\x12\x1d\n" +
 	"\n" +
-	"creator_id\x18\x05 \x01(\tR\tcreatorId\x12$\n" +
-	"\vassignee_id\x18\x06 \x01(\tH\x01R\n" +
-	"assigneeId\x88\x01\x01\x125\n" +
+	"creator_id\x18\x05 \x01(\tR\tcreatorId\x12\x1f\n" +
+	"\vassignee_id\x18\x06 \x01(\tR\n" +
+	"assigneeId\x125\n" +
 	"\bdue_date\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\adueDateB\v\n" +
-	"\t_priorityB\x0e\n" +
-	"\f_assignee_id\")\n" +
+	"\t_priority\")\n" +
 	"\x0eGetTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x89\x03\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\xd0\x02\n" +
 	"\x11UpdateTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x19\n" +
-	"\x05title\x18\x02 \x01(\tH\x00R\x05title\x88\x01\x01\x12%\n" +
-	"\vdescription\x18\x03 \x01(\tH\x01R\vdescription\x88\x01\x01\x120\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x13.project.TaskStatusH\x02R\x06status\x88\x01\x01\x126\n" +
-	"\bpriority\x18\x05 \x01(\x0e2\x15.project.TaskPriorityH\x03R\bpriority\x88\x01\x01\x12$\n" +
-	"\vassignee_id\x18\x06 \x01(\tH\x04R\n" +
-	"assigneeId\x88\x01\x01\x12:\n" +
-	"\bdue_date\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x05R\adueDate\x88\x01\x01B\b\n" +
-	"\x06_titleB\x0e\n" +
-	"\f_descriptionB\t\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x120\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x13.project.TaskStatusH\x00R\x06status\x88\x01\x01\x126\n" +
+	"\bpriority\x18\x05 \x01(\x0e2\x15.project.TaskPriorityH\x01R\bpriority\x88\x01\x01\x12\x1f\n" +
+	"\vassignee_id\x18\x06 \x01(\tR\n" +
+	"assigneeId\x12:\n" +
+	"\bdue_date\x18\a \x01(\v2\x1a.google.protobuf.TimestampH\x02R\adueDate\x88\x01\x01B\t\n" +
 	"\a_statusB\v\n" +
-	"\t_priorityB\x0e\n" +
-	"\f_assignee_idB\v\n" +
+	"\t_priorityB\v\n" +
 	"\t_due_date\",\n" +
 	"\x11DeleteTaskRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\"\x86\x01\n" +
@@ -1657,16 +1649,15 @@ const file_project_service_project_proto_rawDesc = "" +
 	"\x11AssignTaskRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1f\n" +
 	"\vassignee_id\x18\x02 \x01(\tR\n" +
-	"assigneeId\"\xf2\x01\n" +
+	"assigneeId\"\xdd\x01\n" +
 	"\x19ListTasksByProjectRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x120\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x13.project.TaskStatusH\x00R\x06status\x88\x01\x01\x12$\n" +
-	"\vassignee_id\x18\x03 \x01(\tH\x01R\n" +
-	"assigneeId\x88\x01\x01\x126\n" +
-	"\bpriority\x18\x04 \x01(\x0e2\x15.project.TaskPriorityH\x02R\bpriority\x88\x01\x01B\t\n" +
-	"\a_statusB\x0e\n" +
-	"\f_assignee_idB\v\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x13.project.TaskStatusH\x00R\x06status\x88\x01\x01\x12\x1f\n" +
+	"\vassignee_id\x18\x03 \x01(\tR\n" +
+	"assigneeId\x126\n" +
+	"\bpriority\x18\x04 \x01(\x0e2\x15.project.TaskPriorityH\x01R\bpriority\x88\x01\x01B\t\n" +
+	"\a_statusB\v\n" +
 	"\t_priority\"A\n" +
 	"\x1aListTasksByProjectResponse\x12#\n" +
 	"\x05tasks\x18\x01 \x03(\v2\r.project.TaskR\x05tasks\"S\n" +

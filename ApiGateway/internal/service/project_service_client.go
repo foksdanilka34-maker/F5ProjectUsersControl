@@ -131,12 +131,3 @@ func (c *ProjectServiceClient) ListProjectMembers(ctx context.Context, projectID
 		ProjectId: projectID,
 	})
 }
-
-// History and Metrics
-func (c *ProjectServiceClient) GetTaskStatusHistory(ctx context.Context, req *projectpb.GetTaskStatusHistoryRequest) (*projectpb.GetTaskStatusHistoryResponse, error) {
-	return c.client.GetTaskStatusHistory(ctx, req)
-}
-
-func (c *ProjectServiceClient) GetProjectMetrics(ctx context.Context, req *projectpb.GetProjectMetricsRequest) (*projectpb.ProjectMetrics, error) {
-	return c.client.GetProjectMetrics(ctx, req)
-}

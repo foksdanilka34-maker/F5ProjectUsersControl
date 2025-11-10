@@ -50,7 +50,7 @@ func (p *projectCore) CreateProject(ctx context.Context, regProfile *models.Crea
 		log.Printf("empty data provided")
 		return nil, fmt.Errorf("provided empty data")
 	}
-	if regProfile.Name == "" || regProfile.ManagerID == "" || regProfile.Description == nil {
+	if regProfile.Name == "" || regProfile.ManagerID == "" || regProfile.Description == "" {
 		log.Printf("all fields should be filled")
 		return nil, fmt.Errorf("all fields should be filled")
 	}
@@ -70,15 +70,14 @@ func (p *projectCore) CreateProject(ctx context.Context, regProfile *models.Crea
 	log.Printf("Project created, uuid: %s", project.ID)
 
 	if p.publisher != nil {
-		event := &nats.ProjectEvent{
-			EventType: ev.EventTypeProjectCreated,
+		event := &ev.ProjectEvent{
 			ProjectID: project.ID,
 			ManagerID: project.ManagerID,
 			Status:    project.Status.String(),
 			DueDate:   project.DueDate,
 			Timestamp: time.Now(),
 		}
-		if err := p.publisher.PublishProjectEvent(ctx, event); err != nil {
+		if err := p.publisher.PublishProjectEvent(ctx, ev.EventTypeProjectCreated, event); err != nil {
 			log.Printf("warning: failed to publish project created event: %v", err)
 		}
 	}
@@ -124,15 +123,14 @@ func (p *projectCore) UpdateProject(ctx context.Context, updRequest *models.Upda
 	}
 
 	if p.publisher != nil {
-		event := &nats.ProjectEvent{
-			EventType: ev.EventTypeProjectUpdated,
+		event := &ev.ProjectEvent{
 			ProjectID: updProject.ID,
 			ManagerID: updProject.ManagerID,
 			Status:    updProject.Status.String(),
 			DueDate:   updProject.DueDate,
 			Timestamp: time.Now(),
 		}
-		if err := p.publisher.PublishProjectEvent(ctx, event); err != nil {
+		if err := p.publisher.PublishProjectEvent(ctx, ev.EventTypeProjectUpdated, event); err != nil {
 			log.Printf("warning: failed to publish project update event: %v", err)
 		}
 	}
@@ -152,12 +150,11 @@ func (p *projectCore) DeleteProject(ctx context.Context, projectID string) error
 	log.Printf("project %s deleted successfully", projectID)
 
 	if p.publisher != nil {
-		event := &nats.ProjectEvent{
-			EventType: ev.EventTypeProjectDeleted,
+		event := &ev.ProjectEvent{
 			ProjectID: projectID,
 			Timestamp: time.Now(),
 		}
-		if err := p.publisher.PublishProjectEvent(ctx, event); err != nil {
+		if err := p.publisher.PublishProjectEvent(ctx, ev.EventTypeProjectDeleted, event); err != nil {
 			log.Printf("warning: failed to publish project delete event: %v", err)
 		}
 	}
@@ -165,9 +162,9 @@ func (p *projectCore) DeleteProject(ctx context.Context, projectID string) error
 }
 
 func (p *projectCore) CreateTask(ctx context.Context, createTask *models.CreateTaskRequest) (*models.Task, error) {
-	if createTask.AssigneeID != nil {
-		if err := p.validateProjectMember(ctx, createTask.ProjectID, *createTask.AssigneeID); err != nil {
-			log.Printf("assignee %s is not a member of project %s", *createTask.AssigneeID, createTask.ProjectID)
+	if createTask.AssigneeID != "" {
+		if err := p.validateProjectMember(ctx, createTask.ProjectID, createTask.AssigneeID); err != nil {
+			log.Printf("assignee %s is not a member of project %s", createTask.AssigneeID, createTask.ProjectID)
 			return nil, fmt.Errorf("assignee must be a member of the project")
 		}
 	}
@@ -176,10 +173,21 @@ func (p *projectCore) CreateTask(ctx context.Context, createTask *models.CreateT
 	if err != nil {
 		return nil, err
 	}
-
+	
 	if p.publisher != nil {
-		event := &nats.TaskEvent{
-			EventType:   ev.EventTypeTaskCreated,
+		if createTask.AssigneeID != "" {
+			eventAssign := &ev.TaskEvent{
+				TaskID: newTask.ID,
+				ProjectID: createTask.ProjectID,
+				Priority: createTask.Priority.String(),
+			}
+			if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskAssigned, eventAssign); err != nil {
+				log.Printf("warning: failed to publish task assigned event: %v", err)
+				return nil, err
+			}
+			return newTask, nil
+		}
+		event := &ev.TaskEvent{
 			TaskID:      newTask.ID,
 			ProjectID:   newTask.ProjectID,
 			Status:      newTask.Status.String(),
@@ -191,12 +199,12 @@ func (p *projectCore) CreateTask(ctx context.Context, createTask *models.CreateT
 			CompletedAt: newTask.CompletedAt,
 			Timestamp:   time.Now(),
 		}
-		if err := p.publisher.PublishTaskEvent(ctx, event); err != nil {
+		if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskCreated, event); err != nil {
 			log.Printf("warning: failed to publish task created event: %v", err)
+			return nil, err
 		}
 	}
-
-	return newTask, err
+	return newTask, nil
 }
 
 func (p *projectCore) GetTask(ctx context.Context, taskID string) (*models.Task, error) {
@@ -219,9 +227,9 @@ func (p *projectCore) UpdateTask(ctx context.Context, updRequest *models.UpdateT
 		return nil, fmt.Errorf("task not found")
 	}
 
-	if updRequest.AssigneeID != nil {
-		if err := p.validateProjectMember(ctx, oldTask.ProjectID, *updRequest.AssigneeID); err != nil {
-			log.Printf("assignee %s is not a member of project %s", *updRequest.AssigneeID, oldTask.ProjectID)
+	if updRequest.AssigneeID != "" {
+		if err := p.validateProjectMember(ctx, oldTask.ProjectID, updRequest.AssigneeID); err != nil {
+			log.Printf("assignee %s is not a member of project %s", updRequest.AssigneeID, oldTask.ProjectID)
 			return nil, fmt.Errorf("assignee must be a member of the project")
 		}
 	}
@@ -232,8 +240,7 @@ func (p *projectCore) UpdateTask(ctx context.Context, updRequest *models.UpdateT
 	}
 
 	if p.publisher != nil {
-		event := &nats.TaskEvent{
-			EventType:   ev.EventTypeTaskUpdated,
+		event := &ev.TaskEvent{
 			TaskID:      updTask.ID,
 			ProjectID:   updTask.ProjectID,
 			Status:      updTask.Status.String(),
@@ -244,11 +251,12 @@ func (p *projectCore) UpdateTask(ctx context.Context, updRequest *models.UpdateT
 			CompletedAt: updTask.CompletedAt,
 			Timestamp:   time.Now(),
 		}
+		evType := ev.EventTypeTaskUpdated
 		if oldTask != nil && updRequest.Status != nil && oldTask.Status != *updRequest.Status {
-			event.EventType = ev.EventTypeTaskStatusChanged
+			evType = ev.EventTypeTaskStatusChanged
 			event.OldStatus = oldTask.Status.String()
 		}
-		if err := p.publisher.PublishTaskEvent(ctx, event); err != nil {
+		if err := p.publisher.PublishTaskEvent(ctx, evType, event); err != nil {
 			log.Printf("warning: failed to publish task updated event: %v", err)
 		}
 	}
@@ -269,12 +277,11 @@ func (p *projectCore) DeleteTask(ctx context.Context, taskID string) error {
 	log.Printf("task %s deleted successfully", taskID)
 
 	if p.publisher != nil {
-		event := &nats.TaskEvent{
-			EventType:   ev.EventTypeTaskDeleted,
+		event := &ev.TaskEvent{
 			TaskID:      taskID,
 			Timestamp:   time.Now(),
 		}
-		if err := p.publisher.PublishTaskEvent(ctx, event); err != nil {
+		if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskDeleted, event); err != nil {
 			log.Printf("warning: failed to publish task delete event: %v", err)
 		}
 	}
@@ -294,8 +301,7 @@ func (p *projectCore) MoveTask(ctx context.Context, moveRequest *models.MoveTask
 	}
 
 	if p.publisher != nil && oldTask != nil {
-		event := &nats.TaskEvent{
-			EventType:   ev.EventTypeTaskStatusChanged,
+		event := &ev.TaskEvent{
 			TaskID:      movedTask.ID,
 			ProjectID:   movedTask.ProjectID,
 			Status:      movedTask.Status.String(),
@@ -307,7 +313,7 @@ func (p *projectCore) MoveTask(ctx context.Context, moveRequest *models.MoveTask
 			CompletedAt: movedTask.CompletedAt,
 			Timestamp:   time.Now(),
 		}
-		if err := p.publisher.PublishTaskEvent(ctx, event); err != nil {
+		if err := p.publisher.PublishTaskEvent(ctx,  ev.EventTypeTaskStatusChanged, event); err != nil {
 			log.Printf("warning: failed to publish task moved event: %v", err)
 		}
 	}
@@ -326,9 +332,9 @@ func (p *projectCore) AssignTask(ctx context.Context, assignRequest *models.Assi
 		return nil, fmt.Errorf("task not found")
 	}
 
-	if assignRequest.AssigneeID != nil {
-		if err := p.validateProjectMember(ctx, task.ProjectID, *assignRequest.AssigneeID); err != nil {
-			log.Printf("assignee %s is not a member of project %s", *assignRequest.AssigneeID, task.ProjectID)
+	if assignRequest.AssigneeID != "" {
+		if err := p.validateProjectMember(ctx, task.ProjectID, assignRequest.AssigneeID); err != nil {
+			log.Printf("assignee %s is not a member of project %s", assignRequest.AssigneeID, task.ProjectID)
 			return nil, fmt.Errorf("assignee must be a member of the project")
 		}
 	}
@@ -339,14 +345,13 @@ func (p *projectCore) AssignTask(ctx context.Context, assignRequest *models.Assi
 	}
 
 	if p.publisher != nil {
-		event := &nats.TaskEvent{
-			EventType:   ev.EventTypeTaskAssigned,
+		event := &ev.TaskEvent{
 			TaskID:      assignedTask.ID,
 			ProjectID: 	 task.ProjectID,
 			Timestamp:   time.Now(),
 			AssigneeID:  assignRequest.AssigneeID,
 		}
-		if err := p.publisher.PublishTaskEvent(ctx, event); err != nil {
+		if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskAssigned, event); err != nil {
 			log.Printf("warning: failed to publish task delete event: %v", err)
 		}
 	}
@@ -378,13 +383,12 @@ func (p *projectCore) AddMemberToProject(ctx context.Context, projectID, userID 
 	}
 
 	if p.publisher != nil {
-		event := &nats.ProjectEvent{
-			EventType: ev.EventTypeProjectMemberAdd,
+		event := &ev.ProjectEvent{
 			ProjectID: projectID,
 			MemberID:  userID,
 			Timestamp: time.Now(),
 		}
-		if err := p.publisher.PublishProjectEvent(ctx, event); err != nil {
+		if err := p.publisher.PublishProjectEvent(ctx, ev.EventTypeProjectMemberAdd, event); err != nil {
 			log.Printf("warning: failed to publish project addMember event: %v", err)
 		}
 	}
@@ -405,13 +409,12 @@ func (p *projectCore) RemoveMemberFromProject(ctx context.Context, projectID, us
 	log.Printf("member %s removed from project %s successfully", userID, projectID)
 
 	if p.publisher != nil {
-		event := &nats.ProjectEvent{
-			EventType: ev.EventTypeProjectMemberDel,
+		event := &ev.ProjectEvent{
 			ProjectID: projectID,
 			MemberID:  userID,
 			Timestamp: time.Now(),
 		}
-		if err := p.publisher.PublishProjectEvent(ctx, event); err != nil {
+		if err := p.publisher.PublishProjectEvent(ctx, ev.EventTypeProjectMemberDel, event); err != nil {
 			log.Printf("warning: failed to publish project delMember event: %v", err)
 		}
 	}

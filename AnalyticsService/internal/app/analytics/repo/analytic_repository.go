@@ -24,8 +24,19 @@ func NewStorage(pool *pgxpool.Pool) *Storage {
 func (s *Storage) SaveEmployeeMetrics(ctx context.Context, metrics *analytics.EmployeeMetrics) error {
 	query := `INSERT INTO analytics.employee_metrics 
 		(employee_id, metric_date, assigned_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
-		efficiency_score, task_completion_rate, on_time_completion_rate
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`
+		efficiency_score, task_completion_rate, on_time_completion_rate) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+		ON CONFLICT (employee_id, metric_date) 
+		DO UPDATE SET 
+			assigned_tasks = $3,
+			completed_tasks = $4,
+			in_progress_tasks = $5,
+			overdue_tasks = $6,
+			efficiency_score = $7,
+			task_completion_rate = $8,
+			on_time_completion_rate = $9,
+			updated_at = NOW()
+		RETURNING id`
 
 	var id string
 	err := s.pool.QueryRow(ctx, query, metrics.EmployeeID, metrics.MetricDate, metrics.AssignedTasks, 

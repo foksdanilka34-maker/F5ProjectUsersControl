@@ -37,7 +37,7 @@ func (s *AnalyticsServer) GetEmployeeMetrics(ctx context.Context, req *analytics
 
 	return &analyticsv1.EmployeeMetricsResponse{
 		Metrics:      metricsResponse,
-}, nil
+	}, nil
 }
 
 // func (s *AnalyticsServer) ListEmployeeMetrics(ctx context.Context, req *analyticsv1.ListEmployeeMetricsRequest) (*analyticsv1.ListEmployeeMetricsResponse, error) {

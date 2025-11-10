@@ -12,13 +12,11 @@ import (
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/repo"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/server"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/client/nats"
-	projectpb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/project_service"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/storage"
 
 	"github.com/joho/godotenv"
 	natsv1 "github.com/nats-io/nats.go"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -37,25 +35,17 @@ func main() {
 	}
 
 	redisConfig := storage.RedisConfig{
-		Addr:     storage.GetEnv("ANALYTICS_REDIS_ADDR", "localhost:6381"),
+		Addr:     storage.GetEnv("ANALYTICS_REDIS_ADDR", "localhost:6383"),
 		Password: storage.GetEnv("ANALYTICS_REDIS_PASSWORD", ""),
 		DB:       0,
 	}
 
 	listenAddr := storage.GetEnv("GRPC_ANALYTICS_LISTEN_ADDR", "0.0.0.0:50054")
 	natsURL := storage.GetEnv("NATS_URL", "nats://localhost:4222")
-	projectServiceAddr := storage.GetEnv("PROJECT_SERVICE_ADDR", "localhost:50053")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	projectConn, err := grpc.NewClient(projectServiceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("failed to connect to ProjectService: %v", err)
-	}
-	defer projectConn.Close()
-	projectClient := projectpb.NewProjectServiceClient(projectConn)
-	log.Printf("Connected to ProjectService at %s", projectServiceAddr)
 
 	pgPool, err := storage.NewPostgresPool(ctx, pgConfig)
 	if err != nil {
@@ -83,7 +73,6 @@ func main() {
 	// cacheLayer := repo.NewRedisCache(redisClient)
 
 	analyticsCore := core.NewCore(storageLayer)
-
 	grpcServerImpl := server.NewAnalyticsServer(analyticsCore)
 
 	lis, err := net.Listen("tcp", listenAddr)
@@ -105,7 +94,7 @@ func main() {
 	}()
 
 	if natsConn != nil {
-		subscriber := nats.NewSubscriber(natsConn, analyticsCore, projectClient)
+		subscriber := nats.NewSubscriber(natsConn, analyticsCore)
 		if err := subscriber.Start(ctx); err != nil {
 			log.Printf("failed to start NATS subscriber: %v", err)
 		}
