@@ -44,6 +44,10 @@ func taskToProto(task *models.Task) *pb.Task {
 		UpdatedAt:   timestamppb.New(task.UpdatedAt),
 	}
 
+	if task.AssigneeID != nil {
+		pbTask.AssigneeId = *task.AssigneeID
+	}
+
 	if task.DueDate != nil {
 		pbTask.DueDate = timestamppb.New(*task.DueDate)
 	}
@@ -248,6 +252,11 @@ func (s *Server) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb
 		DueDate:     req.DueDate.AsTime(),
 	}
 
+	if req.AssigneeId != nil {
+		assigneeID := *req.AssigneeId
+		coreReq.AssigneeID = &assigneeID
+	}
+
 	task, err := s.core.CreateTask(ctx, coreReq)
 	if err != nil {
 		log.Printf("failed to create task: %v", err)
@@ -353,7 +362,7 @@ func (s *Server) AssignTask(ctx context.Context, req *pb.AssignTaskRequest) (*pb
 
 	assignReq := &models.AssignTaskRequest{
 		TaskID:     req.TaskId,
-		AssigneeID: req.AssigneeId,
+		AssigneeID: &req.AssigneeId,
 	}
 
 	task, err := s.core.AssignTask(ctx, assignReq)

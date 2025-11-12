@@ -266,7 +266,7 @@ type Task struct {
 	Description string
 	Status      TaskStatus
 	Priority    TaskPriority
-	AssigneeID  string
+	AssigneeID  *string
 	CreatorID   string
 	OrderIndex  int32
 	DueDate     *time.Time
@@ -286,15 +286,15 @@ type ProjectMember struct {
 
 type CreateProjectRequest struct {
 	Name        string
-	Description string
+	Description *string
 	ManagerID   string
 	DueDate     *time.Time
 }
 
 type UpdateProjectRequest struct {
 	ID          string
-	Name        string
-	Description string
+	Name        *string
+	Description *string
 	Status      *ProjectStatus
 	DueDate     *time.Time
 }
@@ -302,7 +302,7 @@ type UpdateProjectRequest struct {
 type ListProjectsFilter struct {
 	PageSize   int32
 	PageNumber int32
-	ManagerID  string
+	ManagerID  *string
 	Status     *ProjectStatus
 }
 
@@ -317,18 +317,18 @@ type CreateTaskRequest struct {
 	Description string
 	Status      TaskStatus
 	Priority    TaskPriority
-	AssigneeID  string
+	AssigneeID  *string
 	CreatorID   string
 	DueDate     time.Time
 }
 
 type UpdateTaskRequest struct {
 	ID          string
-	TaskName    string
-	Description string
+	TaskName    *string
+	Description *string
 	Status      *TaskStatus
 	Priority    *TaskPriority
-	AssigneeID  string
+	AssigneeID  *string
 	DueDate     *time.Time
 	OrderIndex  *int32
 }
@@ -341,13 +341,13 @@ type MoveTaskRequest struct {
 
 type AssignTaskRequest struct {
 	TaskID     string
-	AssigneeID string
+	AssigneeID *string
 }
 
 type ListTasksFilter struct {
 	ProjectID  string
 	Status     *TaskStatus
-	AssigneeID string
+	AssigneeID *string
 	Priority   *TaskPriority
 }
 
@@ -365,7 +365,7 @@ type TaskStatusHistoryEntry struct {
 	FromStatus *TaskStatus
 	ToStatus   TaskStatus
 	ChangedAt  time.Time
-	ActorID    string
+	ActorID    *string
 }
 
 type TaskStatusHistoryResponse struct {
