@@ -52,16 +52,27 @@ func (hs HealthStatus) String() string {
 type EmployeeMetrics struct {
 	ID                   string    
 	EmployeeID           string    
-	MetricDate           *time.Time 
+	MetricDate           time.Time 
 	AssignedTasks        int32     
 	CompletedTasks       int32    
 	InProgressTasks      int32     
-	OverdueTasks         int32    
-	EfficiencyScore      float64  
-	TaskCompletionRate   float64   
-	OnTimeCompletionRate float64   
-	CreatedAt            *time.Time 
-	UpdatedAt            *time.Time
+	OverdueTasks         int32  
+	OnTimeCompletionTask 	 int32
+	TotalPrioritWeight 	 	 float64
+	TotalTaskDurationSeconds int64
+	CreatedAt            	time.Time 
+	UpdatedAt            	time.Time
+}
+
+type EmployeeScores struct {
+	TaskCompletionRate    float64 
+	OnTimeCompletionRate  float64 
+	EfficiencyScore       float64 
+}
+
+type EmployeeMetricsResult struct {
+	Counters EmployeeMetrics
+	Scores   EmployeeScores
 }
 
 type ProjectMetrics struct {

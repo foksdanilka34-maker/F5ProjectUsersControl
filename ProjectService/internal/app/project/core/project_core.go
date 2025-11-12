@@ -1,4 +1,4 @@
-package employee
+package project
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	models "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/client/nats"
 
-	ev "github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 	repo "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/repo"
+	ev "github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 )
 
 type projectCore struct {
@@ -50,7 +50,7 @@ func (p *projectCore) CreateProject(ctx context.Context, regProfile *models.Crea
 		log.Printf("empty data provided")
 		return nil, fmt.Errorf("provided empty data")
 	}
-	if regProfile.Name == "" || regProfile.ManagerID == "" || regProfile.Description == "" {
+	if regProfile.Name == "" || regProfile.ManagerID == "" {
 		log.Printf("all fields should be filled")
 		return nil, fmt.Errorf("all fields should be filled")
 	}
@@ -162,9 +162,9 @@ func (p *projectCore) DeleteProject(ctx context.Context, projectID string) error
 }
 
 func (p *projectCore) CreateTask(ctx context.Context, createTask *models.CreateTaskRequest) (*models.Task, error) {
-	if createTask.AssigneeID != "" {
-		if err := p.validateProjectMember(ctx, createTask.ProjectID, createTask.AssigneeID); err != nil {
-			log.Printf("assignee %s is not a member of project %s", createTask.AssigneeID, createTask.ProjectID)
+	if createTask.AssigneeID != nil {
+		if err := p.validateProjectMember(ctx, createTask.ProjectID, *createTask.AssigneeID); err != nil {
+			log.Printf("assignee %s is not a member of project %s", *createTask.AssigneeID, createTask.ProjectID)
 			return nil, fmt.Errorf("assignee must be a member of the project")
 		}
 	}
@@ -173,17 +173,17 @@ func (p *projectCore) CreateTask(ctx context.Context, createTask *models.CreateT
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if p.publisher != nil {
-		if createTask.AssigneeID != "" {
+		if createTask.AssigneeID != nil {
 			eventAssign := &ev.TaskEvent{
-				TaskID: newTask.ID,
-				ProjectID: createTask.ProjectID,
-				Priority: createTask.Priority.String(),
+				TaskID:     newTask.ID,
+				ProjectID:  createTask.ProjectID,
+				Priority:   createTask.Priority.String(),
+				AssigneeID: createTask.AssigneeID,
 			}
 			if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskAssigned, eventAssign); err != nil {
 				log.Printf("warning: failed to publish task assigned event: %v", err)
-				return nil, err
 			}
 			return newTask, nil
 		}
@@ -201,7 +201,6 @@ func (p *projectCore) CreateTask(ctx context.Context, createTask *models.CreateT
 		}
 		if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskCreated, event); err != nil {
 			log.Printf("warning: failed to publish task created event: %v", err)
-			return nil, err
 		}
 	}
 	return newTask, nil
@@ -227,9 +226,9 @@ func (p *projectCore) UpdateTask(ctx context.Context, updRequest *models.UpdateT
 		return nil, fmt.Errorf("task not found")
 	}
 
-	if updRequest.AssigneeID != "" {
-		if err := p.validateProjectMember(ctx, oldTask.ProjectID, updRequest.AssigneeID); err != nil {
-			log.Printf("assignee %s is not a member of project %s", updRequest.AssigneeID, oldTask.ProjectID)
+	if updRequest.AssigneeID != nil {
+		if err := p.validateProjectMember(ctx, oldTask.ProjectID, *updRequest.AssigneeID); err != nil {
+			log.Printf("assignee %s is not a member of project %s", *updRequest.AssigneeID, oldTask.ProjectID)
 			return nil, fmt.Errorf("assignee must be a member of the project")
 		}
 	}
@@ -278,8 +277,8 @@ func (p *projectCore) DeleteTask(ctx context.Context, taskID string) error {
 
 	if p.publisher != nil {
 		event := &ev.TaskEvent{
-			TaskID:      taskID,
-			Timestamp:   time.Now(),
+			TaskID:    taskID,
+			Timestamp: time.Now(),
 		}
 		if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskDeleted, event); err != nil {
 			log.Printf("warning: failed to publish task delete event: %v", err)
@@ -294,7 +293,11 @@ func (p *projectCore) MoveTask(ctx context.Context, moveRequest *models.MoveTask
 		return nil, fmt.Errorf("taskID cannot be empty")
 	}
 
-	oldTask, _ := p.project.GetTask(ctx, moveRequest.TaskID)
+	oldTask, err := p.project.GetTask(ctx, moveRequest.TaskID)
+	if err != nil {
+		log.Printf("failed to get task %s: %v", moveRequest.TaskID, err)
+		return nil, fmt.Errorf("task not found")
+	}
 	movedTask, err := p.project.MoveTask(ctx, moveRequest)
 	if err != nil {
 		return nil, err
@@ -313,7 +316,7 @@ func (p *projectCore) MoveTask(ctx context.Context, moveRequest *models.MoveTask
 			CompletedAt: movedTask.CompletedAt,
 			Timestamp:   time.Now(),
 		}
-		if err := p.publisher.PublishTaskEvent(ctx,  ev.EventTypeTaskStatusChanged, event); err != nil {
+		if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskStatusChanged, event); err != nil {
 			log.Printf("warning: failed to publish task moved event: %v", err)
 		}
 	}
@@ -332,9 +335,9 @@ func (p *projectCore) AssignTask(ctx context.Context, assignRequest *models.Assi
 		return nil, fmt.Errorf("task not found")
 	}
 
-	if assignRequest.AssigneeID != "" {
-		if err := p.validateProjectMember(ctx, task.ProjectID, assignRequest.AssigneeID); err != nil {
-			log.Printf("assignee %s is not a member of project %s", assignRequest.AssigneeID, task.ProjectID)
+	if assignRequest.AssigneeID != nil {
+		if err := p.validateProjectMember(ctx, task.ProjectID, *assignRequest.AssigneeID); err != nil {
+			log.Printf("assignee %s is not a member of project %s", *assignRequest.AssigneeID, task.ProjectID)
 			return nil, fmt.Errorf("assignee must be a member of the project")
 		}
 	}
@@ -346,10 +349,10 @@ func (p *projectCore) AssignTask(ctx context.Context, assignRequest *models.Assi
 
 	if p.publisher != nil {
 		event := &ev.TaskEvent{
-			TaskID:      assignedTask.ID,
-			ProjectID: 	 task.ProjectID,
-			Timestamp:   time.Now(),
-			AssigneeID:  assignRequest.AssigneeID,
+			TaskID:     assignedTask.ID,
+			ProjectID:  task.ProjectID,
+			Timestamp:  time.Now(),
+			AssigneeID: assignRequest.AssigneeID,
 		}
 		if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskAssigned, event); err != nil {
 			log.Printf("warning: failed to publish task delete event: %v", err)

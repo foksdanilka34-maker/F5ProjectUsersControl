@@ -30,7 +30,7 @@ func (c *Core) GetEmployeeMetrics(ctx context.Context, emplID string) (*analytic
 }
 
 func (c *Core) SaveEmployeeMetrics(ctx context.Context, metrics *analytics.EmployeeMetrics) error {
-	return c.storage.SaveEmployeeMetrics(ctx, metrics)
+	return c.storage.SaveEmployeeMetrics(ctx, nil, metrics)
 }
 
 // func (c *Core) ListEmployeeMetrics(ctx context.Context, pageSize, pageNumber int32, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, int32, error) {

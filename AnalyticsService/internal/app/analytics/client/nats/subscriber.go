@@ -10,21 +10,19 @@ import (
 
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/core"
-	projectpb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/project_service"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 	"github.com/nats-io/nats.go"
 )
 
 type Subscriber struct {
-	conn          *nats.Conn
-	core          *core.Core
-	projectClient projectpb.ProjectServiceClient
+	conn *nats.Conn
+	core *core.Core
 }
 
 func NewSubscriber(conn *nats.Conn, core *core.Core) *Subscriber {
 	return &Subscriber{
-		conn:          conn,
-		core:          core,
+		conn: conn,
+		core: core,
 	}
 }
 
@@ -33,44 +31,80 @@ func (s *Subscriber) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	
+
 	log.Println("NATS subscriber started")
 	log.Printf("Subscribed to topics: %s", eventbus.EventTypeTaskAssigned)
 
-	return nil
+	select {}
 }
-
 
 func (s *Subscriber) handleAssignTask(msg *nats.Msg) {
 	log.Println("Started handleAssignTask")
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	
+
 	taskEvent := &eventbus.TaskEvent{}
 	err := json.Unmarshal(msg.Data, taskEvent)
 	if err != nil {
 		log.Printf("error unmarshaling data: %v", err)
 		return
 	}
+	if taskEvent.AssigneeID == nil {
+		log.Printf("AssigneeID is nil, skipping")
+		return
+	}
 	metrics := &analytics.EmployeeMetrics{
-		EmployeeID: taskEvent.AssigneeID,
+		EmployeeID:      *taskEvent.AssigneeID,
 		InProgressTasks: 1,
 	}
-	data, err := s.core.GetEmployeeMetrics(ctx, taskEvent.AssigneeID)
+	data, err := s.core.GetEmployeeMetrics(ctx, *taskEvent.AssigneeID)
 	if err != nil {
-		err = s.core.SaveEmployeeMetrics(ctx, metrics)
-		if err != nil {
-			log.Printf("NATS ERROR saving employee :%v", err)
-			return
-		}
+		now := time.Now()
+		metrics.MetricDate = now
+		metrics.AssignedTasks = 1
+	} else {
+		metrics.AssignedTasks = data.AssignedTasks + 1
+		metrics.InProgressTasks = data.InProgressTasks + 1
+		metrics.CompletedTasks = data.CompletedTasks
+		metrics.OverdueTasks = data.OverdueTasks
+		metrics.OnTimeCompletionTask = data.OnTimeCompletionTask
+		metrics.TotalPrioritWeight = data.TotalPrioritWeight
+		metrics.TotalTaskDurationSeconds = data.TotalTaskDurationSeconds
+		metrics.CreatedAt = data.CreatedAt
+		metrics.ID = data.ID
+		metrics.MetricDate = data.MetricDate
 	}
-	metrics.AssignedTasks = data.AssignedTasks + 1
 	err = s.core.SaveEmployeeMetrics(ctx, metrics)
 	if err != nil {
-		log.Printf("NATS ERROR saving employee updating tasks :%v", err)
+		log.Printf("NATS ERROR saving employee :%v", err)
 		return
 	}
 }
+
+func (s *Subscriber) handleTaskCompleted(msg *nats.Msg) {
+	log.Println("Start handelTaskCompleted")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+
+	taskEvent := &eventbus.TaskEvent{}
+	err := json.Unmarshal(msg.Data, taskEvent)
+	if err != nil {
+		log.Printf("error unmarshaling data %v", err)
+		return
+	}
+	metrics, err := s.core.GetEmployeeMetrics(ctx, *taskEvent.AssigneeID)
+	if err != nil {
+		log.Printf("error getting Employee metrics %v", err)
+	}
+	metrics.AssignedTasks -= 1
+	metrics.InProgressTasks -= 1
+	metrics.CompletedTasks += 1
+	err = s.core.SaveEmployeeMetrics(ctx, metrics)
+	if err != nil {
+		log.Printf("error handling tasks complete %v", err)
+	}
+}
+
 
 
 // func (s *Subscriber) handleTaskCompleted(ctx context.Context, msg *nats.Msg) {
@@ -108,4 +142,3 @@ func (s *Subscriber) handleAssignTask(msg *nats.Msg) {
 // 		log.Printf("failed to save employee metrics: %v", err)
 // 	}
 // }
-

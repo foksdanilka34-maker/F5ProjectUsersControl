@@ -21,10 +21,14 @@ func NewStorage(pool *pgxpool.Pool) *Storage {
 	}
 }
 
-func (s *Storage) SaveEmployeeMetrics(ctx context.Context, metrics *analytics.EmployeeMetrics) error {
+func (s *Storage) BeginTransaction(ctx context.Context) (pgx.Tx, error) {
+	return s.pool.Begin(ctx)
+}
+
+func (s *Storage) SaveEmployeeMetrics(ctx context.Context, tx pgx.Tx, metrics *analytics.EmployeeMetrics) error {
 	query := `INSERT INTO analytics.employee_metrics 
 		(employee_id, metric_date, assigned_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
-		efficiency_score, task_completion_rate, on_time_completion_rate) 
+		on_time_completed_tasks, total_priority_weight_completed, total_task_duration_seconds) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
 		ON CONFLICT (employee_id, metric_date) 
 		DO UPDATE SET 
@@ -32,57 +36,72 @@ func (s *Storage) SaveEmployeeMetrics(ctx context.Context, metrics *analytics.Em
 			completed_tasks = $4,
 			in_progress_tasks = $5,
 			overdue_tasks = $6,
-			efficiency_score = $7,
-			task_completion_rate = $8,
-			on_time_completion_rate = $9,
-			updated_at = NOW()
-		RETURNING id`
+			on_time_completed_tasks = $7,
+			total_priority_weight_completed = $8,
+			total_task_duration_seconds = $9,
+			updated_at = NOW()`
 
-	var id string
-	err := s.pool.QueryRow(ctx, query, metrics.EmployeeID, metrics.MetricDate, metrics.AssignedTasks, 
-		metrics.CompletedTasks, metrics.InProgressTasks, metrics.OverdueTasks,
-		metrics.EfficiencyScore, metrics.TaskCompletionRate, metrics.OnTimeCompletionRate,
-	).Scan(&id)
-
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			log.Printf("ERROR saving employee metrics, no value returned: %v", err)
-			return err 
-		}
-		log.Printf("SYSTEM ERROR saving employee metrics: %v", err)
-		return fmt.Errorf("failed to save employee metrics: %w", err)
+	var runner any
+	if tx != nil {
+		runner = tx
+	} else {
+		runner = s.pool
 	}
 
-	log.Printf("Saved employee metrics with ID: %s", id)
+	var err error
+	switch r := runner.(type) {
+	case pgx.Tx:
+		_, err = r.Exec(ctx, query,
+			metrics.EmployeeID, metrics.MetricDate, metrics.AssignedTasks, metrics.CompletedTasks,
+			metrics.InProgressTasks, metrics.OverdueTasks, metrics.OnTimeCompletionTask,
+			metrics.TotalPrioritWeight, metrics.TotalTaskDurationSeconds,
+		)
+	case *pgxpool.Pool:
+		_, err = r.Exec(ctx, query,
+			metrics.EmployeeID, metrics.MetricDate, metrics.AssignedTasks, metrics.CompletedTasks,
+			metrics.InProgressTasks, metrics.OverdueTasks, metrics.OnTimeCompletionTask,
+			metrics.TotalPrioritWeight, metrics.TotalTaskDurationSeconds,
+		)
+	default:
+		err = errors.New("unexpected runner type")
+	}
+
+	if err != nil {
+		log.Printf("SYSTEM ERROR saving employee metrics (upsert): %v", err)
+		return fmt.Errorf("failed to save employee metrics: %w", err)
+	}	
+	
 	return nil
 }
 
 func (s *Storage) GetEmployeeMetrics(ctx context.Context, emplID string) (*analytics.EmployeeMetrics, error) {
-	query := `SELECT id, employee_id, metric_date, assigned_tasks, completed_tasks, 
-			in_progress_tasks, overdue_tasks, efficiency_score, task_completion_rate,
-			on_time_completion_rate, created_at, updated_at
+	query := `SELECT metric_date, assigned_tasks, completed_tasks, 
+			in_progress_tasks, overdue_tasks, on_time_completed_tasks, total_priority_weight_completed,
+			total_task_duration_seconds, created_at, updated_at
 			FROM analytics.employee_metrics
 			WHERE employee_id = $1
-			ORDER BY metric_date DESC`
+			ORDER BY metric_date DESC
+			LIMIT 1`
 
 	analMetrics := &analytics.EmployeeMetrics{}
 	err := s.pool.QueryRow(ctx, query, emplID).Scan(
-		analMetrics.ID,
-		analMetrics.EmployeeID,
-		analMetrics.MetricDate,
-		analMetrics.AssignedTasks,
-		analMetrics.CompletedTasks,
-		analMetrics.InProgressTasks,
-		analMetrics.OverdueTasks,
-		analMetrics.EfficiencyScore,
-		analMetrics.TaskCompletionRate,
-		analMetrics.OnTimeCompletionRate,
-		analMetrics.CreatedAt,
-		analMetrics.UpdatedAt,
+		&analMetrics.MetricDate,
+		&analMetrics.AssignedTasks,
+		&analMetrics.CompletedTasks,
+		&analMetrics.InProgressTasks,
+		&analMetrics.OverdueTasks,
+		&analMetrics.OnTimeCompletionTask,
+		&analMetrics.TotalPrioritWeight,
+		&analMetrics.TotalTaskDurationSeconds,
+		&analMetrics.CreatedAt,
+		&analMetrics.UpdatedAt,
 	)
+	
 	if err != nil {
 		return nil, fmt.Errorf("failed to query employee metrics: %w", err)
 	}
+	analMetrics.EmployeeID = emplID
+
 	return analMetrics, nil
 }
 

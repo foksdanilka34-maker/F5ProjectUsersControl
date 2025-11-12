@@ -45,10 +45,13 @@ message EmployeeMetrics {
     int32 completed_tasks = 4;
     int32 in_progress_tasks = 5;
     int32 overdue_tasks = 6;
+
+    int32 on_time_completed_tasks = 7;
+    double total_priority_weight_completed = 8;
+    double total_task_duration_seconds = 9;
     
-    double efficiency_score = 7;
-    double task_completion_rate = 8;
-    double on_time_completion_rate = 9;
+    optional google.protobuf.Timestamp created_at = 10;
+    optional google.protobuf.Timestamp updated_at = 11;
 }
 
 message GetEmployeeMetricsRequest {

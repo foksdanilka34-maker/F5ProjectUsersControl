@@ -34,7 +34,7 @@ type TaskEvent struct {
 	ProjectID   string     `json:"project_id"`
 	Status      string     `json:"status,omitempty"`
 	OldStatus   string     `json:"old_status,omitempty"`
-	AssigneeID  string    `json:"assignee_id,omitempty"`
+	AssigneeID  *string    `json:"assignee_id,omitempty"`
 	CreatorID   string     `json:"creator_id,omitempty"`
 	Priority    string     `json:"priority,omitempty"`
 	DueDate     *time.Time `json:"due_date,omitempty"`
