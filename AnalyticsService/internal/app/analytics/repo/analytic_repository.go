@@ -28,8 +28,8 @@ func (s *Storage) BeginTransaction(ctx context.Context) (pgx.Tx, error) {
 func (s *Storage) SaveEmployeeMetrics(ctx context.Context, tx pgx.Tx, metrics *analytics.EmployeeMetrics) error {
 	query := `INSERT INTO analytics.employee_metrics 
 		(employee_id, metric_date, assigned_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
-		on_time_completed_tasks, total_priority_weight_completed, total_task_duration_seconds) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+		on_time_completed_tasks, total_task_duration_seconds) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
 		ON CONFLICT (employee_id, metric_date) 
 		DO UPDATE SET 
 			assigned_tasks = $3,
@@ -37,8 +37,7 @@ func (s *Storage) SaveEmployeeMetrics(ctx context.Context, tx pgx.Tx, metrics *a
 			in_progress_tasks = $5,
 			overdue_tasks = $6,
 			on_time_completed_tasks = $7,
-			total_priority_weight_completed = $8,
-			total_task_duration_seconds = $9,
+			total_task_duration_seconds = $8,
 			updated_at = NOW()`
 
 	var runner any
@@ -54,13 +53,13 @@ func (s *Storage) SaveEmployeeMetrics(ctx context.Context, tx pgx.Tx, metrics *a
 		_, err = r.Exec(ctx, query,
 			metrics.EmployeeID, metrics.MetricDate, metrics.AssignedTasks, metrics.CompletedTasks,
 			metrics.InProgressTasks, metrics.OverdueTasks, metrics.OnTimeCompletionTask,
-			metrics.TotalPrioritWeight, metrics.TotalTaskDurationSeconds,
+			metrics.TotalTaskDurationSeconds,
 		)
 	case *pgxpool.Pool:
 		_, err = r.Exec(ctx, query,
 			metrics.EmployeeID, metrics.MetricDate, metrics.AssignedTasks, metrics.CompletedTasks,
 			metrics.InProgressTasks, metrics.OverdueTasks, metrics.OnTimeCompletionTask,
-			metrics.TotalPrioritWeight, metrics.TotalTaskDurationSeconds,
+			metrics.TotalTaskDurationSeconds,
 		)
 	default:
 		err = errors.New("unexpected runner type")
@@ -76,7 +75,7 @@ func (s *Storage) SaveEmployeeMetrics(ctx context.Context, tx pgx.Tx, metrics *a
 
 func (s *Storage) GetEmployeeMetrics(ctx context.Context, emplID string) (*analytics.EmployeeMetrics, error) {
 	query := `SELECT metric_date, assigned_tasks, completed_tasks, 
-			in_progress_tasks, overdue_tasks, on_time_completed_tasks, total_priority_weight_completed,
+			in_progress_tasks, overdue_tasks, on_time_completed_tasks,
 			total_task_duration_seconds, created_at, updated_at
 			FROM analytics.employee_metrics
 			WHERE employee_id = $1
@@ -91,7 +90,6 @@ func (s *Storage) GetEmployeeMetrics(ctx context.Context, emplID string) (*analy
 		&analMetrics.InProgressTasks,
 		&analMetrics.OverdueTasks,
 		&analMetrics.OnTimeCompletionTask,
-		&analMetrics.TotalPrioritWeight,
 		&analMetrics.TotalTaskDurationSeconds,
 		&analMetrics.CreatedAt,
 		&analMetrics.UpdatedAt,

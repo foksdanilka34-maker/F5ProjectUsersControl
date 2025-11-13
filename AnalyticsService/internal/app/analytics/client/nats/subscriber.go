@@ -68,7 +68,6 @@ func (s *Subscriber) handleAssignTask(msg *nats.Msg) {
 		metrics.CompletedTasks = data.CompletedTasks
 		metrics.OverdueTasks = data.OverdueTasks
 		metrics.OnTimeCompletionTask = data.OnTimeCompletionTask
-		metrics.TotalPrioritWeight = data.TotalPrioritWeight
 		metrics.TotalTaskDurationSeconds = data.TotalTaskDurationSeconds
 		metrics.CreatedAt = data.CreatedAt
 		metrics.ID = data.ID

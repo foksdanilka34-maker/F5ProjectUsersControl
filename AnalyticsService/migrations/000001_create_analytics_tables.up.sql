@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS analytics.employee_metrics (
     overdue_tasks INT NOT NULL DEFAULT 0,
     
     on_time_completed_tasks INT NOT NULL DEFAULT 0,
-    total_priority_weight_completed FLOAT NOT NULL DEFAULT 0,
     total_task_duration_seconds BIGINT NOT NULL DEFAULT 0,
     
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

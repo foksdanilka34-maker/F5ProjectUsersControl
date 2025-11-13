@@ -52,6 +52,10 @@ message EmployeeMetrics {
     
     optional google.protobuf.Timestamp created_at = 10;
     optional google.protobuf.Timestamp updated_at = 11;
+
+    optional double  TaskCompletionRate  = 12;
+	optional double OnTimeCompletionRate  = 13;
+	optional double EfficiencyScore        = 14;
 }
 
 message GetEmployeeMetricsRequest {

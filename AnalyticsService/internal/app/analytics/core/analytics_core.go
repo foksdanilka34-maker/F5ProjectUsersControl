@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"sync"
+	"math"
 
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/repo"
@@ -25,8 +26,45 @@ type CoreLogic interface {
 	SaveEmployeeMetrics(ctx context.Context, metrics *analytics.EmployeeMetrics) error
 }
 
+func calculateScores(metrics *analytics.EmployeeMetrics) {
+	if metrics.AssignedTasks > 0 {
+		metrics.TaskCompletionRate = (float64(metrics.CompletedTasks) / float64(metrics.AssignedTasks)) * 100
+	}
+	if metrics.CompletedTasks > 0 {
+		metrics.OnTimeCompletionRate = (float64(metrics.OnTimeCompletionTask) / float64(metrics.CompletedTasks)) * 100
+	}
+
+	speedBonus := 1.0
+	if metrics.CompletedTasks > 0 {
+		avgDurationSeconds := float64(metrics.TotalTaskDurationSeconds) / float64(metrics.CompletedTasks)
+		const normalTaskDuration = 28800.0 
+		speedBonus = normalTaskDuration / (avgDurationSeconds + 1)
+		if speedBonus > 1.5 {
+			speedBonus = 1.5
+		}
+	}
+
+	overduePenalty := float64(metrics.OverdueTasks) * 5.0
+
+	baseScore := (metrics.OnTimeCompletionRate * 0.7) + (metrics.TaskCompletionRate * 0.3)
+
+	finalScore := (baseScore * speedBonus) - overduePenalty
+
+	if finalScore < 0 {
+		finalScore = 0
+	}
+	
+	metrics.EfficiencyScore = math.Round(finalScore*100) / 100
+}
+
 func (c *Core) GetEmployeeMetrics(ctx context.Context, emplID string) (*analytics.EmployeeMetrics, error) {
-	return c.storage.GetEmployeeMetrics(ctx, emplID)
+	metrics, err := c.storage.GetEmployeeMetrics(ctx, emplID)
+	if err != nil {
+		return nil, err
+	}
+	calculateScores(metrics)
+
+	return metrics, nil
 }
 
 func (c *Core) SaveEmployeeMetrics(ctx context.Context, metrics *analytics.EmployeeMetrics) error {
