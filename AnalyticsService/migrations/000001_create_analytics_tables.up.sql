@@ -31,24 +31,11 @@ CREATE TABLE IF NOT EXISTS analytics.project_metrics (
     completed_tasks INT NOT NULL DEFAULT 0,
     in_progress_tasks INT NOT NULL DEFAULT 0,
     overdue_tasks INT NOT NULL DEFAULT 0,
+    on_time_completed_tasks INT NOT NULL DEFAULT 0,
     
-    delivery_performance FLOAT NOT NULL DEFAULT 0,
-    schedule_performance FLOAT NOT NULL DEFAULT 0,
-    quality_performance FLOAT NOT NULL DEFAULT 0,
-    team_performance FLOAT NOT NULL DEFAULT 0,
-    
-    health_index FLOAT NOT NULL DEFAULT 0,
-    risk_score FLOAT NOT NULL DEFAULT 0,
-    health_status VARCHAR(20),
-    
-    velocity FLOAT NOT NULL DEFAULT 0,
-    projected_end_date TIMESTAMPTZ,
-    team_capacity_utilization FLOAT NOT NULL DEFAULT 0,
     team_size INT NOT NULL DEFAULT 0,
-    avg_team_efficiency FLOAT NOT NULL DEFAULT 0,
-    
-    is_at_risk BOOLEAN DEFAULT false,
-    days_until_due INT,
+    total_task_duration_seconds BIGINT NOT NULL DEFAULT 0,
+    total_priority_weight_completed INT NOT NULL DEFAULT 0,
     
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

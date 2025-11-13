@@ -35,7 +35,7 @@ func (p *Publisher) PublishTaskEvent(ctx context.Context, topic string, event an
 		return fmt.Errorf("failed to publish task event: %w", err)
 	}
 
-	log.Println("published task event")
+	log.Printf("published task event %s ", topic)
 	return nil
 }
 
@@ -55,7 +55,7 @@ func (p *Publisher) PublishProjectEvent(ctx context.Context, topic string, event
 		return fmt.Errorf("failed to publish project event: %w", err)
 	}
 
-	log.Println("published project event")
+	log.Printf("published project event %s", topic)
 	return nil
 }
 

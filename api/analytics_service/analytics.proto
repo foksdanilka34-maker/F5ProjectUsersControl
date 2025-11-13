@@ -47,15 +47,14 @@ message EmployeeMetrics {
     int32 overdue_tasks = 6;
 
     int32 on_time_completed_tasks = 7;
-    double total_priority_weight_completed = 8;
-    double total_task_duration_seconds = 9;
+    int64 total_task_duration_seconds = 8;
     
-    optional google.protobuf.Timestamp created_at = 10;
-    optional google.protobuf.Timestamp updated_at = 11;
+    optional google.protobuf.Timestamp created_at = 9;
+    optional google.protobuf.Timestamp updated_at = 10;
 
-    optional double  TaskCompletionRate  = 12;
-	optional double OnTimeCompletionRate  = 13;
-	optional double EfficiencyScore        = 14;
+    optional double  TaskCompletionRate  = 11;
+	optional double OnTimeCompletionRate  = 12;
+	optional double EfficiencyScore        = 13;
 }
 
 message GetEmployeeMetricsRequest {
@@ -98,23 +97,26 @@ message ProjectMetrics {
     int32 completed_tasks = 5;
     int32 in_progress_tasks = 6;
     int32 overdue_tasks = 7;
+    int32 on_time_completed_tasks = 8;
+    int32 team_size = 9;
+    int64 total_task_duration_seconds_completed = 10;
+    int32 total_priority_weight_completed = 11;
     
-    double delivery_performance = 8;
-    double schedule_performance = 9;
-    double quality_performance = 10;
-    double team_performance = 11;
+    double delivery_performance = 12;
+    double schedule_performance = 13;
+    double quality_performance = 14;
+    double team_performance = 15;
     
-    double health_index = 12;
-    double risk_score = 13;
-    HealthStatus health_status = 14;
+    double health_index = 16;
+    double risk_score = 17;
+    HealthStatus health_status = 18;
     
-    double velocity = 15;
-    optional google.protobuf.Timestamp projected_end_date = 16;
-    double team_capacity_utilization = 17;
-    int32 team_size = 18;
-    double avg_team_efficiency = 19;
-    bool is_at_risk = 20;
-    optional int32 days_until_due = 21;
+    double velocity = 19;
+    optional google.protobuf.Timestamp projected_end_date = 20;
+    double team_capacity_utilization = 21;
+    double avg_team_efficiency = 22;
+    bool is_at_risk = 23;
+    optional int32 days_until_due = 24;
 }
 
 message GetProjectMetricsRequest {

@@ -49,7 +49,7 @@ func (s *AnalyticsServer) employeeMetricsToProto(m *analytics.EmployeeMetrics) *
 		InProgressTasks:      m.InProgressTasks,
 		OverdueTasks:         m.OverdueTasks,
 		OnTimeCompletedTasks: m.OnTimeCompletionTask,
-		TotalTaskDurationSeconds: float64(m.TotalTaskDurationSeconds),
+		TotalTaskDurationSeconds: m.TotalTaskDurationSeconds,
 
 		TaskCompletionRate: &m.TaskCompletionRate,
 		OnTimeCompletionRate: &m.OnTimeCompletionRate,

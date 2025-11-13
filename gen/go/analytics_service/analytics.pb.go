@@ -127,23 +127,22 @@ func (HealthStatus) EnumDescriptor() ([]byte, []int) {
 }
 
 type EmployeeMetrics struct {
-	state                        protoimpl.MessageState `protogen:"open.v1"`
-	EmployeeId                   string                 `protobuf:"bytes,1,opt,name=employee_id,json=employeeId,proto3" json:"employee_id,omitempty"`
-	MetricDate                   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=metric_date,json=metricDate,proto3" json:"metric_date,omitempty"`
-	AssignedTasks                int32                  `protobuf:"varint,3,opt,name=assigned_tasks,json=assignedTasks,proto3" json:"assigned_tasks,omitempty"`
-	CompletedTasks               int32                  `protobuf:"varint,4,opt,name=completed_tasks,json=completedTasks,proto3" json:"completed_tasks,omitempty"`
-	InProgressTasks              int32                  `protobuf:"varint,5,opt,name=in_progress_tasks,json=inProgressTasks,proto3" json:"in_progress_tasks,omitempty"`
-	OverdueTasks                 int32                  `protobuf:"varint,6,opt,name=overdue_tasks,json=overdueTasks,proto3" json:"overdue_tasks,omitempty"`
-	OnTimeCompletedTasks         int32                  `protobuf:"varint,7,opt,name=on_time_completed_tasks,json=onTimeCompletedTasks,proto3" json:"on_time_completed_tasks,omitempty"`
-	TotalPriorityWeightCompleted float64                `protobuf:"fixed64,8,opt,name=total_priority_weight_completed,json=totalPriorityWeightCompleted,proto3" json:"total_priority_weight_completed,omitempty"`
-	TotalTaskDurationSeconds     float64                `protobuf:"fixed64,9,opt,name=total_task_duration_seconds,json=totalTaskDurationSeconds,proto3" json:"total_task_duration_seconds,omitempty"`
-	CreatedAt                    *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3,oneof" json:"created_at,omitempty"`
-	UpdatedAt                    *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3,oneof" json:"updated_at,omitempty"`
-	TaskCompletionRate           *float64               `protobuf:"fixed64,12,opt,name=TaskCompletionRate,proto3,oneof" json:"TaskCompletionRate,omitempty"`
-	OnTimeCompletionRate         *float64               `protobuf:"fixed64,13,opt,name=OnTimeCompletionRate,proto3,oneof" json:"OnTimeCompletionRate,omitempty"`
-	EfficiencyScore              *float64               `protobuf:"fixed64,14,opt,name=EfficiencyScore,proto3,oneof" json:"EfficiencyScore,omitempty"`
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	EmployeeId               string                 `protobuf:"bytes,1,opt,name=employee_id,json=employeeId,proto3" json:"employee_id,omitempty"`
+	MetricDate               *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=metric_date,json=metricDate,proto3" json:"metric_date,omitempty"`
+	AssignedTasks            int32                  `protobuf:"varint,3,opt,name=assigned_tasks,json=assignedTasks,proto3" json:"assigned_tasks,omitempty"`
+	CompletedTasks           int32                  `protobuf:"varint,4,opt,name=completed_tasks,json=completedTasks,proto3" json:"completed_tasks,omitempty"`
+	InProgressTasks          int32                  `protobuf:"varint,5,opt,name=in_progress_tasks,json=inProgressTasks,proto3" json:"in_progress_tasks,omitempty"`
+	OverdueTasks             int32                  `protobuf:"varint,6,opt,name=overdue_tasks,json=overdueTasks,proto3" json:"overdue_tasks,omitempty"`
+	OnTimeCompletedTasks     int32                  `protobuf:"varint,7,opt,name=on_time_completed_tasks,json=onTimeCompletedTasks,proto3" json:"on_time_completed_tasks,omitempty"`
+	TotalTaskDurationSeconds int64                  `protobuf:"varint,8,opt,name=total_task_duration_seconds,json=totalTaskDurationSeconds,proto3" json:"total_task_duration_seconds,omitempty"`
+	CreatedAt                *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3,oneof" json:"created_at,omitempty"`
+	UpdatedAt                *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3,oneof" json:"updated_at,omitempty"`
+	TaskCompletionRate       *float64               `protobuf:"fixed64,11,opt,name=TaskCompletionRate,proto3,oneof" json:"TaskCompletionRate,omitempty"`
+	OnTimeCompletionRate     *float64               `protobuf:"fixed64,12,opt,name=OnTimeCompletionRate,proto3,oneof" json:"OnTimeCompletionRate,omitempty"`
+	EfficiencyScore          *float64               `protobuf:"fixed64,13,opt,name=EfficiencyScore,proto3,oneof" json:"EfficiencyScore,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *EmployeeMetrics) Reset() {
@@ -225,14 +224,7 @@ func (x *EmployeeMetrics) GetOnTimeCompletedTasks() int32 {
 	return 0
 }
 
-func (x *EmployeeMetrics) GetTotalPriorityWeightCompleted() float64 {
-	if x != nil {
-		return x.TotalPriorityWeightCompleted
-	}
-	return 0
-}
-
-func (x *EmployeeMetrics) GetTotalTaskDurationSeconds() float64 {
+func (x *EmployeeMetrics) GetTotalTaskDurationSeconds() int64 {
 	if x != nil {
 		return x.TotalTaskDurationSeconds
 	}
@@ -559,30 +551,33 @@ func (x *GetTopPerformersRequest) GetEndDate() *timestamppb.Timestamp {
 }
 
 type ProjectMetrics struct {
-	state                   protoimpl.MessageState `protogen:"open.v1"`
-	ProjectId               string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	ManagerId               string                 `protobuf:"bytes,2,opt,name=manager_id,json=managerId,proto3" json:"manager_id,omitempty"`
-	MetricDate              *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=metric_date,json=metricDate,proto3" json:"metric_date,omitempty"`
-	TotalTasks              int32                  `protobuf:"varint,4,opt,name=total_tasks,json=totalTasks,proto3" json:"total_tasks,omitempty"`
-	CompletedTasks          int32                  `protobuf:"varint,5,opt,name=completed_tasks,json=completedTasks,proto3" json:"completed_tasks,omitempty"`
-	InProgressTasks         int32                  `protobuf:"varint,6,opt,name=in_progress_tasks,json=inProgressTasks,proto3" json:"in_progress_tasks,omitempty"`
-	OverdueTasks            int32                  `protobuf:"varint,7,opt,name=overdue_tasks,json=overdueTasks,proto3" json:"overdue_tasks,omitempty"`
-	DeliveryPerformance     float64                `protobuf:"fixed64,8,opt,name=delivery_performance,json=deliveryPerformance,proto3" json:"delivery_performance,omitempty"`
-	SchedulePerformance     float64                `protobuf:"fixed64,9,opt,name=schedule_performance,json=schedulePerformance,proto3" json:"schedule_performance,omitempty"`
-	QualityPerformance      float64                `protobuf:"fixed64,10,opt,name=quality_performance,json=qualityPerformance,proto3" json:"quality_performance,omitempty"`
-	TeamPerformance         float64                `protobuf:"fixed64,11,opt,name=team_performance,json=teamPerformance,proto3" json:"team_performance,omitempty"`
-	HealthIndex             float64                `protobuf:"fixed64,12,opt,name=health_index,json=healthIndex,proto3" json:"health_index,omitempty"`
-	RiskScore               float64                `protobuf:"fixed64,13,opt,name=risk_score,json=riskScore,proto3" json:"risk_score,omitempty"`
-	HealthStatus            HealthStatus           `protobuf:"varint,14,opt,name=health_status,json=healthStatus,proto3,enum=analytics.HealthStatus" json:"health_status,omitempty"`
-	Velocity                float64                `protobuf:"fixed64,15,opt,name=velocity,proto3" json:"velocity,omitempty"`
-	ProjectedEndDate        *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=projected_end_date,json=projectedEndDate,proto3,oneof" json:"projected_end_date,omitempty"`
-	TeamCapacityUtilization float64                `protobuf:"fixed64,17,opt,name=team_capacity_utilization,json=teamCapacityUtilization,proto3" json:"team_capacity_utilization,omitempty"`
-	TeamSize                int32                  `protobuf:"varint,18,opt,name=team_size,json=teamSize,proto3" json:"team_size,omitempty"`
-	AvgTeamEfficiency       float64                `protobuf:"fixed64,19,opt,name=avg_team_efficiency,json=avgTeamEfficiency,proto3" json:"avg_team_efficiency,omitempty"`
-	IsAtRisk                bool                   `protobuf:"varint,20,opt,name=is_at_risk,json=isAtRisk,proto3" json:"is_at_risk,omitempty"`
-	DaysUntilDue            *int32                 `protobuf:"varint,21,opt,name=days_until_due,json=daysUntilDue,proto3,oneof" json:"days_until_due,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId                         string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	ManagerId                         string                 `protobuf:"bytes,2,opt,name=manager_id,json=managerId,proto3" json:"manager_id,omitempty"`
+	MetricDate                        *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=metric_date,json=metricDate,proto3" json:"metric_date,omitempty"`
+	TotalTasks                        int32                  `protobuf:"varint,4,opt,name=total_tasks,json=totalTasks,proto3" json:"total_tasks,omitempty"`
+	CompletedTasks                    int32                  `protobuf:"varint,5,opt,name=completed_tasks,json=completedTasks,proto3" json:"completed_tasks,omitempty"`
+	InProgressTasks                   int32                  `protobuf:"varint,6,opt,name=in_progress_tasks,json=inProgressTasks,proto3" json:"in_progress_tasks,omitempty"`
+	OverdueTasks                      int32                  `protobuf:"varint,7,opt,name=overdue_tasks,json=overdueTasks,proto3" json:"overdue_tasks,omitempty"`
+	OnTimeCompletedTasks              int32                  `protobuf:"varint,8,opt,name=on_time_completed_tasks,json=onTimeCompletedTasks,proto3" json:"on_time_completed_tasks,omitempty"`
+	TeamSize                          int32                  `protobuf:"varint,9,opt,name=team_size,json=teamSize,proto3" json:"team_size,omitempty"`
+	TotalTaskDurationSecondsCompleted int64                  `protobuf:"varint,10,opt,name=total_task_duration_seconds_completed,json=totalTaskDurationSecondsCompleted,proto3" json:"total_task_duration_seconds_completed,omitempty"`
+	TotalPriorityWeightCompleted      int32                  `protobuf:"varint,11,opt,name=total_priority_weight_completed,json=totalPriorityWeightCompleted,proto3" json:"total_priority_weight_completed,omitempty"`
+	DeliveryPerformance               float64                `protobuf:"fixed64,12,opt,name=delivery_performance,json=deliveryPerformance,proto3" json:"delivery_performance,omitempty"`
+	SchedulePerformance               float64                `protobuf:"fixed64,13,opt,name=schedule_performance,json=schedulePerformance,proto3" json:"schedule_performance,omitempty"`
+	QualityPerformance                float64                `protobuf:"fixed64,14,opt,name=quality_performance,json=qualityPerformance,proto3" json:"quality_performance,omitempty"`
+	TeamPerformance                   float64                `protobuf:"fixed64,15,opt,name=team_performance,json=teamPerformance,proto3" json:"team_performance,omitempty"`
+	HealthIndex                       float64                `protobuf:"fixed64,16,opt,name=health_index,json=healthIndex,proto3" json:"health_index,omitempty"`
+	RiskScore                         float64                `protobuf:"fixed64,17,opt,name=risk_score,json=riskScore,proto3" json:"risk_score,omitempty"`
+	HealthStatus                      HealthStatus           `protobuf:"varint,18,opt,name=health_status,json=healthStatus,proto3,enum=analytics.HealthStatus" json:"health_status,omitempty"`
+	Velocity                          float64                `protobuf:"fixed64,19,opt,name=velocity,proto3" json:"velocity,omitempty"`
+	ProjectedEndDate                  *timestamppb.Timestamp `protobuf:"bytes,20,opt,name=projected_end_date,json=projectedEndDate,proto3,oneof" json:"projected_end_date,omitempty"`
+	TeamCapacityUtilization           float64                `protobuf:"fixed64,21,opt,name=team_capacity_utilization,json=teamCapacityUtilization,proto3" json:"team_capacity_utilization,omitempty"`
+	AvgTeamEfficiency                 float64                `protobuf:"fixed64,22,opt,name=avg_team_efficiency,json=avgTeamEfficiency,proto3" json:"avg_team_efficiency,omitempty"`
+	IsAtRisk                          bool                   `protobuf:"varint,23,opt,name=is_at_risk,json=isAtRisk,proto3" json:"is_at_risk,omitempty"`
+	DaysUntilDue                      *int32                 `protobuf:"varint,24,opt,name=days_until_due,json=daysUntilDue,proto3,oneof" json:"days_until_due,omitempty"`
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *ProjectMetrics) Reset() {
@@ -664,6 +659,34 @@ func (x *ProjectMetrics) GetOverdueTasks() int32 {
 	return 0
 }
 
+func (x *ProjectMetrics) GetOnTimeCompletedTasks() int32 {
+	if x != nil {
+		return x.OnTimeCompletedTasks
+	}
+	return 0
+}
+
+func (x *ProjectMetrics) GetTeamSize() int32 {
+	if x != nil {
+		return x.TeamSize
+	}
+	return 0
+}
+
+func (x *ProjectMetrics) GetTotalTaskDurationSecondsCompleted() int64 {
+	if x != nil {
+		return x.TotalTaskDurationSecondsCompleted
+	}
+	return 0
+}
+
+func (x *ProjectMetrics) GetTotalPriorityWeightCompleted() int32 {
+	if x != nil {
+		return x.TotalPriorityWeightCompleted
+	}
+	return 0
+}
+
 func (x *ProjectMetrics) GetDeliveryPerformance() float64 {
 	if x != nil {
 		return x.DeliveryPerformance
@@ -730,13 +753,6 @@ func (x *ProjectMetrics) GetProjectedEndDate() *timestamppb.Timestamp {
 func (x *ProjectMetrics) GetTeamCapacityUtilization() float64 {
 	if x != nil {
 		return x.TeamCapacityUtilization
-	}
-	return 0
-}
-
-func (x *ProjectMetrics) GetTeamSize() int32 {
-	if x != nil {
-		return x.TeamSize
 	}
 	return 0
 }
@@ -1844,7 +1860,7 @@ var File_analytics_service_analytics_proto protoreflect.FileDescriptor
 
 const file_analytics_service_analytics_proto_rawDesc = "" +
 	"\n" +
-	"!analytics_service/analytics.proto\x12\tanalytics\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcc\x06\n" +
+	"!analytics_service/analytics.proto\x12\tanalytics\x1a\x1fgoogle/protobuf/timestamp.proto\"\x85\x06\n" +
 	"\x0fEmployeeMetrics\x12\x1f\n" +
 	"\vemployee_id\x18\x01 \x01(\tR\n" +
 	"employeeId\x12;\n" +
@@ -1854,17 +1870,16 @@ const file_analytics_service_analytics_proto_rawDesc = "" +
 	"\x0fcompleted_tasks\x18\x04 \x01(\x05R\x0ecompletedTasks\x12*\n" +
 	"\x11in_progress_tasks\x18\x05 \x01(\x05R\x0finProgressTasks\x12#\n" +
 	"\roverdue_tasks\x18\x06 \x01(\x05R\foverdueTasks\x125\n" +
-	"\x17on_time_completed_tasks\x18\a \x01(\x05R\x14onTimeCompletedTasks\x12E\n" +
-	"\x1ftotal_priority_weight_completed\x18\b \x01(\x01R\x1ctotalPriorityWeightCompleted\x12=\n" +
-	"\x1btotal_task_duration_seconds\x18\t \x01(\x01R\x18totalTaskDurationSeconds\x12>\n" +
+	"\x17on_time_completed_tasks\x18\a \x01(\x05R\x14onTimeCompletedTasks\x12=\n" +
+	"\x1btotal_task_duration_seconds\x18\b \x01(\x03R\x18totalTaskDurationSeconds\x12>\n" +
 	"\n" +
-	"created_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampH\x00R\tcreatedAt\x88\x01\x01\x12>\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampH\x00R\tcreatedAt\x88\x01\x01\x12>\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampH\x01R\tupdatedAt\x88\x01\x01\x123\n" +
-	"\x12TaskCompletionRate\x18\f \x01(\x01H\x02R\x12TaskCompletionRate\x88\x01\x01\x127\n" +
-	"\x14OnTimeCompletionRate\x18\r \x01(\x01H\x03R\x14OnTimeCompletionRate\x88\x01\x01\x12-\n" +
-	"\x0fEfficiencyScore\x18\x0e \x01(\x01H\x04R\x0fEfficiencyScore\x88\x01\x01B\r\n" +
+	"updated_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampH\x01R\tupdatedAt\x88\x01\x01\x123\n" +
+	"\x12TaskCompletionRate\x18\v \x01(\x01H\x02R\x12TaskCompletionRate\x88\x01\x01\x127\n" +
+	"\x14OnTimeCompletionRate\x18\f \x01(\x01H\x03R\x14OnTimeCompletionRate\x88\x01\x01\x12-\n" +
+	"\x0fEfficiencyScore\x18\r \x01(\x01H\x04R\x0fEfficiencyScore\x88\x01\x01B\r\n" +
 	"\v_created_atB\r\n" +
 	"\v_updated_atB\x15\n" +
 	"\x13_TaskCompletionRateB\x17\n" +
@@ -1901,7 +1916,7 @@ const file_analytics_service_analytics_proto_rawDesc = "" +
 	"\bend_date\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x02R\aendDate\x88\x01\x01B\x10\n" +
 	"\x0e_department_idB\r\n" +
 	"\v_start_dateB\v\n" +
-	"\t_end_date\"\xcf\a\n" +
+	"\t_end_date\"\x9f\t\n" +
 	"\x0eProjectMetrics\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x1d\n" +
@@ -1913,24 +1928,27 @@ const file_analytics_service_analytics_proto_rawDesc = "" +
 	"totalTasks\x12'\n" +
 	"\x0fcompleted_tasks\x18\x05 \x01(\x05R\x0ecompletedTasks\x12*\n" +
 	"\x11in_progress_tasks\x18\x06 \x01(\x05R\x0finProgressTasks\x12#\n" +
-	"\roverdue_tasks\x18\a \x01(\x05R\foverdueTasks\x121\n" +
-	"\x14delivery_performance\x18\b \x01(\x01R\x13deliveryPerformance\x121\n" +
-	"\x14schedule_performance\x18\t \x01(\x01R\x13schedulePerformance\x12/\n" +
-	"\x13quality_performance\x18\n" +
-	" \x01(\x01R\x12qualityPerformance\x12)\n" +
-	"\x10team_performance\x18\v \x01(\x01R\x0fteamPerformance\x12!\n" +
-	"\fhealth_index\x18\f \x01(\x01R\vhealthIndex\x12\x1d\n" +
+	"\roverdue_tasks\x18\a \x01(\x05R\foverdueTasks\x125\n" +
+	"\x17on_time_completed_tasks\x18\b \x01(\x05R\x14onTimeCompletedTasks\x12\x1b\n" +
+	"\tteam_size\x18\t \x01(\x05R\bteamSize\x12P\n" +
+	"%total_task_duration_seconds_completed\x18\n" +
+	" \x01(\x03R!totalTaskDurationSecondsCompleted\x12E\n" +
+	"\x1ftotal_priority_weight_completed\x18\v \x01(\x05R\x1ctotalPriorityWeightCompleted\x121\n" +
+	"\x14delivery_performance\x18\f \x01(\x01R\x13deliveryPerformance\x121\n" +
+	"\x14schedule_performance\x18\r \x01(\x01R\x13schedulePerformance\x12/\n" +
+	"\x13quality_performance\x18\x0e \x01(\x01R\x12qualityPerformance\x12)\n" +
+	"\x10team_performance\x18\x0f \x01(\x01R\x0fteamPerformance\x12!\n" +
+	"\fhealth_index\x18\x10 \x01(\x01R\vhealthIndex\x12\x1d\n" +
 	"\n" +
-	"risk_score\x18\r \x01(\x01R\triskScore\x12<\n" +
-	"\rhealth_status\x18\x0e \x01(\x0e2\x17.analytics.HealthStatusR\fhealthStatus\x12\x1a\n" +
-	"\bvelocity\x18\x0f \x01(\x01R\bvelocity\x12M\n" +
-	"\x12projected_end_date\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\x10projectedEndDate\x88\x01\x01\x12:\n" +
-	"\x19team_capacity_utilization\x18\x11 \x01(\x01R\x17teamCapacityUtilization\x12\x1b\n" +
-	"\tteam_size\x18\x12 \x01(\x05R\bteamSize\x12.\n" +
-	"\x13avg_team_efficiency\x18\x13 \x01(\x01R\x11avgTeamEfficiency\x12\x1c\n" +
+	"risk_score\x18\x11 \x01(\x01R\triskScore\x12<\n" +
+	"\rhealth_status\x18\x12 \x01(\x0e2\x17.analytics.HealthStatusR\fhealthStatus\x12\x1a\n" +
+	"\bvelocity\x18\x13 \x01(\x01R\bvelocity\x12M\n" +
+	"\x12projected_end_date\x18\x14 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\x10projectedEndDate\x88\x01\x01\x12:\n" +
+	"\x19team_capacity_utilization\x18\x15 \x01(\x01R\x17teamCapacityUtilization\x12.\n" +
+	"\x13avg_team_efficiency\x18\x16 \x01(\x01R\x11avgTeamEfficiency\x12\x1c\n" +
 	"\n" +
-	"is_at_risk\x18\x14 \x01(\bR\bisAtRisk\x12)\n" +
-	"\x0edays_until_due\x18\x15 \x01(\x05H\x01R\fdaysUntilDue\x88\x01\x01B\x15\n" +
+	"is_at_risk\x18\x17 \x01(\bR\bisAtRisk\x12)\n" +
+	"\x0edays_until_due\x18\x18 \x01(\x05H\x01R\fdaysUntilDue\x88\x01\x01B\x15\n" +
 	"\x13_projected_end_dateB\x11\n" +
 	"\x0f_days_until_due\"\xd1\x01\n" +
 	"\x18GetProjectMetricsRequest\x12\x1d\n" +

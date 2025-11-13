@@ -250,13 +250,11 @@ func (p *projectCore) UpdateTask(ctx context.Context, updRequest *models.UpdateT
 			CompletedAt: updTask.CompletedAt,
 			Timestamp:   time.Now(),
 		}
-		evType := ev.EventTypeTaskUpdated
 		if oldTask != nil && updRequest.Status != nil && oldTask.Status != *updRequest.Status {
-			evType = ev.EventTypeTaskStatusChanged
 			event.OldStatus = oldTask.Status.String()
-		}
-		if err := p.publisher.PublishTaskEvent(ctx, evType, event); err != nil {
+			if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskStatusChanged, event); err != nil {
 			log.Printf("warning: failed to publish task updated event: %v", err)
+		}
 		}
 	}
 
@@ -315,6 +313,12 @@ func (p *projectCore) MoveTask(ctx context.Context, moveRequest *models.MoveTask
 			StartedAt:   movedTask.StartedAt,
 			CompletedAt: movedTask.CompletedAt,
 			Timestamp:   time.Now(),
+		}
+		if moveRequest.NewStatus == models.TaskStatusDone {
+			if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskCompleted, event); err != nil {
+				log.Printf("warning: failed to publish task completed event: %v", err)
+			}
+			return movedTask, nil
 		}
 		if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskStatusChanged, event); err != nil {
 			log.Printf("warning: failed to publish task moved event: %v", err)

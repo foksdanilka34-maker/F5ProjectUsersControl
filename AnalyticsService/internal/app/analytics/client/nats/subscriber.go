@@ -27,15 +27,197 @@ func NewSubscriber(conn *nats.Conn, core *core.Core) *Subscriber {
 }
 
 func (s *Subscriber) Start(ctx context.Context) error {
-	_, err := s.conn.Subscribe(eventbus.EventTypeTaskAssigned, s.handleAssignTask)
+	_, err := s.conn.Subscribe(eventbus.EventTypeTaskCreated, s.handleTaskCreated)
+	if err != nil {
+		return err
+	}
+	_, err = s.conn.Subscribe(eventbus.EventTypeTaskAssigned, s.handleAssignTask)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.conn.Subscribe(eventbus.EventTypeTaskCompleted, s.handleTaskCompleted)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.conn.Subscribe(eventbus.EventTypeTaskDeleted, s.handleTaskDeleted)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.conn.Subscribe(eventbus.EventTypeTaskStatusChanged, s.handleTaskStatusChanged)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.conn.Subscribe(eventbus.EventTypeProjectCreated, s.handleProjectCreated)
+	if err != nil {
+		return err
+	}
+	_, err = s.conn.Subscribe(eventbus.EventTypeProjectUpdated, s.handleProjectUpdated)
+	if err != nil {
+		return err
+	}
+	_, err = s.conn.Subscribe(eventbus.EventTypeProjectMemberAdd, s.handleProjectMemberAdded)
+	if err != nil {
+		return err
+	}
+	_, err = s.conn.Subscribe(eventbus.EventTypeProjectMemberDel, s.handleProjectMemberRemoved)
 	if err != nil {
 		return err
 	}
 
 	log.Println("NATS subscriber started")
-	log.Printf("Subscribed to topics: %s", eventbus.EventTypeTaskAssigned)
+	log.Printf("Subscribed to topics: %s, %s, %s, %s, %s, %s, %s, %s, %s",
+		eventbus.EventTypeTaskCreated,
+		eventbus.EventTypeTaskAssigned,
+		eventbus.EventTypeTaskCompleted,
+		eventbus.EventTypeTaskDeleted,
+		eventbus.EventTypeTaskStatusChanged,
+		eventbus.EventTypeProjectCreated,
+		eventbus.EventTypeProjectUpdated,
+		eventbus.EventTypeProjectMemberAdd,
+		eventbus.EventTypeProjectMemberDel)
 
 	select {}
+}
+
+func (s *Subscriber) handleTaskCreated(msg *nats.Msg) {
+	log.Println("Started handleTaskCreated")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	taskEvent := &eventbus.TaskEvent{}
+	if err := json.Unmarshal(msg.Data, taskEvent); err != nil {
+		log.Printf("error unmarshaling data: %v", err)
+		return
+	}
+
+	if taskEvent.AssigneeID == nil {
+		log.Println("AssigneeID is nil, skipping")
+		return
+	}
+
+	err := s.core.UpdateEmployeeMetrics(ctx, *taskEvent.AssigneeID, func(m *analytics.EmployeeMetrics) {
+		m.AssignedTasks++
+		m.InProgressTasks++
+	})
+	if err != nil {
+		log.Printf("NATS ERROR updating employee metrics for new task: %v", err)
+	}
+
+	err = s.core.UpdateProjectMetrics(ctx, taskEvent.ProjectID, func(p *analytics.ProjectMetrics) {
+		p.TotalTasks++
+	})
+	if err != nil {
+		log.Printf("NATS ERROR updating project metrics for new task: %v", err)
+	}
+	log.Println("Completed handleTaskCreated")
+}
+
+func (s *Subscriber) handleTaskDeleted(msg *nats.Msg) {
+	log.Println("Started handleTaskDeleted")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	taskEvent := &eventbus.TaskEvent{}
+	if err := json.Unmarshal(msg.Data, taskEvent); err != nil {
+		log.Printf("error unmarshaling data: %v", err)
+		return
+	}
+
+	if taskEvent.AssigneeID == nil {
+		log.Println("AssigneeID is nil, skipping")
+		return
+	}
+
+	err := s.core.UpdateEmployeeMetrics(ctx, *taskEvent.AssigneeID, func(m *analytics.EmployeeMetrics) {
+		if m.AssignedTasks > 0 {
+			m.AssignedTasks--
+		}
+		if taskEvent.OldStatus == "IN_PROGRESS" {
+			m.InProgressTasks--
+		}
+	})
+	if err != nil {
+		log.Printf("NATS ERROR updating employee metrics for deleted task: %v", err)
+	}
+
+	err = s.core.UpdateProjectMetrics(ctx, taskEvent.ProjectID, func(p *analytics.ProjectMetrics) {
+		if p.TotalTasks > 0 {
+			p.TotalTasks--
+		}
+	})
+	if err != nil {
+		log.Printf("NATS ERROR updating project metrics for deleted task: %v", err)
+	}
+	log.Println("Completed handleTaskDeleted")
+}
+
+func (s *Subscriber) handleTaskStatusChanged(msg *nats.Msg) {
+	log.Println("Started handleTaskStatusChanged")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	taskEvent := &eventbus.TaskEvent{}
+	if err := json.Unmarshal(msg.Data, taskEvent); err != nil {
+		log.Printf("error unmarshaling data: %v", err)
+		return
+	}
+
+	if taskEvent.AssigneeID == nil {
+		log.Println("AssigneeID is nil, skipping")
+		return
+	}
+
+	err := s.core.UpdateEmployeeMetrics(ctx, *taskEvent.AssigneeID, func(m *analytics.EmployeeMetrics) {
+		switch taskEvent.OldStatus {
+		case "IN_PROGRESS":
+			m.InProgressTasks--
+		case "DONE":
+			m.CompletedTasks--
+		}
+
+		switch taskEvent.Status {
+		case "IN_PROGRESS":
+			m.InProgressTasks++
+		case "DONE":
+			m.CompletedTasks++
+			if m.InProgressTasks > 0 {
+				m.InProgressTasks--
+			}
+		}
+	})
+	if err != nil {
+		log.Printf("NATS ERROR updating employee metrics for status change: %v", err)
+	}
+
+	err = s.core.UpdateProjectMetrics(ctx, taskEvent.ProjectID, func(p *analytics.ProjectMetrics) {
+		switch taskEvent.OldStatus {
+		case "IN_PROGRESS":
+			p.InProgressTasks--
+		case "DONE":
+			p.CompletedTasks--
+			// This is a simplification. A more robust solution would check if the task was on time.
+			if p.OnTimeCompletedTasks > 0 {
+				p.OnTimeCompletedTasks--
+			}
+		}
+
+		switch taskEvent.Status {
+		case "IN_PROGRESS":
+			p.InProgressTasks++
+		case "DONE":
+			// This case is handled by handleTaskCompleted
+			return
+		}
+	})
+	if err != nil {
+		log.Printf("NATS ERROR updating project metrics for status change: %v", err)
+	}
+
+	log.Println("Completed handleTaskStatusChanged")
 }
 
 func (s *Subscriber) handleAssignTask(msg *nats.Msg) {
@@ -49,35 +231,32 @@ func (s *Subscriber) handleAssignTask(msg *nats.Msg) {
 		log.Printf("error unmarshaling data: %v", err)
 		return
 	}
-	if taskEvent.AssigneeID == nil {
-		log.Printf("AssigneeID is nil, skipping")
-		return
+
+	if taskEvent.PrevAssigneeID != nil {
+		err := s.core.UpdateEmployeeMetrics(ctx, *taskEvent.PrevAssigneeID, func(m *analytics.EmployeeMetrics) {
+			m.AssignedTasks--
+			if taskEvent.Status == "IN_PROGRESS" {
+				m.InProgressTasks--
+			}
+		})
+		if err != nil {
+			log.Printf("NATS ERROR updating metrics for previous assignee: %v", err)
+		}
 	}
-	metrics := &analytics.EmployeeMetrics{
-		EmployeeID:      *taskEvent.AssigneeID,
-		InProgressTasks: 1,
+
+	if taskEvent.AssigneeID != nil {
+		err = s.core.UpdateEmployeeMetrics(ctx, *taskEvent.AssigneeID, func(m *analytics.EmployeeMetrics) {
+			m.AssignedTasks++
+			if taskEvent.Status == "IN_PROGRESS" {
+				m.InProgressTasks++
+			}
+		})
+		if err != nil {
+			log.Printf("NATS ERROR updating employee metrics for new assignee: %v", err)
+			return
+		}
 	}
-	data, err := s.core.GetEmployeeMetrics(ctx, *taskEvent.AssigneeID)
-	if err != nil {
-		now := time.Now()
-		metrics.MetricDate = now
-		metrics.AssignedTasks = 1
-	} else {
-		metrics.AssignedTasks = data.AssignedTasks + 1
-		metrics.InProgressTasks = data.InProgressTasks + 1
-		metrics.CompletedTasks = data.CompletedTasks
-		metrics.OverdueTasks = data.OverdueTasks
-		metrics.OnTimeCompletionTask = data.OnTimeCompletionTask
-		metrics.TotalTaskDurationSeconds = data.TotalTaskDurationSeconds
-		metrics.CreatedAt = data.CreatedAt
-		metrics.ID = data.ID
-		metrics.MetricDate = data.MetricDate
-	}
-	err = s.core.SaveEmployeeMetrics(ctx, metrics)
-	if err != nil {
-		log.Printf("NATS ERROR saving employee :%v", err)
-		return
-	}
+	log.Println("Completed handleAssignTask")
 }
 
 func (s *Subscriber) handleTaskCompleted(msg *nats.Msg) {
@@ -91,53 +270,135 @@ func (s *Subscriber) handleTaskCompleted(msg *nats.Msg) {
 		log.Printf("error unmarshaling data %v", err)
 		return
 	}
-	metrics, err := s.core.GetEmployeeMetrics(ctx, *taskEvent.AssigneeID)
-	if err != nil {
-		log.Printf("error getting Employee metrics %v", err)
+	if taskEvent.AssigneeID == nil {
+		log.Printf("AssigneeID is nil, skipping")
+		return
 	}
-	metrics.AssignedTasks -= 1
-	metrics.InProgressTasks -= 1
-	metrics.CompletedTasks += 1
-	err = s.core.SaveEmployeeMetrics(ctx, metrics)
+	err = s.core.UpdateEmployeeMetrics(ctx, *taskEvent.AssigneeID, func(m *analytics.EmployeeMetrics) {
+		if m.InProgressTasks > 0 {
+			m.InProgressTasks--
+		}
+		m.CompletedTasks++
+
+		if taskEvent.DueDate != nil && taskEvent.CompletedAt != nil {
+			if taskEvent.CompletedAt.Before(*taskEvent.DueDate) || taskEvent.CompletedAt.Equal(*taskEvent.DueDate) {
+				m.OnTimeCompletionTask++
+			}
+		}
+
+		if taskEvent.StartedAt != nil && taskEvent.CompletedAt != nil {
+			duration := taskEvent.CompletedAt.Sub(*taskEvent.StartedAt)
+			m.TotalTaskDurationSeconds += int64(duration.Seconds())
+		}
+	})
 	if err != nil {
 		log.Printf("error handling tasks complete %v", err)
 	}
+
+	err = s.core.UpdateProjectMetrics(ctx, taskEvent.ProjectID, func(p *analytics.ProjectMetrics) {
+		if p.InProgressTasks > 0 {
+			p.InProgressTasks--
+		}
+		p.CompletedTasks++
+
+		if taskEvent.DueDate != nil && taskEvent.CompletedAt != nil {
+			if taskEvent.CompletedAt.Before(*taskEvent.DueDate) || taskEvent.CompletedAt.Equal(*taskEvent.DueDate) {
+				p.OnTimeCompletedTasks++
+			}
+		}
+
+		if taskEvent.StartedAt != nil && taskEvent.CompletedAt != nil {
+			duration := taskEvent.CompletedAt.Sub(*taskEvent.StartedAt)
+			p.TotalTaskDurationSecondsCompleted += int64(duration.Seconds())
+		}
+	})
+	if err != nil {
+		log.Printf("NATS ERROR updating project metrics for completed task: %v", err)
+	}
+
+	log.Println("Completed handleTaskCompleted")
 }
 
+func (s *Subscriber) handleProjectCreated(msg *nats.Msg) {
+	log.Println("Started handleProjectCreated")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 
+	projectEvent := &eventbus.ProjectEvent{}
+	if err := json.Unmarshal(msg.Data, projectEvent); err != nil {
+		log.Printf("error unmarshaling data: %v", err)
+		return
+	}
 
-// func (s *Subscriber) handleTaskCompleted(ctx context.Context, msg *nats.Msg) {
-// 	var event TaskCompletedEvent
-// 	if err := json.Unmarshal(msg.Data, &event); err != nil {
-// 		log.Printf("failed to unmarshal task completed event: %v", err)
-// 		return
-// 	}
+	err := s.core.UpdateProjectMetrics(ctx, projectEvent.ProjectID, func(p *analytics.ProjectMetrics) {
+		p.ManagerID = projectEvent.ManagerID
+	})
+	if err != nil {
+		log.Printf("NATS ERROR creating project metrics: %v", err)
+	}
+	log.Println("Completed handleProjectCreated")
+}
 
-// 	metrics, err := s.core.GetEmployeeMetrics(ctx, event.EmployeeID, time.Now().AddDate(0, 0, -1), time.Now())
-// 	if err != nil {
-// 		log.Printf("failed to get employee metrics: %v", err)
-// 		return
-// 	}
+func (s *Subscriber) handleProjectUpdated(msg *nats.Msg) {
+	log.Println("Started handleProjectUpdated")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 
-// 	if len(metrics) == 0 {
-// 		metrics = append(metrics, &analytics.EmployeeMetrics{
-// 			EmployeeID: event.EmployeeID,
-// 			MetricDate: time.Now(),
-// 		})
-// 	}
+	projectEvent := &eventbus.ProjectEvent{}
+	if err := json.Unmarshal(msg.Data, projectEvent); err != nil {
+		log.Printf("error unmarshaling data: %v", err)
+		return
+	}
 
-// 	metrics[0].TasksCompleted++
+	err := s.core.UpdateProjectMetrics(ctx, projectEvent.ProjectID, func(p *analytics.ProjectMetrics) {
+		if projectEvent.ManagerID != "" {
+			p.ManagerID = projectEvent.ManagerID
+		}
+	})
+	if err != nil {
+		log.Printf("NATS ERROR updating project metrics: %v", err)
+	}
+	log.Println("Completed handleProjectUpdated")
+}
 
-// 	onTimeRate := calculateOnTimeRate(event.Duration, 8.0)
-// 	if metrics[0].OnTimeCompletionRate == 0 {
-// 		metrics[0].OnTimeCompletionRate = onTimeRate
-// 	} else {
-// 		metrics[0].OnTimeCompletionRate = (metrics[0].OnTimeCompletionRate + onTimeRate) / 2
-// 	}
+func (s *Subscriber) handleProjectMemberAdded(msg *nats.Msg) {
+	log.Println("Started handleProjectMemberAdded")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 
-// 	metrics[0].EfficiencyScore = calculateEfficiencyScore(metrics[0])
+	projectEvent := &eventbus.ProjectEvent{}
+	if err := json.Unmarshal(msg.Data, projectEvent); err != nil {
+		log.Printf("error unmarshaling data: %v", err)
+		return
+	}
 
-// 	if err := s.core.SaveEmployeeMetrics(ctx, metrics[0]); err != nil {
-// 		log.Printf("failed to save employee metrics: %v", err)
-// 	}
-// }
+	err := s.core.UpdateProjectMetrics(ctx, projectEvent.ProjectID, func(p *analytics.ProjectMetrics) {
+		p.TeamSize++
+	})
+	if err != nil {
+		log.Printf("NATS ERROR updating project metrics for member add: %v", err)
+	}
+	log.Println("Completed handleProjectMemberAdded")
+}
+
+func (s *Subscriber) handleProjectMemberRemoved(msg *nats.Msg) {
+	log.Println("Started handleProjectMemberRemoved")
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	projectEvent := &eventbus.ProjectEvent{}
+	if err := json.Unmarshal(msg.Data, projectEvent); err != nil {
+		log.Printf("error unmarshaling data: %v", err)
+		return
+	}
+
+	err := s.core.UpdateProjectMetrics(ctx, projectEvent.ProjectID, func(p *analytics.ProjectMetrics) {
+		if p.TeamSize > 0 {
+			p.TeamSize--
+		}
+	})
+	if err != nil {
+		log.Printf("NATS ERROR updating project metrics for member remove: %v", err)
+	}
+	log.Println("Completed handleProjectMemberRemoved")
+}
