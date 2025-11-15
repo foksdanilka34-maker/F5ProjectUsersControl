@@ -286,6 +286,37 @@ paths:
       summary: Get dashboard statistics
       tags:
       - Analytics
+  /api/v1/analytics/dashboard/stream:
+    get:
+      parameters:
+      - description: Start of date range
+        in: query
+        name: start_date
+        type: string
+      - description: End of date range
+        in: query
+        name: end_date
+        type: string
+      - description: Refresh interval seconds (default 5)
+        in: query
+        name: interval_seconds
+        type: integer
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: Stream dashboard statistics
+      tags:
+      - Analytics
   /api/v1/analytics/employees/{id}/metrics:
     get:
       parameters:

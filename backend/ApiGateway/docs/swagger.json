@@ -66,6 +66,56 @@
                 }
             }
         },
+        "/api/v1/analytics/dashboard/stream": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "Analytics"
+                ],
+                "summary": "Stream dashboard statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start of date range",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End of date range",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Refresh interval seconds (default 5)",
+                        "name": "interval_seconds",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/analytics/employees/metrics": {
             "get": {
                 "security": [

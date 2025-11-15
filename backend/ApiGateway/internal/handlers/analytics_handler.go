@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -64,6 +67,79 @@ func (h *AnalyticsHandler) GetDashboardStats(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, stats, "Dashboard stats retrieved successfully")
+}
+
+// StreamDashboardStats streams dashboard stats via Server-Sent Events for the configured period.
+// @Summary      Stream dashboard statistics
+// @Tags         Analytics
+// @Security     ApiKeyAuth
+// @Produce      text/event-stream
+// @Param        start_date       query string false "Start of date range"
+// @Param        end_date         query string false "End of date range"
+// @Param        interval_seconds query int    false "Refresh interval seconds (default 5)"
+// @Success      200 {string} string "SSE stream"
+// @Failure      400 {object} response.Response
+// @Router       /api/v1/analytics/dashboard/stream [get]
+func (h *AnalyticsHandler) StreamDashboardStats(c *gin.Context) {
+	var query models.DashboardStatsQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		log.Printf("StreamDashboardStats bind error: %v", err)
+		response.BadRequest(c, "Invalid dashboard stats query: "+err.Error())
+		return
+	}
+
+	req := &analyticsv1.GetDashboardStatsRequest{}
+	start, end, err := parseDateRange(query.StartDate, query.EndDate)
+	if err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	req.StartDate = start
+	req.EndDate = end
+
+	interval := 5 * time.Second
+	if raw := strings.TrimSpace(c.Query("interval_seconds")); raw != "" {
+		if seconds, err := strconv.Atoi(raw); err == nil && seconds > 0 {
+			interval = time.Duration(seconds) * time.Second
+		}
+	}
+
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+
+	sendSnapshot := func(ctx context.Context) {
+		stats, err := h.analyticsService.GetDashboardStats(ctx, req)
+		if err != nil {
+			log.Printf("StreamDashboardStats service error: %v", err)
+			c.SSEvent("dashboard-stats", response.Response{
+				Success: false,
+				Error:   "Failed to fetch dashboard stats",
+			})
+			return
+		}
+
+		c.SSEvent("dashboard-stats", response.Response{
+			Success: true,
+			Message: "Dashboard stats update",
+			Data:    stats,
+		})
+	}
+
+	ctx := c.Request.Context()
+	sendSnapshot(ctx)
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	c.Stream(func(w io.Writer) bool {
+		select {
+		case <-ctx.Done():
+			return false
+		case <-ticker.C:
+			sendSnapshot(ctx)
+			return true
+		}
+	})
 }
 
 // GetEmployeeMetrics fetches metrics for a single employee.

@@ -211,6 +211,7 @@ func registerProjectRoutes(api *gin.RouterGroup, handler *handlers.ProjectHandle
 func registerAnalyticsRoutes(api *gin.RouterGroup, handler *handlers.AnalyticsHandler, jwtSecret string) {
 	analytics := withAuth(api.Group("/analytics"), jwtSecret, "director")
 	analytics.GET("/dashboard", handler.GetDashboardStats)
+	analytics.GET("/dashboard/stream", handler.StreamDashboardStats)
 	analytics.GET("/employees/metrics", handler.ListEmployeeMetrics)
 	analytics.GET("/employees/top-performers", handler.GetTopPerformers)
 	analytics.GET("/employees/:id/metrics", handler.GetEmployeeMetrics)
