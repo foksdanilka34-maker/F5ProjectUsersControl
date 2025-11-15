@@ -25,7 +25,7 @@ services:
     depends_on:
       auth_db: { condition: service_healthy }
     volumes:
-      - ./LoginService/migrations:/migrations
+      - ./backend/LoginService/migrations:/migrations
     command: >
       -path /migrations
       -database "postgres://${AUTH_DB_USER}:${AUTH_DB_PASSWORD}@auth_db:5432/${AUTH_DB}?sslmode=disable"
@@ -58,7 +58,7 @@ services:
       depends_on:
         employee_db: { condition: service_healthy }
       volumes:
-        - ./EmployeeService/migrations:/migrations
+        - ./backend/EmployeeService/migrations:/migrations
       command: >
         -path /migrations
         -database "postgres://${EMPL_DB_USER}:${EMPL_DB_PASSWORD}@employee_db:5432/${EMPL_DB}?sslmode=disable"
@@ -123,7 +123,7 @@ services:
     depends_on:
       project_db: { condition: service_healthy }
     volumes:
-      - ./ProjectService/migrations:/migrations
+      - ./backend/ProjectService/migrations:/migrations
     command: >
       -path /migrations
       -database "postgres://${PROJECT_DB_USER}:${PROJECT_DB_PASSWORD}@project_db:5432/${PROJECT_DB}?sslmode=disable"
@@ -167,7 +167,7 @@ services:
     depends_on:
       analytics_db: { condition: service_healthy }
     volumes:
-      - ./AnalyticsService/migrations:/migrations
+      - ./backend/AnalyticsService/migrations:/migrations
     command: >
       -path /migrations
       -database "postgres://${ANALYTICS_DB_USER}:${ANALYTICS_DB_PASSWORD}@analytics_db:5432/${ANALYTICS_DB}?sslmode=disable"
