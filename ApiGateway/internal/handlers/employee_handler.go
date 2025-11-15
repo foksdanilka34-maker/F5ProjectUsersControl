@@ -3,7 +3,6 @@ package handlers
 import (
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ApiGateway/internal/middleware"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ApiGateway/internal/models"
@@ -24,7 +23,17 @@ func NewEmployeeHandler(employeeService *service.EmployeeServiceClient) *Employe
 	}
 }
 
-// Profile handlers
+// CreateProfile creates a new employee profile and returns the created record.
+// @Summary      Create employee profile
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        profile body models.CreateProfileRequest true "Profile payload"
+// @Success      201  {object} response.Response
+// @Failure      400  {object} response.Response
+// @Failure      500  {object} response.Response
+// @Router       /api/v1/employees/profiles [post]
 func (h *EmployeeHandler) CreateProfile(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	log.Printf("Admin %s creating new profile", adminID)
@@ -62,6 +71,16 @@ func (h *EmployeeHandler) CreateProfile(c *gin.Context) {
 	response.Created(c, profile, "Profile created successfully")
 }
 
+// GetProfile returns a profile by its ID.
+// @Summary      Get employee profile
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id path string true "Profile ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      404 {object} response.Response
+// @Router       /api/v1/employees/profiles/{id} [get]
 func (h *EmployeeHandler) GetProfile(c *gin.Context) {
 	userID := c.Param("id")
 	if userID == "" {
@@ -81,6 +100,19 @@ func (h *EmployeeHandler) GetProfile(c *gin.Context) {
 	response.Success(c, http.StatusOK, profile, "Profile retrieved successfully")
 }
 
+// ListProfiles returns paginated employee profiles with optional filtering.
+// @Summary      List employee profiles
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        page_size   query int false "Page size"
+// @Param        page_number query int false "Page number"
+// @Param        department_id query string false "Department filter"
+// @Param        position_id query string false "Position filter"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/profiles [get]
 func (h *EmployeeHandler) ListProfiles(c *gin.Context) {
 	var req models.ListProfilesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -111,9 +143,22 @@ func (h *EmployeeHandler) ListProfiles(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, profiles, "Profiles retrieved successfully")
+	meta := response.PaginationMeta{PageSize: req.PageSize, PageNumber: req.PageNumber}
+	response.Paginated(c, http.StatusOK, profiles, meta, "Profiles retrieved successfully")
 }
 
+// UpdateProfile applies partial updates to an existing profile.
+// @Summary      Update employee profile
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        id      path string true "Profile ID"
+// @Param        profile body models.UpdateProfileRequest true "Profile updates"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/profiles/{id} [patch]
 func (h *EmployeeHandler) UpdateProfile(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	userID := c.Param("id")
@@ -165,6 +210,18 @@ func (h *EmployeeHandler) UpdateProfile(c *gin.Context) {
 	response.Success(c, http.StatusOK, profile, "Profile updated successfully")
 }
 
+// ChangeUserStatus toggles the status of an employee profile.
+// @Summary      Change user status
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Profile ID"
+// @Param        status body models.ChangeUserStatusRequest true "Status payload"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/profiles/{id}/status [patch]
 func (h *EmployeeHandler) ChangeUserStatus(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	userID := c.Param("id")
@@ -198,6 +255,17 @@ func (h *EmployeeHandler) ChangeUserStatus(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "User status changed successfully")
 }
 
+// CreateDepartment adds a new department record.
+// @Summary      Create department
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        department body models.CreateDepartmentRequest true "Department payload"
+// @Success      201 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/departments [post]
 func (h *EmployeeHandler) CreateDepartment(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	log.Printf("Admin %s creating new department", adminID)
@@ -220,6 +288,16 @@ func (h *EmployeeHandler) CreateDepartment(c *gin.Context) {
 	response.Created(c, department, "Department created successfully")
 }
 
+// GetDepartment retrieves a department by ID.
+// @Summary      Get department
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id path string true "Department ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      404 {object} response.Response
+// @Router       /api/v1/employees/departments/{id} [get]
 func (h *EmployeeHandler) GetDepartment(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -239,6 +317,14 @@ func (h *EmployeeHandler) GetDepartment(c *gin.Context) {
 	response.Success(c, http.StatusOK, department, "Department retrieved successfully")
 }
 
+// ListDepartments returns all departments.
+// @Summary      List departments
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Success      200 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/departments [get]
 func (h *EmployeeHandler) ListDepartments(c *gin.Context) {
 	log.Printf("Listing all departments")
 
@@ -252,6 +338,18 @@ func (h *EmployeeHandler) ListDepartments(c *gin.Context) {
 	response.Success(c, http.StatusOK, departments, "Departments retrieved successfully")
 }
 
+// UpdateDepartment renames an existing department.
+// @Summary      Update department
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Department ID"
+// @Param        department body models.UpdateDepartmentRequest true "Department payload"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/departments/{id} [put]
 func (h *EmployeeHandler) UpdateDepartment(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	id := c.Param("id")
@@ -280,6 +378,16 @@ func (h *EmployeeHandler) UpdateDepartment(c *gin.Context) {
 	response.Success(c, http.StatusOK, department, "Department updated successfully")
 }
 
+// DeleteDepartment removes a department by ID.
+// @Summary      Delete department
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id path string true "Department ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/departments/{id} [delete]
 func (h *EmployeeHandler) DeleteDepartment(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	id := c.Param("id")
@@ -301,6 +409,17 @@ func (h *EmployeeHandler) DeleteDepartment(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Department deleted successfully")
 }
 
+// CreatePosition adds a new position.
+// @Summary      Create position
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        position body models.CreatePositionRequest true "Position payload"
+// @Success      201 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/positions [post]
 func (h *EmployeeHandler) CreatePosition(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	log.Printf("Admin %s creating new position", adminID)
@@ -323,6 +442,16 @@ func (h *EmployeeHandler) CreatePosition(c *gin.Context) {
 	response.Created(c, position, "Position created successfully")
 }
 
+// GetPosition retrieves a position by ID.
+// @Summary      Get position
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id path string true "Position ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      404 {object} response.Response
+// @Router       /api/v1/employees/positions/{id} [get]
 func (h *EmployeeHandler) GetPosition(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -342,6 +471,14 @@ func (h *EmployeeHandler) GetPosition(c *gin.Context) {
 	response.Success(c, http.StatusOK, position, "Position retrieved successfully")
 }
 
+// ListPositions returns all available positions.
+// @Summary      List positions
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Success      200 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/positions [get]
 func (h *EmployeeHandler) ListPositions(c *gin.Context) {
 	log.Printf("Listing all positions")
 
@@ -355,6 +492,18 @@ func (h *EmployeeHandler) ListPositions(c *gin.Context) {
 	response.Success(c, http.StatusOK, positions, "Positions retrieved successfully")
 }
 
+// UpdatePosition renames an existing position.
+// @Summary      Update position
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Position ID"
+// @Param        position body models.UpdatePositionRequest true "Position payload"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/positions/{id} [put]
 func (h *EmployeeHandler) UpdatePosition(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	id := c.Param("id")
@@ -383,6 +532,16 @@ func (h *EmployeeHandler) UpdatePosition(c *gin.Context) {
 	response.Success(c, http.StatusOK, position, "Position updated successfully")
 }
 
+// DeletePosition removes a position by ID.
+// @Summary      Delete position
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id path string true "Position ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/positions/{id} [delete]
 func (h *EmployeeHandler) DeletePosition(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	id := c.Param("id")
@@ -404,6 +563,17 @@ func (h *EmployeeHandler) DeletePosition(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Position deleted successfully")
 }
 
+// CreateSkill registers a new skill dimension.
+// @Summary      Create skill
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        skill body models.CreateSkillRequest true "Skill payload"
+// @Success      201 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/skills [post]
 func (h *EmployeeHandler) CreateSkill(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	log.Printf("Admin %s creating new skill", adminID)
@@ -426,6 +596,14 @@ func (h *EmployeeHandler) CreateSkill(c *gin.Context) {
 	response.Created(c, skill, "Skill created successfully")
 }
 
+// ListSkills returns all available skills.
+// @Summary      List skills
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Success      200 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/skills [get]
 func (h *EmployeeHandler) ListSkills(c *gin.Context) {
 	log.Printf("Listing all skills")
 
@@ -439,6 +617,18 @@ func (h *EmployeeHandler) ListSkills(c *gin.Context) {
 	response.Success(c, http.StatusOK, skills, "Skills retrieved successfully")
 }
 
+// AddSkillToEmployee attaches a skill to an employee profile.
+// @Summary      Add skill to employee
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        id path string true "Profile ID"
+// @Param        skill body models.AddSkillToEmployeeRequest true "Skill payload"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/profiles/{id}/skills [post]
 func (h *EmployeeHandler) AddSkillToEmployee(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	employeeID := c.Param("id")
@@ -467,6 +657,17 @@ func (h *EmployeeHandler) AddSkillToEmployee(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Skill added to employee successfully")
 }
 
+// RemoveSkillFromEmployee removes a skill from an employee profile.
+// @Summary      Remove skill from employee
+// @Tags         Employees
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id path string true "Profile ID"
+// @Param        skillId path string true "Skill ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/employees/profiles/{id}/skills/{skillId} [delete]
 func (h *EmployeeHandler) RemoveSkillFromEmployee(c *gin.Context) {
 	adminID := middleware.GetUserIDFromContext(c)
 	employeeID := c.Param("id")
@@ -488,12 +689,4 @@ func (h *EmployeeHandler) RemoveSkillFromEmployee(c *gin.Context) {
 
 	log.Printf("Skill removed from employee successfully: employeeID=%s, skillID=%s", employeeID, skillID)
 	response.Success(c, http.StatusOK, nil, "Skill removed from employee successfully")
-}
-
-func parseInt32(s string) (int32, error) {
-	i, err := strconv.ParseInt(s, 10, 32)
-	if err != nil {
-		return 0, err
-	}
-	return int32(i), nil
 }

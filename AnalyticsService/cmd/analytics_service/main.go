@@ -8,14 +8,15 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/cache"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/client/nats"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/core"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/repo"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/server"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/client/nats"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/storage"
 
 	"github.com/joho/godotenv"
-	natsv1 "github.com/nats-io/nats.go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -41,11 +42,12 @@ func main() {
 	}
 
 	listenAddr := storage.GetEnv("GRPC_ANALYTICS_LISTEN_ADDR", "0.0.0.0:50054")
-	natsURL := storage.GetEnv("NATS_URL", "nats://localhost:4222")
+	natsConfig := storage.NatsConfig{
+		URL: storage.GetEnv("NATS_URL", "nats://localhost:4222"),
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 
 	pgPool, err := storage.NewPostgresPool(ctx, pgConfig)
 	if err != nil {
@@ -61,18 +63,28 @@ func main() {
 	defer redisClient.Close()
 	log.Println("Redis connected")
 
-	natsConn, err := natsv1.Connect(natsURL)
+	cacheLayer := cache.NewRedisCache(redisClient)
+
+	storageLayer := repo.NewStorage(pgPool)
+
+	analyticsCore := core.NewCore(storageLayer, cacheLayer)
+
+	natsClient, err := storage.NewNATSConnection(natsConfig)
 	if err != nil {
 		log.Printf("nats connection error: %v (optional, continuing without NATS)", err)
 	} else {
-		defer natsConn.Close()
+		defer natsClient.Close()
+		if err := eventbus.EnsureJetStreamStreams(natsClient.JS); err != nil {
+			log.Printf("warning: failed to ensure JetStream streams: %v", err)
+		}
 		log.Println("NATS connected")
+		subscriber := nats.NewSubscriber(natsClient.JS, analyticsCore)
+		go func() {
+			if err := subscriber.Start(ctx); err != nil {
+				log.Printf("failed to start NATS subscriber: %v", err)
+			}
+		}()
 	}
-
-	storageLayer := repo.NewStorage(pgPool)
-	// cacheLayer := repo.NewRedisCache(redisClient)
-
-	analyticsCore := core.NewCore(storageLayer)
 	grpcServerImpl := server.NewAnalyticsServer(analyticsCore)
 
 	lis, err := net.Listen("tcp", listenAddr)
@@ -92,13 +104,6 @@ func main() {
 			log.Fatalf("failed to serve gRPC: %v", err)
 		}
 	}()
-
-	if natsConn != nil {
-		subscriber := nats.NewSubscriber(natsConn, analyticsCore)
-		if err := subscriber.Start(ctx); err != nil {
-			log.Printf("failed to start NATS subscriber: %v", err)
-		}
-	}
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)

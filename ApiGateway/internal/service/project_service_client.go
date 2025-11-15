@@ -2,13 +2,10 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"time"
 
 	projectpb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/project_service"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 type ProjectServiceClient struct {
@@ -17,23 +14,7 @@ type ProjectServiceClient struct {
 }
 
 func NewProjectServiceClient(host, port string) *ProjectServiceClient {
-	address := fmt.Sprintf("%s:%s", host, port)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	conn, err := grpc.DialContext(
-		ctx,
-		address,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
-	if err != nil {
-		log.Fatalf("Failed to connect to project service at %s: %v", address, err)
-	}
-
-	log.Printf("Successfully connected to project service at %s", address)
-
+	conn := dialGRPC("project service", host, port, 10*time.Second)
 	return &ProjectServiceClient{
 		conn:   conn,
 		client: projectpb.NewProjectServiceClient(conn),

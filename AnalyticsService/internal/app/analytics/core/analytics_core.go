@@ -2,22 +2,33 @@ package core
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"math"
 	"sync"
 	"time"
 
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/cache"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics/repo"
 )
 
 type Core struct {
 	storage *repo.Storage
+	cache   cache.Cache
 	mx      *sync.RWMutex
 }
 
-func NewCore(storage *repo.Storage) *Core {
+const (
+	employeeKeyFmt = "metrics:employee:%s"
+	projectKeyFmt  = "metrics:project:%s"
+	cacheTTL       = 15 * time.Minute
+)
+
+func NewCore(storage *repo.Storage, cacheLayer cache.Cache) *Core {
 	return &Core{
 		storage: storage,
+		cache:   cacheLayer,
 		mx:      &sync.RWMutex{},
 	}
 }
@@ -26,6 +37,14 @@ type CoreLogic interface {
 	GetEmployeeMetrics(ctx context.Context, emplID string) (*analytics.EmployeeMetrics, error)
 	SaveEmployeeMetrics(ctx context.Context, metrics *analytics.EmployeeMetrics) error
 	UpdateEmployeeMetrics(ctx context.Context, emplID string, updateFunc func(*analytics.EmployeeMetrics)) error
+	GetProjectMetrics(ctx context.Context, projectID string) (*analytics.ProjectMetrics, error)
+	UpdateProjectMetrics(ctx context.Context, projectID string, updateFunc func(*analytics.ProjectMetrics)) error
+	ListEmployeeMetrics(ctx context.Context, req *analytics.ListEmployeeMetrics) ([]*analytics.EmployeeMetrics, int32, error)
+	GetTopPerformers(ctx context.Context, limit int32, startDate, endDate *time.Time) ([]*analytics.EmployeeMetrics, error)
+	ListProjectMetrics(ctx context.Context, req *analytics.ListProjectMetrics) ([]*analytics.ProjectMetrics, int32, error)
+	GetProductivityTrends(ctx context.Context, req *analytics.ProductivityTrends) (*analytics.ProductivityTrendsResp, error)
+	GetCompletionRateTrends(ctx context.Context, req *analytics.ComletionRateTrends) (*analytics.CompletionRateTrendResp, error)
+	GetDashboardStats(ctx context.Context, startDate, endDate *time.Time) (*analytics.DashboardStats, error)
 }
 
 func calculateScores(metrics *analytics.EmployeeMetrics) {
@@ -60,11 +79,28 @@ func calculateScores(metrics *analytics.EmployeeMetrics) {
 }
 
 func (c *Core) GetEmployeeMetrics(ctx context.Context, emplID string) (*analytics.EmployeeMetrics, error) {
+	cacheKey := fmt.Sprintf(employeeKeyFmt, emplID)
+	if c.cache != nil {
+		cached := &analytics.EmployeeMetrics{}
+		found, err := c.cache.Get(ctx, cacheKey, cached)
+		if err != nil {
+			log.Printf("employee metrics cache get failed for %s: %v", emplID, err)
+		} else if found {
+			return cached, nil
+		}
+	}
+
 	metrics, err := c.storage.GetEmployeeMetrics(ctx, nil, emplID)
 	if err != nil {
 		return nil, err
 	}
 	calculateScores(metrics)
+
+	if c.cache != nil {
+		if err := c.cache.Set(ctx, cacheKey, metrics, cacheTTL); err != nil {
+			log.Printf("employee metrics cache set failed for %s: %v", emplID, err)
+		}
+	}
 
 	return metrics, nil
 }
@@ -95,7 +131,19 @@ func (c *Core) UpdateEmployeeMetrics(ctx context.Context, emplID string, updateF
 		return err
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	if c.cache != nil {
+		cacheKey := fmt.Sprintf(employeeKeyFmt, emplID)
+		calculateScores(metrics)
+		if err := c.cache.Set(ctx, cacheKey, metrics, cacheTTL); err != nil {
+			log.Printf("employee metrics cache refresh failed for %s: %v", emplID, err)
+		}
+	}
+
+	return nil
 }
 
 func calculateProjectScores(metrics *analytics.ProjectMetrics) {
@@ -128,11 +176,28 @@ func calculateProjectScores(metrics *analytics.ProjectMetrics) {
 }
 
 func (c *Core) GetProjectMetrics(ctx context.Context, projectID string) (*analytics.ProjectMetrics, error) {
+	cacheKey := fmt.Sprintf(projectKeyFmt, projectID)
+	if c.cache != nil {
+		cached := &analytics.ProjectMetrics{}
+		found, err := c.cache.Get(ctx, cacheKey, cached)
+		if err != nil {
+			log.Printf("project metrics cache get failed for %s: %v", projectID, err)
+		} else if found {
+			return cached, nil
+		}
+	}
+
 	metrics, err := c.storage.GetProjectMetrics(ctx, nil, projectID)
 	if err != nil {
 		return nil, err
 	}
 	calculateProjectScores(metrics)
+
+	if c.cache != nil {
+		if err := c.cache.Set(ctx, cacheKey, metrics, cacheTTL); err != nil {
+			log.Printf("project metrics cache set failed for %s: %v", projectID, err)
+		}
+	}
 	return metrics, nil
 }
 
@@ -158,49 +223,99 @@ func (c *Core) UpdateProjectMetrics(ctx context.Context, projectID string, updat
 		return err
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	if c.cache != nil {
+		cacheKey := fmt.Sprintf(projectKeyFmt, projectID)
+		calculateProjectScores(metrics)
+		if err := c.cache.Set(ctx, cacheKey, metrics, cacheTTL); err != nil {
+			log.Printf("project metrics cache refresh failed for %s: %v", projectID, err)
+		}
+	}
+
+	return nil
 }
 
-// func (c *Core) ListEmployeeMetrics(ctx context.Context, pageSize, pageNumber int32, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, int32, error) {
-// 	return c.storage.ListEmployeeMetrics(ctx, pageSize, pageNumber, departmentID, startDate, endDate)
-// }
+func (c *Core) ListEmployeeMetrics(ctx context.Context, req *analytics.ListEmployeeMetrics) ([]*analytics.EmployeeMetrics, int32, error) {
+	metrics, total, err := c.storage.ListEmployeeMetrics(ctx, req)
+	if err != nil {
+		return nil, 0, err
+	}
 
-// func (c *Core) GetTopPerformers(ctx context.Context, limit int32, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, error) {
-// 	return c.storage.GetTopPerformers(ctx, limit, departmentID, startDate, endDate)
-// }
+	for _, m := range metrics {
+		calculateScores(m)
+	}
 
-// func (c *Core) GetProjectMetrics(ctx context.Context, projectID string, startDate, endDate time.Time) ([]*analytics.ProjectMetrics, error) {
-// 	return c.storage.GetProjectMetrics(ctx, projectID, startDate, endDate)
-// }
+	return metrics, total, nil
+}
 
-// func (c *Core) ListProjectMetrics(ctx context.Context, pageSize, pageNumber int32, managerID string, startDate, endDate time.Time) ([]*analytics.ProjectMetrics, int32, error) {
-// 	return c.storage.ListProjectMetrics(ctx, pageSize, pageNumber, managerID, startDate, endDate)
-// }
+func (c *Core) GetTopPerformers(ctx context.Context, limit int32, startDate, endDate *time.Time) ([]*analytics.EmployeeMetrics, error) {
+	metrics, err := c.storage.GetTopPerformers(ctx, limit, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
 
-// func (c *Core) SaveProjectMetrics(ctx context.Context, metrics *analytics.ProjectMetrics) error {
-// 	c.mu.Lock()
-// 	defer c.mu.Unlock()
+	for _, m := range metrics {
+		calculateScores(m)
+	}
 
-// 	if err := c.storage.SaveProjectMetrics(ctx, metrics); err != nil {
-// 		return err
-// 	}
+	return metrics, nil
+}
 
-// 	ttl := time.Hour * 24
-// 	if err := c.cache.SetProjectMetricsCache(ctx, metrics, ttl); err != nil {
-// 		log.Printf("failed to cache project metrics: %v", err)
-// 	}
+func (c *Core) ListProjectMetrics(ctx context.Context, req *analytics.ListProjectMetrics) ([]*analytics.ProjectMetrics, int32, error) {
+	metrics, total, err := c.storage.ListProjectMetrics(ctx, req)
+	if err != nil {
+		return nil, 0, err
+	}
 
-// 	return nil
-// }
+	for _, m := range metrics {
+		calculateProjectScores(m)
+	}
 
-// func (c *Core) CalculateProductivityTrends(ctx context.Context, period string, limit int32, departmentID, employeeID string) ([]map[string]any, error) {
-// 	return c.storage.CalculateProductivityTrends(ctx, period, limit, departmentID, employeeID)
-// }
+	return metrics, total, nil
+}
 
-// func (c *Core) CalculateCompletionRateTrends(ctx context.Context, period string, limit int32, projectID, departmentID string) ([]map[string]any, error) {
-// 	return c.storage.CalculateCompletionRateTrends(ctx, period, limit, projectID, departmentID)
-// }
+func (c *Core) GetProductivityTrends(ctx context.Context, req *analytics.ProductivityTrends) (*analytics.ProductivityTrendsResp, error) {
+	trends, err := c.storage.GetProductivityTrends(ctx, req)
+	if err != nil {
+		return nil, err
+	}
 
-// func (c *Core) GetDashboardStats(ctx context.Context, startDate, endDate time.Time) (map[string]any, error) {
-// 	return c.storage.GetDashboardStats(ctx, startDate, endDate)
-// }
+	result := make([]analytics.ProductivityTrend, len(trends))
+	for i, t := range trends {
+		result[i] = *t
+	}
+
+	return &analytics.ProductivityTrendsResp{
+		Prod:   result,
+		Period: req.Period,
+	}, nil
+}
+
+func (c *Core) GetCompletionRateTrends(ctx context.Context, req *analytics.ComletionRateTrends) (*analytics.CompletionRateTrendResp, error) {
+	trends, err := c.storage.GetCompletionRateTrends(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]analytics.CompletionRateTrend, len(trends))
+	for i, t := range trends {
+		result[i] = *t
+	}
+
+	return &analytics.CompletionRateTrendResp{
+		CompTrend: result,
+		Period:    req.Period,
+	}, nil
+}
+
+func (c *Core) GetDashboardStats(ctx context.Context, startDate, endDate *time.Time) (*analytics.DashboardStats, error) {
+	stats, err := c.storage.GetDashboardStats(ctx, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}

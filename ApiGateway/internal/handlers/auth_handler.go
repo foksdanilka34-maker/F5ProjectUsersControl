@@ -32,6 +32,16 @@ func NewAuthHandler(loginService *service.LoginServiceClient, cfg *config.Config
 	}
 }
 
+// Login authenticates a user and issues access and refresh tokens.
+// @Summary      Authenticate user
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        login body models.LoginRequest true "Login credentials"
+// @Success      200  {object} response.Response{data=response.LoginResponse}
+// @Failure      400  {object} response.Response
+// @Failure      401  {object} response.Response
+// @Router       /api/v1/auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req models.LoginRequest
 
@@ -66,6 +76,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	response.Success(c, http.StatusOK, data, "Login successful")
 }
 
+// Logout revokes the refresh token stored in cookies or headers.
+// @Summary      Logout current user
+// @Tags         Auth
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        Authorization header string false "Bearer token"
+// @Param        X-Refresh-Token header string false "Refresh token"
+// @Success      200  {object} response.Response
+// @Failure      400  {object} response.Response
+// @Failure      401  {object} response.Response
+// @Router       /api/v1/auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 
@@ -90,6 +111,18 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Logout successful")
 }
 
+// Refresh returns a new access token when provided with a valid refresh token.
+// @Summary      Refresh access token
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        refresh_token body models.RefreshTokenRequest false "Refresh token"
+// @Param        Authorization header string false "Bearer token"
+// @Param        X-Refresh-Token header string false "Refresh token"
+// @Success      200  {object} response.Response{data=response.RefreshResponse}
+// @Failure      400  {object} response.Response
+// @Failure      401  {object} response.Response
+// @Router       /api/v1/auth/refresh [post]
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	log.Printf("Refresh attempt")
 

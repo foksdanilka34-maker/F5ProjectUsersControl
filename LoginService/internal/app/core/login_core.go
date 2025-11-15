@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
+	appmodel "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app"
 	credential "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/auth"
 	session "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/session"
 )
@@ -15,6 +15,7 @@ type loginCore struct {
 	sessionStorage    session.SessionStorage
 	credentialStorage credential.CredentialStorage
 	authenticator     session.Authenticator
+	credentialCache   *ttlCache[appmodel.Credential]
 }
 
 type CoreLogic interface {
@@ -26,19 +27,28 @@ type CoreLogic interface {
 	ChangePassword(ctx context.Context, userID, newPassword string) error
 }
 
+const credentialCacheTTL = time.Minute
+
 func NewCore(credsStorage credential.CredentialStorage, sessStorage session.SessionStorage, auth session.Authenticator) *loginCore {
 	return &loginCore{
 		credentialStorage: credsStorage,
 		sessionStorage:    sessStorage,
 		authenticator:     auth,
+		credentialCache:   newTTLCache[appmodel.Credential](credentialCacheTTL),
 	}
 }
 
 func (l *loginCore) Login(ctx context.Context, login, password, userAgent, ipAddress string) (accessToken, refreshToken string, err error) {
 	log.Printf("Login called: login=%s, userAgent=%s, ipAddress=%s", login, userAgent, ipAddress)
-	checkUser, err := l.credentialStorage.GetCrendentialsByUser(ctx, login)
-	if err != nil {
-		return "", "", err
+	var checkUser *appmodel.Credential
+	if cached, ok := l.credentialCache.Get(login); ok {
+		checkUser = cached
+	} else {
+		checkUser, err = l.credentialStorage.GetCrendentialsByUser(ctx, login)
+		if err != nil {
+			return "", "", err
+		}
+		l.credentialCache.Set(login, checkUser)
 	}
 	passwordCheck := l.authenticator.CheckPasswordHash(password, checkUser.Password)
 	if passwordCheck != nil {
@@ -49,12 +59,12 @@ func (l *loginCore) Login(ctx context.Context, login, password, userAgent, ipAdd
 		return "", "", err
 	}
 	hashedRefToken := l.authenticator.HashRefreshToken(refToken)
-	refreshSes := &auth.RefreshSession{
+	refreshSes := &appmodel.RefreshSession{
 		UserID:       checkUser.UserID,
 		RefreshToken: hashedRefToken,
 		UserAgent:    userAgent,
 		IPAddress:    ipAddress,
-		ExpiresAt:    time.Now().Add(auth.RefreshTokenLifetime),
+		ExpiresAt:    time.Now().Add(appmodel.RefreshTokenLifetime),
 	}
 	err = l.sessionStorage.CreateSession(ctx, refreshSes)
 	if err != nil {
@@ -104,7 +114,7 @@ func (l *loginCore) Refresh(ctx context.Context, oldRefreshToken, userAgent, ipA
 		return "", "", err
 	}
 	newHashToken := l.authenticator.HashRefreshToken(refToken)
-	_, err = l.sessionStorage.UpdateSession(ctx, oldTokenHash, newHashToken, time.Now().Add(auth.RefreshTokenLifetime))
+	_, err = l.sessionStorage.UpdateSession(ctx, oldTokenHash, newHashToken, time.Now().Add(appmodel.RefreshTokenLifetime))
 	if err != nil {
 		log.Printf("error during updating session: %v", err)
 		return "", "", err
@@ -120,7 +130,7 @@ func (l *loginCore) CreateCredentials(ctx context.Context, userID, login, passwo
 		log.Printf("error hashing password: %v", err)
 		return err
 	}
-	credential := &auth.Credential{
+	credential := &appmodel.Credential{
 		UserID:   userID,
 		Login:    login,
 		Password: hashedPassword,
@@ -131,16 +141,25 @@ func (l *loginCore) CreateCredentials(ctx context.Context, userID, login, passwo
 		log.Printf("error creating credentials: %v", err)
 		return err
 	}
+	l.credentialCache.Set(login, credential)
 	log.Printf("CreateCredentials successful: userID=%s, login=%s", userID, login)
 	return nil
 }
 
 func (l *loginCore) ChangeUserStatus(ctx context.Context, userID string, isActive bool) error {
 	log.Printf("ChangeUserStatus called: userID=%s, isActive=%t", userID, isActive)
-	err := l.credentialStorage.ChangeUserStatus(ctx, userID, isActive)
+	cred, err := l.credentialStorage.GetCrendentialsByID(ctx, userID)
+	if err != nil {
+		log.Printf("error fetching credentials for cache invalidation: %v", err)
+	}
+	err = l.credentialStorage.ChangeUserStatus(ctx, userID, isActive)
 	if err != nil {
 		log.Printf("error changing user status: %v", err)
 		return err
+	}
+	if cred != nil {
+		cred.IsActive = isActive
+		l.credentialCache.Set(cred.Login, cred)
 	}
 	log.Printf("ChangeUserStatus successful: userID=%s, isActive=%t", userID, isActive)
 	return nil
@@ -148,6 +167,10 @@ func (l *loginCore) ChangeUserStatus(ctx context.Context, userID string, isActiv
 
 func (l *loginCore) ChangePassword(ctx context.Context, userID, newPassword string) error {
 	log.Printf("ChangePassword called: userID=%s", userID)
+	cred, err := l.credentialStorage.GetCrendentialsByID(ctx, userID)
+	if err != nil {
+		log.Printf("error fetching credentials for cache invalidation: %v", err)
+	}
 	hashedPassword, err := l.authenticator.HashPassword(newPassword)
 	if err != nil {
 		log.Printf("error hashing password: %v", err)
@@ -157,6 +180,10 @@ func (l *loginCore) ChangePassword(ctx context.Context, userID, newPassword stri
 	if err != nil {
 		log.Printf("error updating password: %v", err)
 		return err
+	}
+	if cred != nil {
+		cred.Password = hashedPassword
+		l.credentialCache.Set(cred.Login, cred)
 	}
 	log.Printf("ChangePassword successful: userID=%s", userID)
 	return nil

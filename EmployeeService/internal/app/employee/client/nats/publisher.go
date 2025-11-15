@@ -11,7 +11,7 @@ import (
 )
 
 type Publisher struct {
-	conn *nats.Conn
+	js nats.JetStreamContext
 }
 
 type DeactivareUserCommand struct {
@@ -25,9 +25,9 @@ type EmployeeEvent struct {
 	PhotoURL *string `json:"photo_url,omitempty"`
 }
 
-func NewPublisher(conn *nats.Conn) *Publisher {
+func NewPublisher(js nats.JetStreamContext) *Publisher {
 	return &Publisher{
-		conn: conn,
+		js: js,
 	}
 }
 
@@ -42,13 +42,7 @@ func (p *Publisher) PublishDeactivateUserCommand(ctx context.Context, userID str
 		return fmt.Errorf("fail in marshal deactiv command %v", err)
 	}
 
-	msg := &nats.Msg{
-		Subject: eventbus.LoginDeactivateUserCommandTopic,
-		Data:    payload,
-	}
-
-	if err := p.conn.PublishMsg(msg); err != nil {
-		log.Printf("NATS: error publishing deactivate command: %v", err)
+	if err := p.publish(eventbus.LoginDeactivateUserCommandTopic, payload); err != nil {
 		return fmt.Errorf("error publishing deactivate command %v", err)
 	}
 
@@ -67,13 +61,7 @@ func (p *Publisher) PublishEmployeeCreated(ctx context.Context, userID, fullName
 		return fmt.Errorf("failed to marshal employee created event: %v", err)
 	}
 
-	msg := &nats.Msg{
-		Subject: eventbus.EmployeeCreatedEventTopic,
-		Data:    payload,
-	}
-
-	if err := p.conn.PublishMsg(msg); err != nil {
-		log.Printf("NATS: error publishing employee created event: %v", err)
+	if err := p.publish(eventbus.EmployeeCreatedEventTopic, payload); err != nil {
 		return fmt.Errorf("error publishing employee created event: %v", err)
 	}
 
@@ -93,13 +81,7 @@ func (p *Publisher) PublishEmployeeUpdated(ctx context.Context, userID, fullName
 		return fmt.Errorf("failed to marshal employee updated event: %v", err)
 	}
 
-	msg := &nats.Msg{
-		Subject: eventbus.EmployeeUpdatedEventTopic,
-		Data:    payload,
-	}
-
-	if err := p.conn.PublishMsg(msg); err != nil {
-		log.Printf("NATS: error publishing employee updated event: %v", err)
+	if err := p.publish(eventbus.EmployeeUpdatedEventTopic, payload); err != nil {
 		return fmt.Errorf("error publishing employee updated event: %v", err)
 	}
 
@@ -117,16 +99,23 @@ func (p *Publisher) PublishEmployeeDeleted(ctx context.Context, userID string) e
 		return fmt.Errorf("failed to marshal employee deleted event: %v", err)
 	}
 
-	msg := &nats.Msg{
-		Subject: eventbus.EmployeeDeletedEventTopic,
-		Data:    payload,
-	}
-
-	if err := p.conn.PublishMsg(msg); err != nil {
-		log.Printf("NATS: error publishing employee deleted event: %v", err)
+	if err := p.publish(eventbus.EmployeeDeletedEventTopic, payload); err != nil {
 		return fmt.Errorf("error publishing employee deleted event: %v", err)
 	}
 
 	log.Printf("NATS: employee deleted event published: userID=%s", userID)
+	return nil
+}
+
+func (p *Publisher) publish(subject string, payload []byte) error {
+	if p == nil || p.js == nil {
+		return fmt.Errorf("jetstream context is not initialized for %s", subject)
+	}
+
+	if _, err := p.js.Publish(subject, payload); err != nil {
+		log.Printf("NATS: error publishing %s: %v", subject, err)
+		return err
+	}
+
 	return nil
 }

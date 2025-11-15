@@ -2,13 +2,10 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"time"
 
 	employeepb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/employee_service"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -19,23 +16,7 @@ type EmployeeServiceClient struct {
 }
 
 func NewEmployeeServiceClient(host, port string) *EmployeeServiceClient {
-	address := fmt.Sprintf("%s:%s", host, port)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	conn, err := grpc.DialContext(
-		ctx,
-		address,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
-	if err != nil {
-		log.Fatalf("Failed to connect to employee service at %s: %v", address, err)
-	}
-
-	log.Printf("Successfully connected to employee service at %s", address)
-
+	conn := dialGRPC("employee service", host, port, 10*time.Second)
 	return &EmployeeServiceClient{
 		conn:   conn,
 		client: employeepb.NewEmployeeServiceClient(conn),
@@ -81,7 +62,6 @@ func (c *EmployeeServiceClient) ChangeUserStatusProfile(ctx context.Context, use
 	return err
 }
 
-// Department methods
 func (c *EmployeeServiceClient) CreateDepartment(ctx context.Context, name string) (*employeepb.Department, error) {
 	return c.client.CreateDepartment(ctx, &employeepb.CreateDepartmentRequest{
 		Name: name,
@@ -112,7 +92,6 @@ func (c *EmployeeServiceClient) DeleteDepartment(ctx context.Context, id string)
 	return err
 }
 
-// Position methods
 func (c *EmployeeServiceClient) CreatePosition(ctx context.Context, name string) (*employeepb.Position, error) {
 	return c.client.CreatePosition(ctx, &employeepb.CreatePositionRequest{
 		Name: name,
@@ -143,7 +122,6 @@ func (c *EmployeeServiceClient) DeletePosition(ctx context.Context, id string) e
 	return err
 }
 
-// Skill methods
 func (c *EmployeeServiceClient) CreateSkill(ctx context.Context, name string) (*employeepb.Skill, error) {
 	return c.client.CreateSkill(ctx, &employeepb.CreateSkillRequest{
 		Name: name,
@@ -170,7 +148,6 @@ func (c *EmployeeServiceClient) RemoveSkillFromEmployee(ctx context.Context, emp
 	return err
 }
 
-// Helper function to convert time.Time to timestamppb.Timestamp
 func TimeToTimestamp(t time.Time) *timestamppb.Timestamp {
 	if t.IsZero() {
 		return nil

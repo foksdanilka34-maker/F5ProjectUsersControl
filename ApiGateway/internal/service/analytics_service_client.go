@@ -2,13 +2,10 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"time"
 
 	analyticsv1 "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/analytics_service"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 type AnalyticsServiceClient struct {
@@ -17,23 +14,7 @@ type AnalyticsServiceClient struct {
 }
 
 func NewAnalyticsServiceClient(host, port string) *AnalyticsServiceClient {
-	address := fmt.Sprintf("%s:%s", host, port)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	conn, err := grpc.DialContext(
-		ctx,
-		address,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
-	if err != nil {
-		log.Fatalf("Failed to connect to analytics service at %s: %v", address, err)
-	}
-
-	log.Printf("Successfully connected to analytics service at %s", address)
-
+	conn := dialGRPC("analytics service", host, port, 10*time.Second)
 	return &AnalyticsServiceClient{
 		conn:   conn,
 		client: analyticsv1.NewAnalyticsServiceClient(conn),

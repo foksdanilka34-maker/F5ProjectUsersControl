@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/AnalyticsService/internal/app/analytics"
 	"github.com/jackc/pgx/v5"
@@ -32,12 +33,12 @@ func (s *Storage) SaveEmployeeMetrics(ctx context.Context, tx pgx.Tx, metrics *a
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
 		ON CONFLICT (employee_id, metric_date) 
 		DO UPDATE SET 
-			assigned_tasks = $3,
-			completed_tasks = $4,
-			in_progress_tasks = $5,
-			overdue_tasks = $6,
-			on_time_completed_tasks = $7,
-			total_task_duration_seconds = $8,
+			assigned_tasks = EXCLUDED.assigned_tasks,
+			completed_tasks = EXCLUDED.completed_tasks,
+			in_progress_tasks = EXCLUDED.in_progress_tasks,
+			overdue_tasks = EXCLUDED.overdue_tasks,
+			on_time_completed_tasks = EXCLUDED.on_time_completed_tasks,
+			total_task_duration_seconds = EXCLUDED.total_task_duration_seconds,
 			updated_at = NOW()`
 
 	var runner any
@@ -120,92 +121,6 @@ func (s *Storage) GetEmployeeMetrics(ctx context.Context, tx pgx.Tx, emplID stri
 	return analMetrics, nil
 }
 
-// func (s *Storage) ListEmployeeMetrics(ctx context.Context, pageSize, pageNumber int32, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, int32, error) {
-// 	whereClause := "metric_date >= $1 AND metric_date <= $2"
-// 	args := []interface{}{startDate, endDate}
-
-// 	countQuery := "SELECT COUNT(DISTINCT employee_id) FROM analytics.employee_metrics WHERE " + whereClause
-// 	var totalCount int32
-// 	err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
-// 	if err != nil {
-// 		return nil, 0, fmt.Errorf("failed to count employee metrics: %w", err)
-// 	}
-
-// 	offset := (pageNumber - 1) * pageSize
-// 	args = append(args, pageSize, offset)
-// 	query := `
-// 		SELECT
-// 			id, employee_id, employee_name, metric_date,
-// 			assigned_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
-// 			efficiency_score, task_completion_rate, on_time_completion_rate,
-// 			created_at, updated_at
-// 		FROM analytics.employee_metrics
-// 		WHERE ` + whereClause + `
-// 		ORDER BY metric_date DESC, efficiency_score DESC
-// 		LIMIT $3 OFFSET $4
-// 	`
-
-// 	rows, err := s.pool.Query(ctx, query, args...)
-// 	if err != nil {
-// 		return nil, 0, fmt.Errorf("failed to query employee metrics: %w", err)
-// 	}
-// 	defer rows.Close()
-
-// 	var metrics []*analytics.EmployeeMetrics
-// 	for rows.Next() {
-// 		m := &analytics.EmployeeMetrics{}
-// 		err := rows.Scan(
-// 			&m.ID, &m.EmployeeID, &m.EmployeeName, &m.MetricDate,
-// 			&m.TasksAssigned, &m.TasksCompleted, &m.InProgressTasks, &m.OverdueTasks,
-// 			&m.EfficiencyScore, &m.TaskCompletionRate, &m.OnTimeCompletionRate,
-// 			&m.CreatedAt, &m.UpdatedAt,
-// 		)
-// 		if err != nil {
-// 			return nil, 0, fmt.Errorf("failed to scan employee metrics: %w", err)
-// 		}
-// 		metrics = append(metrics, m)
-// 	}
-
-// 	return metrics, totalCount, rows.Err()
-// }
-
-// func (s *Storage) GetTopPerformers(ctx context.Context, limit int32, departmentID string, startDate, endDate time.Time) ([]*analytics.EmployeeMetrics, error) {
-// 	query := `
-// 		SELECT
-// 			id, employee_id, employee_name, metric_date,
-// 			assigned_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
-// 			efficiency_score, task_completion_rate, on_time_completion_rate,
-// 			created_at, updated_at
-// 		FROM analytics.employee_metrics
-// 		WHERE metric_date >= $1 AND metric_date <= $2
-// 		ORDER BY efficiency_score DESC, metric_date DESC
-// 		LIMIT $3
-// 	`
-
-// 	rows, err := s.pool.Query(ctx, query, startDate, endDate, limit)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to query top performers: %w", err)
-// 	}
-// 	defer rows.Close()
-
-// 	var metrics []*analytics.EmployeeMetrics
-// 	for rows.Next() {
-// 		m := &analytics.EmployeeMetrics{}
-// 		err := rows.Scan(
-// 			&m.ID, &m.EmployeeID, &m.EmployeeName, &m.MetricDate,
-// 			&m.TasksAssigned, &m.TasksCompleted, &m.InProgressTasks, &m.OverdueTasks,
-// 			&m.EfficiencyScore, &m.TaskCompletionRate, &m.OnTimeCompletionRate,
-// 			&m.CreatedAt, &m.UpdatedAt,
-// 		)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("failed to scan top performers: %w", err)
-// 		}
-// 		metrics = append(metrics, m)
-// 	}
-
-// 	return metrics, rows.Err()
-// }
-
 func (s *Storage) SaveProjectMetrics(ctx context.Context, tx pgx.Tx, metrics *analytics.ProjectMetrics) error {
 	query := `INSERT INTO analytics.project_metrics 
 		(project_id, manager_id, metric_date, total_tasks, completed_tasks, in_progress_tasks, overdue_tasks, 
@@ -213,15 +128,15 @@ func (s *Storage) SaveProjectMetrics(ctx context.Context, tx pgx.Tx, metrics *an
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
 		ON CONFLICT (project_id, metric_date) 
 		DO UPDATE SET 
-			manager_id = $2,
-			total_tasks = $4,
-			completed_tasks = $5,
-			in_progress_tasks = $6,
-			overdue_tasks = $7,
-			on_time_completed_tasks = $8,
-			team_size = $9,
-			total_task_duration_seconds = $10,
-			total_priority_weight_completed = $11,
+			manager_id = EXCLUDED.manager_id,
+			total_tasks = EXCLUDED.total_tasks,
+			completed_tasks = EXCLUDED.completed_tasks,
+			in_progress_tasks = EXCLUDED.in_progress_tasks,
+			overdue_tasks = EXCLUDED.overdue_tasks,
+			on_time_completed_tasks = EXCLUDED.on_time_completed_tasks,
+			team_size = EXCLUDED.team_size,
+			total_task_duration_seconds = EXCLUDED.total_task_duration_seconds,
+			total_priority_weight_completed = EXCLUDED.total_priority_weight_completed,
 			updated_at = NOW()`
 
 	var runner any
@@ -307,206 +222,714 @@ func (s *Storage) GetProjectMetrics(ctx context.Context, tx pgx.Tx, projectID st
 	return analMetrics, nil
 }
 
-// func (s *Storage) ListProjectMetrics(ctx context.Context, pageSize, pageNumber int32, managerID string, startDate, endDate time.Time) ([]*analytics.ProjectMetrics, int32, error) {
-// 	whereClause := "metric_date >= $1 AND metric_date <= $2"
-// 	args := []interface{}{startDate, endDate}
+func (s *Storage) ListEmployeeMetrics(ctx context.Context, req *analytics.ListEmployeeMetrics) ([]*analytics.EmployeeMetrics, int32, error) {
+	countQuery := `SELECT COUNT(DISTINCT employee_id) FROM analytics.employee_metrics WHERE 1=1`
+	query := `SELECT employee_id, metric_date, assigned_tasks, completed_tasks, 
+			in_progress_tasks, overdue_tasks, on_time_completed_tasks,
+			total_task_duration_seconds, created_at, updated_at
+			FROM analytics.employee_metrics
+			WHERE 1=1`
 
-// 	countQuery := "SELECT COUNT(DISTINCT project_id) FROM analytics.project_metrics WHERE " + whereClause
-// 	var totalCount int32
-// 	err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
-// 	if err != nil {
-// 		return nil, 0, fmt.Errorf("failed to count project metrics: %w", err)
-// 	}
+	args := []any{}
+	argIndex := 1
 
-// 	offset := (pageNumber - 1) * pageSize
-// 	args = append(args, pageSize, offset)
-// 	query := `
-// 		SELECT
-// 			id, project_id, project_name, manager_id, manager_name, metric_date,
-// 			total_tasks, completed_tasks, in_progress_tasks, overdue_tasks,
-// 			delivery_performance, schedule_performance, quality_performance, team_performance,
-// 			health_index, risk_score, health_status, velocity, projected_end_date,
-// 			team_capacity_utilization, team_size, avg_team_efficiency, is_at_risk, days_until_due,
-// 			created_at, updated_at
-// 		FROM analytics.project_metrics
-// 		WHERE ` + whereClause + `
-// 		ORDER BY metric_date DESC, health_index DESC
-// 		LIMIT $3 OFFSET $4
-// 	`
+	if req.StartDate != nil {
+		query += fmt.Sprintf(" AND metric_date >= $%d", argIndex)
+		countQuery += fmt.Sprintf(" AND metric_date >= $%d", argIndex)
+		args = append(args, *req.StartDate)
+		argIndex++
+	}
 
-// 	rows, err := s.pool.Query(ctx, query, args...)
-// 	if err != nil {
-// 		return nil, 0, fmt.Errorf("failed to query project metrics: %w", err)
-// 	}
-// 	defer rows.Close()
+	if req.EndDate != nil {
+		query += fmt.Sprintf(" AND metric_date <= $%d", argIndex)
+		countQuery += fmt.Sprintf(" AND metric_date <= $%d", argIndex)
+		args = append(args, *req.EndDate)
+		argIndex++
+	}
 
-// 	var metrics []*analytics.ProjectMetrics
-// 	for rows.Next() {
-// 		m := &analytics.ProjectMetrics{}
-// 		err := rows.Scan(
-// 			&m.ID, &m.ProjectID, &m.ProjectName, &m.ManagerID, &m.ManagerName, &m.MetricDate,
-// 			&m.TotalTasks, &m.CompletedTasks, &m.InProgressTasks, &m.OverdueTasks,
-// 			&m.DeliveryPerformance, &m.SchedulePerformance, &m.QualityPerformance, &m.TeamPerformance,
-// 			&m.HealthIndex, &m.RiskScore, &m.HealthStatus, &m.Velocity, &m.ProjectedEndDate,
-// 			&m.TeamCapacityUtilization, &m.TeamSize, &m.AvgTeamEfficiency, &m.IsAtRisk, &m.DaysUntilDue,
-// 			&m.CreatedAt, &m.UpdatedAt,
-// 		)
-// 		if err != nil {
-// 			return nil, 0, fmt.Errorf("failed to scan project metrics: %w", err)
-// 		}
-// 		metrics = append(metrics, m)
-// 	}
+	var totalCount int32
+	err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count employee metrics: %w", err)
+	}
 
-// 	return metrics, totalCount, rows.Err()
-// }
+	query += " ORDER BY metric_date DESC"
 
-// func (s *Storage) CalculateProductivityTrends(ctx context.Context, period string, limit int32, departmentID, employeeID string) ([]map[string]interface{}, error) {
-// 	query := `
-// 		SELECT
-// 			DATE(metric_date) as date,
-// 			AVG(efficiency_score) as avg_efficiency,
-// 			COUNT(*) as total_employees_active,
-// 			0 as total_tasks_completed
-// 		FROM analytics.employee_metrics
-// 		WHERE metric_date >= NOW() - INTERVAL '90 days'
-// 		GROUP BY DATE(metric_date)
-// 		ORDER BY DATE(metric_date) DESC
-// 		LIMIT $1
-// 	`
+	if req.PageSize > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", argIndex)
+		args = append(args, req.PageSize)
+		argIndex++
 
-// 	rows, err := s.pool.Query(ctx, query, limit)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to query productivity trends: %w", err)
-// 	}
-// 	defer rows.Close()
+		if req.PageNumber > 0 {
+			offset := (req.PageNumber - 1) * req.PageSize
+			query += fmt.Sprintf(" OFFSET $%d", argIndex)
+			args = append(args, offset)
+			argIndex++
+		}
+	}
 
-// 	var trends []map[string]interface{}
-// 	for rows.Next() {
-// 		var date time.Time
-// 		var avgEfficiency float64
-// 		var totalEmployeesActive int32
-// 		var totalTasksCompleted int32
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list employee metrics: %w", err)
+	}
+	defer rows.Close()
 
-// 		err := rows.Scan(&date, &avgEfficiency, &totalEmployeesActive, &totalTasksCompleted)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("failed to scan productivity trend: %w", err)
-// 		}
+	var metrics []*analytics.EmployeeMetrics
+	for rows.Next() {
+		m := &analytics.EmployeeMetrics{}
+		err := rows.Scan(
+			&m.EmployeeID,
+			&m.MetricDate,
+			&m.AssignedTasks,
+			&m.CompletedTasks,
+			&m.InProgressTasks,
+			&m.OverdueTasks,
+			&m.OnTimeCompletionTask,
+			&m.TotalTaskDurationSeconds,
+			&m.CreatedAt,
+			&m.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan employee metrics: %w", err)
+		}
+		metrics = append(metrics, m)
+	}
 
-// 		trends = append(trends, map[string]interface{}{
-// 			"date":                   date,
-// 			"avg_efficiency":         avgEfficiency,
-// 			"total_employees_active": totalEmployeesActive,
-// 			"total_tasks_completed":  totalTasksCompleted,
-// 		})
-// 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating employee metrics: %w", err)
+	}
 
-// 	return trends, rows.Err()
-// }
+	return metrics, totalCount, nil
+}
 
-// func (s *Storage) CalculateCompletionRateTrends(ctx context.Context, period string, limit int32, projectID, departmentID string) ([]map[string]interface{}, error) {
-// 	query := `
-// 		SELECT
-// 			DATE(metric_date) as date,
-// 			AVG(CASE WHEN completed_tasks > 0
-// 				THEN (completed_tasks - overdue_tasks)::float / completed_tasks
-// 				ELSE 0 END) as on_time_rate,
-// 			AVG(CASE WHEN total_tasks > 0
-// 				THEN completed_tasks::float / total_tasks
-// 				ELSE 0 END) as overall_rate,
-// 			SUM(completed_tasks) as completed_count,
-// 			SUM(overdue_tasks) as overdue_count
-// 		FROM analytics.project_metrics
-// 		WHERE metric_date >= NOW() - INTERVAL '90 days'
-// 		GROUP BY DATE(metric_date)
-// 		ORDER BY DATE(metric_date) DESC
-// 		LIMIT $1
-// 	`
+func (s *Storage) ListProjectMetrics(ctx context.Context, req *analytics.ListProjectMetrics) ([]*analytics.ProjectMetrics, int32, error) {
+	countQuery := `SELECT COUNT(DISTINCT project_id) FROM analytics.project_metrics WHERE 1=1`
+	query := `SELECT project_id, manager_id, metric_date, total_tasks, completed_tasks, 
+			in_progress_tasks, overdue_tasks, on_time_completed_tasks, team_size,
+			total_task_duration_seconds, total_priority_weight_completed, created_at, updated_at
+			FROM analytics.project_metrics
+			WHERE 1=1`
 
-// 	rows, err := s.pool.Query(ctx, query, limit)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to query completion rate trends: %w", err)
-// 	}
-// 	defer rows.Close()
+	args := []any{}
+	argIndex := 1
 
-// 	var trends []map[string]interface{}
-// 	for rows.Next() {
-// 		var date time.Time
-// 		var onTimeRate, overallRate float64
-// 		var completedCount, overdueCount int32
+	if req.ManagerID != "" {
+		query += fmt.Sprintf(" AND manager_id = $%d", argIndex)
+		countQuery += fmt.Sprintf(" AND manager_id = $%d", argIndex)
+		args = append(args, req.ManagerID)
+		argIndex++
+	}
 
-// 		err := rows.Scan(&date, &onTimeRate, &overallRate, &completedCount, &overdueCount)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("failed to scan completion rate trend: %w", err)
-// 		}
+	if req.StartDate != nil {
+		query += fmt.Sprintf(" AND metric_date >= $%d", argIndex)
+		countQuery += fmt.Sprintf(" AND metric_date >= $%d", argIndex)
+		args = append(args, *req.StartDate)
+		argIndex++
+	}
 
-// 		trends = append(trends, map[string]interface{}{
-// 			"date":            date,
-// 			"on_time_rate":    onTimeRate,
-// 			"overall_rate":    overallRate,
-// 			"completed_count": completedCount,
-// 			"overdue_count":   overdueCount,
-// 		})
-// 	}
+	if req.EndDate != nil {
+		query += fmt.Sprintf(" AND metric_date <= $%d", argIndex)
+		countQuery += fmt.Sprintf(" AND metric_date <= $%d", argIndex)
+		args = append(args, *req.EndDate)
+		argIndex++
+	}
 
-// 	return trends, rows.Err()
-// }
+	var totalCount int32
+	err := s.pool.QueryRow(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count project metrics: %w", err)
+	}
 
-// func (s *Storage) GetDashboardStats(ctx context.Context, startDate, endDate time.Time) (map[string]interface{}, error) {
-// 	query := `
-// 		WITH employee_stats AS (
-// 			SELECT
-// 				COUNT(DISTINCT employee_id) AS total_employees,
-// 				COUNT(DISTINCT employee_id) FILTER (WHERE metric_date >= NOW() - INTERVAL '7 days') AS active_employees,
-// 				COALESCE(AVG(efficiency_score), 0) AS avg_company_efficiency,
-// 				COALESCE(AVG(on_time_completion_rate), 0) AS avg_on_time_rate
-// 			FROM analytics.employee_metrics
-// 			WHERE metric_date >= $1 AND metric_date <= $2
-// 		), project_stats AS (
-// 			SELECT
-// 				COUNT(DISTINCT project_id) AS total_projects,
-// 				COUNT(DISTINCT project_id) FILTER (WHERE in_progress_tasks > 0) AS active_projects,
-// 				COALESCE(SUM(total_tasks), 0) AS total_tasks,
-// 				COALESCE(SUM(completed_tasks), 0) AS completed_tasks,
-// 				COALESCE(SUM(overdue_tasks), 0) AS overdue_tasks
-// 			FROM analytics.project_metrics
-// 			WHERE metric_date >= $1 AND metric_date <= $2
-// 		)
-// 		SELECT
-// 			employee_stats.total_employees,
-// 			employee_stats.active_employees,
-// 			project_stats.total_projects,
-// 			project_stats.active_projects,
-// 			project_stats.total_tasks,
-// 			project_stats.completed_tasks,
-// 			project_stats.overdue_tasks,
-// 			employee_stats.avg_company_efficiency,
-// 			employee_stats.avg_on_time_rate
-// 		FROM employee_stats, project_stats
-// 	`
+	query += " ORDER BY metric_date DESC"
 
-// 	var totalEmployees, activeEmployees, totalProjects, activeProjects int32
-// 	var totalTasks, completedTasks, overdueTasks int32
-// 	var avgCompanyEfficiency, avgOnTimeRate float64
+	if req.PageSize != nil && *req.PageSize > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", argIndex)
+		args = append(args, *req.PageSize)
+		argIndex++
 
-// 	err := s.pool.QueryRow(ctx, query, startDate, endDate).Scan(
-// 		&totalEmployees, &activeEmployees, &totalProjects, &activeProjects,
-// 		&totalTasks, &completedTasks, &overdueTasks,
-// 		&avgCompanyEfficiency, &avgOnTimeRate,
-// 	)
+		if req.PageNumber != nil && *req.PageNumber > 0 {
+			offset := (*req.PageNumber - 1) * *req.PageSize
+			query += fmt.Sprintf(" OFFSET $%d", argIndex)
+			args = append(args, offset)
+			argIndex++
+		}
+	}
 
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to get dashboard stats: %w", err)
-// 	}
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list project metrics: %w", err)
+	}
+	defer rows.Close()
 
-// 	return map[string]interface{}{
-// 		"total_employees":        totalEmployees,
-// 		"active_employees":       activeEmployees,
-// 		"total_projects":         totalProjects,
-// 		"active_projects":        activeProjects,
-// 		"total_tasks":            totalTasks,
-// 		"completed_tasks":        completedTasks,
-// 		"overdue_tasks":          overdueTasks,
-// 		"avg_company_efficiency": avgCompanyEfficiency,
-// 		"avg_on_time_rate":       avgOnTimeRate,
-// 	}, nil
-// }
+	var metrics []*analytics.ProjectMetrics
+	for rows.Next() {
+		m := &analytics.ProjectMetrics{}
+		err := rows.Scan(
+			&m.ProjectID,
+			&m.ManagerID,
+			&m.MetricDate,
+			&m.TotalTasks,
+			&m.CompletedTasks,
+			&m.InProgressTasks,
+			&m.OverdueTasks,
+			&m.OnTimeCompletedTasks,
+			&m.TeamSize,
+			&m.TotalTaskDurationSecondsCompleted,
+			&m.TotalPriorityWeightCompleted,
+			&m.CreatedAt,
+			&m.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan project metrics: %w", err)
+		}
+		metrics = append(metrics, m)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating project metrics: %w", err)
+	}
+
+	return metrics, totalCount, nil
+}
+
+func (s *Storage) GetTopPerformers(ctx context.Context, limit int32, startDate, endDate *time.Time) ([]*analytics.EmployeeMetrics, error) {
+	query := `
+		WITH ranked_metrics AS (
+			SELECT 
+				employee_id,
+				metric_date,
+				assigned_tasks,
+				completed_tasks,
+				in_progress_tasks,
+				overdue_tasks,
+				on_time_completed_tasks,
+				total_task_duration_seconds,
+				created_at,
+				updated_at,
+				ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY metric_date DESC) as rn
+			FROM analytics.employee_metrics
+			WHERE 1=1`
+
+	args := []any{}
+	argIndex := 1
+
+	if startDate != nil {
+		query += fmt.Sprintf(" AND metric_date >= $%d", argIndex)
+		args = append(args, *startDate)
+		argIndex++
+	}
+
+	if endDate != nil {
+		query += fmt.Sprintf(" AND metric_date <= $%d", argIndex)
+		args = append(args, *endDate)
+		argIndex++
+	}
+
+	query += `
+		)
+		SELECT 
+			employee_id,
+			metric_date,
+			assigned_tasks,
+			completed_tasks,
+			in_progress_tasks,
+			overdue_tasks,
+			on_time_completed_tasks,
+			total_task_duration_seconds,
+			created_at,
+			updated_at
+		FROM ranked_metrics
+		WHERE rn = 1 AND assigned_tasks > 0
+		ORDER BY 
+			(CAST(completed_tasks AS FLOAT) / NULLIF(assigned_tasks, 0)) DESC,
+			completed_tasks DESC`
+
+	if limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", argIndex)
+		args = append(args, limit)
+	}
+
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get top performers: %w", err)
+	}
+	defer rows.Close()
+
+	var metrics []*analytics.EmployeeMetrics
+	for rows.Next() {
+		m := &analytics.EmployeeMetrics{}
+		err := rows.Scan(
+			&m.EmployeeID,
+			&m.MetricDate,
+			&m.AssignedTasks,
+			&m.CompletedTasks,
+			&m.InProgressTasks,
+			&m.OverdueTasks,
+			&m.OnTimeCompletionTask,
+			&m.TotalTaskDurationSeconds,
+			&m.CreatedAt,
+			&m.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan top performers: %w", err)
+		}
+		metrics = append(metrics, m)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating top performers: %w", err)
+	}
+
+	return metrics, nil
+}
+
+func (s *Storage) GetProductivityTrends(ctx context.Context, req *analytics.ProductivityTrends) ([]*analytics.ProductivityTrend, error) {
+	periodFormat := ""
+	switch req.Period {
+	case analytics.PERIOD_DAILY:
+		periodFormat = "day"
+	case analytics.PERIOD_WEEKLY:
+		periodFormat = "week"
+	case analytics.PERIOD_MONTHLY:
+		periodFormat = "month"
+	default:
+		periodFormat = "day"
+	}
+
+	query := fmt.Sprintf(`
+		SELECT 
+			date_trunc('%s', metric_date) as date,
+			AVG(CASE 
+				WHEN assigned_tasks > 0 
+				THEN CAST(completed_tasks AS FLOAT) / assigned_tasks 
+				ELSE 0 
+			END) * 100 as avg_efficiency,
+			SUM(completed_tasks) as total_tasks_completed,
+			COUNT(DISTINCT employee_id) as total_employees_active
+		FROM analytics.employee_metrics
+		WHERE assigned_tasks > 0`, periodFormat)
+
+	args := []any{}
+	argIndex := 1
+
+	if req.EmployeeID != nil {
+		query += fmt.Sprintf(" AND employee_id = $%d", argIndex)
+		args = append(args, *req.EmployeeID)
+		argIndex++
+	}
+
+	query += fmt.Sprintf(" GROUP BY date_trunc('%s', metric_date) ORDER BY date DESC", periodFormat)
+
+	if req.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", argIndex)
+		args = append(args, req.Limit)
+	}
+
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get productivity trends: %w", err)
+	}
+	defer rows.Close()
+
+	var trends []*analytics.ProductivityTrend
+	for rows.Next() {
+		t := &analytics.ProductivityTrend{}
+		err := rows.Scan(
+			&t.Date,
+			&t.AvgEfficiency,
+			&t.TotalTasksCompleted,
+			&t.TotalEmployeesActive,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan productivity trend: %w", err)
+		}
+		trends = append(trends, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating productivity trends: %w", err)
+	}
+
+	return trends, nil
+}
+
+func (s *Storage) GetCompletionRateTrends(ctx context.Context, req *analytics.ComletionRateTrends) ([]*analytics.CompletionRateTrend, error) {
+	periodFormat := ""
+	switch req.Period {
+	case analytics.PERIOD_DAILY:
+		periodFormat = "day"
+	case analytics.PERIOD_WEEKLY:
+		periodFormat = "week"
+	case analytics.PERIOD_MONTHLY:
+		periodFormat = "month"
+	default:
+		periodFormat = "day"
+	}
+
+	var query string
+	args := []any{}
+	argIndex := 1
+
+	if req.ProjectID != "" {
+		query = fmt.Sprintf(`
+			SELECT 
+				date_trunc('%s', metric_date) as date,
+				AVG(CASE 
+					WHEN completed_tasks > 0 
+					THEN (CAST(on_time_completed_tasks AS FLOAT) / completed_tasks) * 100 
+					ELSE 0 
+				END) as on_time_rate,
+				AVG(CASE 
+					WHEN total_tasks > 0 
+					THEN (CAST(completed_tasks AS FLOAT) / total_tasks) * 100 
+					ELSE 0 
+				END) as overall_rate,
+				SUM(completed_tasks) as completed_count,
+				SUM(overdue_tasks) as overdue_count
+			FROM analytics.project_metrics
+			WHERE project_id = $1
+			GROUP BY date_trunc('%s', metric_date)
+			ORDER BY date DESC`, periodFormat, periodFormat)
+		args = append(args, req.ProjectID)
+		argIndex++
+	} else {
+		query = fmt.Sprintf(`
+			SELECT 
+				date_trunc('%s', metric_date) as date,
+				AVG(CASE 
+					WHEN completed_tasks > 0 
+					THEN (CAST(on_time_completed_tasks AS FLOAT) / completed_tasks) * 100 
+					ELSE 0 
+				END) as on_time_rate,
+				AVG(CASE 
+					WHEN assigned_tasks > 0 
+					THEN (CAST(completed_tasks AS FLOAT) / assigned_tasks) * 100 
+					ELSE 0 
+				END) as overall_rate,
+				SUM(completed_tasks) as completed_count,
+				SUM(overdue_tasks) as overdue_count
+			FROM analytics.employee_metrics
+			WHERE assigned_tasks > 0
+			GROUP BY date_trunc('%s', metric_date)
+			ORDER BY date DESC`, periodFormat, periodFormat)
+	}
+
+	if req.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", argIndex)
+		args = append(args, req.Limit)
+	}
+
+	rows, err := s.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get completion rate trends: %w", err)
+	}
+	defer rows.Close()
+
+	var trends []*analytics.CompletionRateTrend
+	for rows.Next() {
+		t := &analytics.CompletionRateTrend{}
+		err := rows.Scan(
+			&t.Date,
+			&t.OnTimeRate,
+			&t.OverallRate,
+			&t.CompletedCount,
+			&t.OverDueCount,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan completion rate trend: %w", err)
+		}
+		trends = append(trends, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating completion rate trends: %w", err)
+	}
+
+	return trends, nil
+}
+
+func (s *Storage) GetDashboardStats(ctx context.Context, startDate, endDate *time.Time) (*analytics.DashboardStats, error) {
+	stats := &analytics.DashboardStats{
+		CalculatedAt: time.Now(),
+	}
+
+	employeeQuery := `
+		SELECT 
+			COUNT(DISTINCT employee_id) as total_employees,
+			COUNT(DISTINCT CASE WHEN assigned_tasks > 0 THEN employee_id END) as active_employees
+		FROM analytics.employee_metrics
+		WHERE 1=1`
+
+	employeeArgs := []any{}
+	argIndex := 1
+
+	if startDate != nil {
+		employeeQuery += fmt.Sprintf(" AND metric_date >= $%d", argIndex)
+		employeeArgs = append(employeeArgs, *startDate)
+		argIndex++
+	}
+
+	if endDate != nil {
+		employeeQuery += fmt.Sprintf(" AND metric_date <= $%d", argIndex)
+		employeeArgs = append(employeeArgs, *endDate)
+	}
+
+	err := s.pool.QueryRow(ctx, employeeQuery, employeeArgs...).Scan(
+		&stats.TotalEmployees,
+		&stats.ActiveEmployees,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get employee counts: %w", err)
+	}
+
+	projectQuery := `
+		SELECT 
+			COUNT(DISTINCT project_id) as total_projects,
+			COUNT(DISTINCT CASE WHEN total_tasks > 0 THEN project_id END) as active_projects
+		FROM analytics.project_metrics
+		WHERE 1=1`
+
+	projectArgs := []any{}
+	argIndex = 1
+
+	if startDate != nil {
+		projectQuery += fmt.Sprintf(" AND metric_date >= $%d", argIndex)
+		projectArgs = append(projectArgs, *startDate)
+		argIndex++
+	}
+
+	if endDate != nil {
+		projectQuery += fmt.Sprintf(" AND metric_date <= $%d", argIndex)
+		projectArgs = append(projectArgs, *endDate)
+	}
+
+	err = s.pool.QueryRow(ctx, projectQuery, projectArgs...).Scan(
+		&stats.TotalProjects,
+		&stats.ActiveProjects,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get project counts: %w", err)
+	}
+
+	taskQuery := `
+		SELECT 
+			SUM(assigned_tasks) as total_tasks,
+			SUM(completed_tasks) as completed_tasks,
+			SUM(overdue_tasks) as overdue_tasks,
+			AVG(CASE 
+				WHEN assigned_tasks > 0 
+				THEN (CAST(completed_tasks AS FLOAT) / assigned_tasks) * 100 
+				ELSE 0 
+			END) as avg_efficiency,
+			AVG(CASE 
+				WHEN completed_tasks > 0 
+				THEN (CAST(on_time_completed_tasks AS FLOAT) / completed_tasks) * 100 
+				ELSE 0 
+			END) as avg_on_time_rate
+		FROM analytics.employee_metrics
+		WHERE assigned_tasks > 0`
+
+	taskArgs := []any{}
+	argIndex = 1
+
+	if startDate != nil {
+		taskQuery += fmt.Sprintf(" AND metric_date >= $%d", argIndex)
+		taskArgs = append(taskArgs, *startDate)
+		argIndex++
+	}
+
+	if endDate != nil {
+		taskQuery += fmt.Sprintf(" AND metric_date <= $%d", argIndex)
+		taskArgs = append(taskArgs, *endDate)
+	}
+
+	var avgEfficiency, avgOnTimeRate float64
+	err = s.pool.QueryRow(ctx, taskQuery, taskArgs...).Scan(
+		&stats.TotalTasks,
+		&stats.CompletedTasks,
+		&stats.OverDueTasks,
+		&avgEfficiency,
+		&avgOnTimeRate,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task stats: %w", err)
+	}
+
+	stats.AvgCompanyEfficiency = float32(avgEfficiency)
+	stats.AvgOnTimeRate = float32(avgOnTimeRate)
+
+	topEmployeesQuery := `
+		WITH ranked_metrics AS (
+			SELECT 
+				employee_id,
+				assigned_tasks,
+				completed_tasks,
+				on_time_completed_tasks,
+				total_task_duration_seconds,
+				overdue_tasks,
+				ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY metric_date DESC) as rn
+			FROM analytics.employee_metrics
+			WHERE assigned_tasks > 0`
+
+	topArgs := []any{}
+	argIndex = 1
+
+	if startDate != nil {
+		topEmployeesQuery += fmt.Sprintf(" AND metric_date >= $%d", argIndex)
+		topArgs = append(topArgs, *startDate)
+		argIndex++
+	}
+
+	if endDate != nil {
+		topEmployeesQuery += fmt.Sprintf(" AND metric_date <= $%d", argIndex)
+		topArgs = append(topArgs, *endDate)
+		argIndex++
+	}
+
+	topEmployeesQuery += `
+		)
+		SELECT 
+			employee_id,
+			completed_tasks,
+			assigned_tasks,
+			on_time_completed_tasks,
+			total_task_duration_seconds,
+			overdue_tasks
+		FROM ranked_metrics
+		WHERE rn = 1
+		ORDER BY completed_tasks DESC
+		LIMIT 10`
+
+	rows, err := s.pool.Query(ctx, topEmployeesQuery, topArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get top employees: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var employeeID string
+		var completedTasks, assignedTasks, onTimeCompleted, overdueTasks int32
+		var totalDuration int64
+
+		err := rows.Scan(&employeeID, &completedTasks, &assignedTasks, &onTimeCompleted, &totalDuration, &overdueTasks)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan top employee: %w", err)
+		}
+
+		taskCompletionRate := float64(0)
+		if assignedTasks > 0 {
+			taskCompletionRate = (float64(completedTasks) / float64(assignedTasks)) * 100
+		}
+
+		onTimeRate := float64(0)
+		if completedTasks > 0 {
+			onTimeRate = (float64(onTimeCompleted) / float64(completedTasks)) * 100
+		}
+
+		speedBonus := 1.0
+		if completedTasks > 0 {
+			avgDuration := float64(totalDuration) / float64(completedTasks)
+			speedBonus = 28800.0 / (avgDuration + 1)
+			if speedBonus > 1.5 {
+				speedBonus = 1.5
+			}
+		}
+
+		overduePenalty := float64(overdueTasks) * 5.0
+		baseScore := (onTimeRate * 0.7) + (taskCompletionRate * 0.3)
+		efficiencyScore := (baseScore * speedBonus) - overduePenalty
+		if efficiencyScore < 0 {
+			efficiencyScore = 0
+		}
+
+		stats.TopEmployees = append(stats.TopEmployees, analytics.TopEmployee{
+			ID:              employeeID,
+			EfficiencyScore: float32(efficiencyScore),
+			TaskCompleted:   completedTasks,
+		})
+	}
+
+	problematicQuery := `
+		WITH ranked_metrics AS (
+			SELECT 
+				project_id,
+				total_tasks,
+				completed_tasks,
+				on_time_completed_tasks,
+				overdue_tasks,
+				ROW_NUMBER() OVER (PARTITION BY project_id ORDER BY metric_date DESC) as rn
+			FROM analytics.project_metrics
+			WHERE total_tasks > 0`
+
+	probArgs := []any{}
+	argIndex = 1
+
+	if startDate != nil {
+		problematicQuery += fmt.Sprintf(" AND metric_date >= $%d", argIndex)
+		probArgs = append(probArgs, *startDate)
+		argIndex++
+	}
+
+	if endDate != nil {
+		problematicQuery += fmt.Sprintf(" AND metric_date <= $%d", argIndex)
+		probArgs = append(probArgs, *endDate)
+		argIndex++
+	}
+
+	problematicQuery += `
+		)
+		SELECT 
+			project_id,
+			total_tasks,
+			completed_tasks,
+			on_time_completed_tasks,
+			overdue_tasks
+		FROM ranked_metrics
+		WHERE rn = 1
+		ORDER BY 
+			(CASE 
+				WHEN total_tasks > 0 
+				THEN (CAST(completed_tasks AS FLOAT) / total_tasks) * 100 
+				ELSE 0 
+			END) ASC
+		LIMIT 10`
+
+	probRows, err := s.pool.Query(ctx, problematicQuery, probArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get problematic projects: %w", err)
+	}
+	defer probRows.Close()
+
+	for probRows.Next() {
+		var projectID string
+		var totalTasks, completedTasks, onTimeCompleted, overdueTasks int32
+
+		err := probRows.Scan(&projectID, &totalTasks, &completedTasks, &onTimeCompleted, &overdueTasks)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan problematic project: %w", err)
+		}
+
+		deliveryPerf := float64(0)
+		if totalTasks > 0 {
+			deliveryPerf = (float64(completedTasks) / float64(totalTasks)) * 100
+		}
+
+		schedulePerf := float64(0)
+		if completedTasks > 0 {
+			schedulePerf = (float64(onTimeCompleted) / float64(completedTasks)) * 100
+		}
+
+		healthIndex := (schedulePerf * 0.6) + (deliveryPerf * 0.4) - (float64(overdueTasks) * 5.0)
+		if healthIndex < 0 {
+			healthIndex = 0
+		}
+
+		stats.ProblematicProjects = append(stats.ProblematicProjects, analytics.BottomProject{
+			ProjectID:   projectID,
+			HealthScore: float32(healthIndex),
+			OnTimeRate:  float32(schedulePerf),
+		})
+	}
+
+	return stats, nil
+}

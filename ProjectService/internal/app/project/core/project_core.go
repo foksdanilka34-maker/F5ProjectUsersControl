@@ -14,9 +14,13 @@ import (
 )
 
 type projectCore struct {
-	project   repo.Storage
-	publisher *nats.Publisher
+	project      repo.Storage
+	publisher    *nats.Publisher
+	projectCache *ttlCache[models.Project]
+	taskCache    *ttlCache[models.Task]
 }
+
+const projectCacheTTL = 2 * time.Minute
 
 type CoreLogic interface {
 	CreateProject(ctx context.Context, regProfile *models.CreateProjectRequest) (*models.Project, error)
@@ -40,8 +44,10 @@ type CoreLogic interface {
 
 func NewCore(project repo.Storage, publisher *nats.Publisher) *projectCore {
 	return &projectCore{
-		project:   project,
-		publisher: publisher,
+		project:      project,
+		publisher:    publisher,
+		projectCache: newTTLCache[models.Project](projectCacheTTL),
+		taskCache:    newTTLCache[models.Task](projectCacheTTL),
 	}
 }
 
@@ -67,6 +73,7 @@ func (p *projectCore) CreateProject(ctx context.Context, regProfile *models.Crea
 	if err != nil {
 		return nil, err
 	}
+	p.projectCache.Set(project.ID, project)
 	log.Printf("Project created, uuid: %s", project.ID)
 
 	if p.publisher != nil {
@@ -90,10 +97,14 @@ func (p *projectCore) GetProject(ctx context.Context, projectID string) (*models
 		log.Printf("empty data provided, projectID")
 		return nil, fmt.Errorf("empty data provided")
 	}
+	if cached, ok := p.projectCache.Get(projectID); ok {
+		return cached, nil
+	}
 	project, err := p.project.GetProject(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
+	p.projectCache.Set(projectID, project)
 	return project, nil
 }
 
@@ -121,6 +132,7 @@ func (p *projectCore) UpdateProject(ctx context.Context, updRequest *models.Upda
 	if err != nil {
 		return nil, err
 	}
+	p.projectCache.Set(updProject.ID, updProject)
 
 	if p.publisher != nil {
 		event := &ev.ProjectEvent{
@@ -147,6 +159,7 @@ func (p *projectCore) DeleteProject(ctx context.Context, projectID string) error
 		log.Printf("failed to delete project %s: %v", projectID, err)
 		return err
 	}
+	p.projectCache.Delete(projectID)
 	log.Printf("project %s deleted successfully", projectID)
 
 	if p.publisher != nil {
@@ -173,6 +186,7 @@ func (p *projectCore) CreateTask(ctx context.Context, createTask *models.CreateT
 	if err != nil {
 		return nil, err
 	}
+	p.taskCache.Set(newTask.ID, newTask)
 
 	if p.publisher != nil {
 		if createTask.AssigneeID != nil {
@@ -207,10 +221,14 @@ func (p *projectCore) CreateTask(ctx context.Context, createTask *models.CreateT
 }
 
 func (p *projectCore) GetTask(ctx context.Context, taskID string) (*models.Task, error) {
+	if cached, ok := p.taskCache.Get(taskID); ok {
+		return cached, nil
+	}
 	task, err := p.project.GetTask(ctx, taskID)
 	if err != nil {
 		return nil, err
 	}
+	p.taskCache.Set(taskID, task)
 	return task, nil
 }
 
@@ -237,6 +255,7 @@ func (p *projectCore) UpdateTask(ctx context.Context, updRequest *models.UpdateT
 	if err != nil {
 		return nil, err
 	}
+	p.taskCache.Set(updTask.ID, updTask)
 
 	if p.publisher != nil {
 		event := &ev.TaskEvent{
@@ -253,8 +272,8 @@ func (p *projectCore) UpdateTask(ctx context.Context, updRequest *models.UpdateT
 		if oldTask != nil && updRequest.Status != nil && oldTask.Status != *updRequest.Status {
 			event.OldStatus = oldTask.Status.String()
 			if err := p.publisher.PublishTaskEvent(ctx, ev.EventTypeTaskStatusChanged, event); err != nil {
-			log.Printf("warning: failed to publish task updated event: %v", err)
-		}
+				log.Printf("warning: failed to publish task updated event: %v", err)
+			}
 		}
 	}
 
@@ -271,6 +290,7 @@ func (p *projectCore) DeleteTask(ctx context.Context, taskID string) error {
 		log.Printf("failed to delete task %s: %v", taskID, err)
 		return err
 	}
+	p.taskCache.Delete(taskID)
 	log.Printf("task %s deleted successfully", taskID)
 
 	if p.publisher != nil {
@@ -300,6 +320,7 @@ func (p *projectCore) MoveTask(ctx context.Context, moveRequest *models.MoveTask
 	if err != nil {
 		return nil, err
 	}
+	p.taskCache.Set(movedTask.ID, movedTask)
 
 	if p.publisher != nil && oldTask != nil {
 		event := &ev.TaskEvent{
@@ -350,6 +371,7 @@ func (p *projectCore) AssignTask(ctx context.Context, assignRequest *models.Assi
 	if err != nil {
 		return nil, err
 	}
+	p.taskCache.Set(assignedTask.ID, assignedTask)
 
 	if p.publisher != nil {
 		event := &ev.TaskEvent{
@@ -388,6 +410,7 @@ func (p *projectCore) AddMemberToProject(ctx context.Context, projectID, userID 
 		log.Printf("failed to add member %s to project %s: %v", userID, projectID, err)
 		return err
 	}
+	p.projectCache.Delete(projectID)
 
 	if p.publisher != nil {
 		event := &ev.ProjectEvent{
@@ -413,6 +436,7 @@ func (p *projectCore) RemoveMemberFromProject(ctx context.Context, projectID, us
 		log.Printf("failed to remove member %s from project %s: %v", userID, projectID, err)
 		return err
 	}
+	p.projectCache.Delete(projectID)
 	log.Printf("member %s removed from project %s successfully", userID, projectID)
 
 	if p.publisher != nil {

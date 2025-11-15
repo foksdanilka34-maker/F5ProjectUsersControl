@@ -76,6 +76,27 @@ services:
       - nats-data:/data
     restart: always
 
+  nats-setup:
+    image: natsio/nats-box:0.17.1
+    container_name: nats-jetstream-setup
+    depends_on:
+      - nats
+    entrypoint: ["sh", "-c"]
+    command: >
+      until nats --server nats:4222 server check >/dev/null 2>&1; do sleep 1; done
+      if ! nats --server nats:4222 stream info employee-events >/dev/null 2>&1; then
+        nats --server nats:4222 stream add employee-events --storage file --retention limits --subjects employee.event.* --max-msgs -1
+      fi
+      if ! nats --server nats:4222 stream info project-events >/dev/null 2>&1; then
+        nats --server nats:4222 stream add project-events --storage file --retention limits --subjects project.* --subjects task.* --max-msgs -1
+      fi
+      if ! nats --server nats:4222 stream info login-commands >/dev/null 2>&1; then
+        nats --server nats:4222 stream add login-commands --storage file --retention limits --subjects login.command.deactivate --max-msgs -1
+      fi
+    restart: "no"
+    networks:
+      - app_network
+
   project_db:
     image: postgres:17-alpine
     container_name: project_service_db

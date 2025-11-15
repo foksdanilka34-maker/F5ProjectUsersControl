@@ -8,12 +8,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/client/nats"
 	natsclient "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/client/nats"
 	projectCore "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/core"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/client/nats"
 	project "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/repo"
 	projectServer "github.com/foksdanilka34-maker/F5ProjectUsersControl/ProjectService/internal/app/project/server"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/storage"
 
 	"log"
@@ -50,7 +51,6 @@ func main() {
 	defer pgPool.Close()
 	log.Println("Postgres connected")
 
-
 	projectStorage := project.NewStorage(pgPool)
 
 	natsConfig := &storage.NatsConfig{
@@ -62,15 +62,20 @@ func main() {
 		log.Fatalf("nats connection error: %v", err)
 	}
 	defer natsClient.Close()
+	if err := eventbus.EnsureJetStreamStreams(natsClient.JS); err != nil {
+		log.Printf("warning: failed to ensure JetStream streams: %v", err)
+	}
 	log.Println("NATS connected")
 
-	subscriber := natsclient.NewSubscriber(natsClient, projectStorage)
-	if err := subscriber.Start(ctx); err != nil {
-		log.Fatalf("failed to start NATS subscriber: %v", err)
-	}
+	subscriber := natsclient.NewSubscriber(natsClient.JS, projectStorage)
+	go func() {
+		if err := subscriber.Start(ctx); err != nil {
+			log.Fatalf("failed to start NATS subscriber: %v", err)
+		}
+	}()
 	log.Println("NATS subscriber started")
 
-	publisher := nats.NewPublisher(natsClient)
+	publisher := nats.NewPublisher(natsClient.JS)
 	log.Println("NATS publisher initialized")
 
 	projectCore := projectCore.NewCore(*projectStorage, publisher)

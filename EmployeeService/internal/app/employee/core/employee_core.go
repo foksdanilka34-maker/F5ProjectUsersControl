@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	emp "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee"
 	authClient "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/client"
@@ -12,12 +13,19 @@ import (
 	empl "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/repo"
 )
 
-const maxPageSize = 100
+const (
+	maxPageSize      = 100
+	employeeCacheTTL = 5 * time.Minute
+)
 
 type loginCore struct {
 	employee  empl.EmployeeStorage
 	client    *authClient.Client
 	publisher *natsclient.Publisher
+
+	profileCache    *ttlCache[emp.Profile]
+	departmentCache *ttlCache[emp.Department]
+	positionCache   *ttlCache[emp.Position]
 }
 
 type CoreLogic interface {
@@ -47,9 +55,12 @@ type CoreLogic interface {
 
 func NewCore(employee empl.EmployeeStorage, client *authClient.Client, publisher *natsclient.Publisher) *loginCore {
 	return &loginCore{
-		employee:  employee,
-		client:    client,
-		publisher: publisher,
+		employee:        employee,
+		client:          client,
+		publisher:       publisher,
+		profileCache:    newTTLCache[emp.Profile](employeeCacheTTL),
+		departmentCache: newTTLCache[emp.Department](employeeCacheTTL),
+		positionCache:   newTTLCache[emp.Position](employeeCacheTTL),
 	}
 }
 
@@ -81,6 +92,7 @@ func (l *loginCore) CreateProfile(ctx context.Context, regProfile *emp.RegisterD
 		log.Printf("transaction not completed: %v", err)
 		return nil, err
 	}
+	l.profileCache.Set(newUser.UserID, newUser)
 
 	fullName := regProfile.FirstName + " " + regProfile.LastName
 	var photoURL *string
@@ -100,10 +112,14 @@ func (l *loginCore) GetProfile(ctx context.Context, userID string) (*emp.Profile
 	if userID == "" {
 		return nil, fmt.Errorf("empty user ID")
 	}
+	if cached, ok := l.profileCache.Get(userID); ok {
+		return cached, nil
+	}
 	getProfile, err := l.employee.GetProfile(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
+	l.profileCache.Set(userID, getProfile)
 	log.Printf("Profile retrieved successfully: userID=%s", userID)
 	return getProfile, nil
 }
@@ -146,6 +162,7 @@ func (l *loginCore) UpdateProfile(ctx context.Context, userID string, updProf *e
 	if err := l.publisher.PublishEmployeeUpdated(ctx, updProfile.UserID, fullName, photoURL); err != nil {
 		log.Printf("failed to publish employee updated event: %v", err)
 	}
+	l.profileCache.Set(updProfile.UserID, updProfile)
 
 	log.Printf("Profile updated successfully: userID=%s", userID)
 	return updProfile, nil
@@ -174,6 +191,7 @@ func (l *loginCore) CreateDepartment(ctx context.Context, name string) (*emp.Dep
 		log.Printf("failed to create department: %v", err)
 		return nil, err
 	}
+	l.departmentCache.Set(department.ID, department)
 	log.Printf("Department created successfully: id=%s", department.ID)
 	return department, nil
 }
@@ -183,11 +201,15 @@ func (l *loginCore) GetDepartment(ctx context.Context, id string) (*emp.Departme
 	if id == "" {
 		return nil, fmt.Errorf("department ID cannot be empty")
 	}
+	if cached, ok := l.departmentCache.Get(id); ok {
+		return cached, nil
+	}
 	department, err := l.employee.GetDepartment(ctx, id)
 	if err != nil {
 		log.Printf("failed to get department: %v", err)
 		return nil, err
 	}
+	l.departmentCache.Set(id, department)
 	log.Printf("Department retrieved successfully: id=%s", id)
 	return department, nil
 }
@@ -216,6 +238,7 @@ func (l *loginCore) UpdateDepartment(ctx context.Context, id, name string) (*emp
 		log.Printf("failed to update department: %v", err)
 		return nil, err
 	}
+	l.departmentCache.Set(id, department)
 	log.Printf("Department updated successfully: id=%s", id)
 	return department, nil
 }
@@ -230,6 +253,7 @@ func (l *loginCore) DeleteDepartment(ctx context.Context, id string) error {
 		log.Printf("failed to delete department: %v", err)
 		return err
 	}
+	l.departmentCache.Delete(id)
 	log.Printf("Department deleted successfully: id=%s", id)
 	return nil
 }
@@ -244,6 +268,7 @@ func (l *loginCore) CreatePosition(ctx context.Context, name string) (*emp.Posit
 		log.Printf("failed to create position: %v", err)
 		return nil, err
 	}
+	l.positionCache.Set(position.ID, position)
 	log.Printf("Position created successfully: id=%s", position.ID)
 	return position, nil
 }
@@ -253,11 +278,15 @@ func (l *loginCore) GetPosition(ctx context.Context, id string) (*emp.Position, 
 	if id == "" {
 		return nil, fmt.Errorf("position ID cannot be empty")
 	}
+	if cached, ok := l.positionCache.Get(id); ok {
+		return cached, nil
+	}
 	position, err := l.employee.GetPosition(ctx, id)
 	if err != nil {
 		log.Printf("failed to get position: %v", err)
 		return nil, err
 	}
+	l.positionCache.Set(id, position)
 	log.Printf("Position retrieved successfully: id=%s", id)
 	return position, nil
 }
@@ -286,6 +315,7 @@ func (l *loginCore) UpdatePosition(ctx context.Context, id, name string) (*emp.P
 		log.Printf("failed to update position: %v", err)
 		return nil, err
 	}
+	l.positionCache.Set(id, position)
 	log.Printf("Position updated successfully: id=%s", id)
 	return position, nil
 }
@@ -300,6 +330,7 @@ func (l *loginCore) DeletePosition(ctx context.Context, id string) error {
 		log.Printf("failed to delete position: %v", err)
 		return err
 	}
+	l.positionCache.Delete(id)
 	log.Printf("Position deleted successfully: id=%s", id)
 	return nil
 }

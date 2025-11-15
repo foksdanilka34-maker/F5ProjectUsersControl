@@ -13,6 +13,7 @@ import (
 	appCore "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/core"
 	appServer "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/server"
 	appSession "github.com/foksdanilka34-maker/F5ProjectUsersControl/LoginService/internal/app/session"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/storage"
 
 	"github.com/joho/godotenv"
@@ -50,7 +51,7 @@ func main() {
 
 	credentialStorage := appAuth.NewStorage(pgPool)
 	sessionStorage := appSession.NewStorage(pgPool)
-	
+
 	authenticator, err := appSession.NewAuthenticator(jwtSecret)
 	if err != nil {
 		log.Fatalf("failed to create authenticator: %v", err)
@@ -66,8 +67,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("nats connection error: %v", err)
 	}
-	natsConnection := natsAuth.NewNatsConn(natsClient, authCore)
-	go natsConnection.Start()
+	defer natsClient.Close()
+	if err := eventbus.EnsureJetStreamStreams(natsClient.JS); err != nil {
+		log.Printf("warning: failed to ensure JetStream streams: %v", err)
+	}
+	natsConnection := natsAuth.NewNatsConn(natsClient.JS, authCore)
+	go natsConnection.Start(ctx)
 
 	grpcServerImpl := appServer.NewAuthServer(authCore)
 

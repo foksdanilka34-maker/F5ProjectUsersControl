@@ -23,6 +23,17 @@ func NewProjectHandler(projectService *service.ProjectServiceClient) *ProjectHan
 	}
 }
 
+// CreateProject creates a new project and assigns the current user as manager.
+// @Summary      Create project
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        project body models.CreateProjectRequest true "Project payload"
+// @Success      201 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects [post]
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 	role := middleware.GetRoleFromContext(c)
@@ -59,6 +70,16 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	response.Created(c, project, "Project created successfully")
 }
 
+// GetProject fetches project metadata by ID.
+// @Summary      Get project
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id path string true "Project ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      404 {object} response.Response
+// @Router       /api/v1/projects/{id} [get]
 func (h *ProjectHandler) GetProject(c *gin.Context) {
 	projectID := c.Param("id")
 	if projectID == "" {
@@ -78,6 +99,19 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 	response.Success(c, http.StatusOK, project, "Project retrieved successfully")
 }
 
+// ListProjects returns paginated projects with optional manager/status filters.
+// @Summary      List projects
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        page_size   query int false "Page size"
+// @Param        page_number query int false "Page number"
+// @Param        manager_id  query string false "Manager filter"
+// @Param        status      query int false "Project status (0-3)"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects [get]
 func (h *ProjectHandler) ListProjects(c *gin.Context) {
 	var req models.ListProjectsRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -116,10 +150,22 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, http.StatusOK, projects, "Projects retrieved successfully")
+	meta := response.PaginationMeta{PageSize: req.PageSize, PageNumber: req.PageNumber}
+	response.Paginated(c, http.StatusOK, projects, meta, "Projects retrieved successfully")
 }
 
-// UpdateProject - manager, director, admin
+// UpdateProject modifies project fields (name, description, status, due date).
+// @Summary      Update project
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        id      path string true "Project ID"
+// @Param        project body models.UpdateProjectRequest true "Project updates"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects/{id} [patch]
 func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 	projectID := c.Param("id")
@@ -166,7 +212,16 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	response.Success(c, http.StatusOK, project, "Project updated successfully")
 }
 
-// DeleteProject - manager, director, admin
+// DeleteProject removes a project by ID.
+// @Summary      Delete project
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id path string true "Project ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects/{id} [delete]
 func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 	projectID := c.Param("id")
@@ -188,6 +243,18 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Project deleted successfully")
 }
 
+// CreateTask adds a task to a project.
+// @Summary      Create task
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        id   path string true "Project ID"
+// @Param        task body models.CreateTaskRequest true "Task payload"
+// @Success      201 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects/{id}/tasks [post]
 func (h *ProjectHandler) CreateTask(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 	projectID := c.Param("id")
@@ -229,6 +296,17 @@ func (h *ProjectHandler) CreateTask(c *gin.Context) {
 	response.Created(c, task, "Task created successfully")
 }
 
+// GetTask fetches a specific task within a project.
+// @Summary      Get task
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id     path string true "Project ID"
+// @Param        taskId path string true "Task ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      404 {object} response.Response
+// @Router       /api/v1/projects/{id}/tasks/{taskId} [get]
 func (h *ProjectHandler) GetTask(c *gin.Context) {
 	projectID := c.Param("id")
 	taskID := c.Param("taskId")
@@ -254,6 +332,20 @@ func (h *ProjectHandler) GetTask(c *gin.Context) {
 	response.Success(c, http.StatusOK, task, "Task retrieved successfully")
 }
 
+// UpdateTask modifies fields of an existing task.
+// @Summary      Update task
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        id     path string true "Project ID"
+// @Param        taskId path string true "Task ID"
+// @Param        task   body models.UpdateTaskRequest true "Task updates"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      404 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects/{id}/tasks/{taskId} [patch]
 func (h *ProjectHandler) UpdateTask(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 	projectID := c.Param("id")
@@ -319,6 +411,18 @@ func (h *ProjectHandler) UpdateTask(c *gin.Context) {
 	response.Success(c, http.StatusOK, task, "Task updated successfully")
 }
 
+// DeleteTask removes a task from a project.
+// @Summary      Delete task
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id     path string true "Project ID"
+// @Param        taskId path string true "Task ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      404 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects/{id}/tasks/{taskId} [delete]
 func (h *ProjectHandler) DeleteTask(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 	projectID := c.Param("id")
@@ -352,6 +456,20 @@ func (h *ProjectHandler) DeleteTask(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Task deleted successfully")
 }
 
+// MoveTask changes a task status/order within a project.
+// @Summary      Move task
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        id     path string true "Project ID"
+// @Param        taskId path string true "Task ID"
+// @Param        move   body models.MoveTaskRequest true "Move payload"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      404 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects/{id}/tasks/{taskId}/move [post]
 func (h *ProjectHandler) MoveTask(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 	projectID := c.Param("id")
@@ -398,6 +516,20 @@ func (h *ProjectHandler) MoveTask(c *gin.Context) {
 	response.Success(c, http.StatusOK, task, "Task moved successfully")
 }
 
+// AssignTask delegates a task to a team member.
+// @Summary      Assign task
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        id        path string true "Project ID"
+// @Param        taskId    path string true "Task ID"
+// @Param        assignee  body models.AssignTaskRequest true "Assignee payload"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      404 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects/{id}/tasks/{taskId}/assign [post]
 func (h *ProjectHandler) AssignTask(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 	projectID := c.Param("id")
@@ -438,6 +570,19 @@ func (h *ProjectHandler) AssignTask(c *gin.Context) {
 	response.Success(c, http.StatusOK, task, "Task assigned successfully")
 }
 
+// ListTasksByProject lists tasks for a project with optional filters.
+// @Summary      List project tasks
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id          path   string true  "Project ID"
+// @Param        status      query  int32  false "Task status filter"
+// @Param        assignee_id query  string false "Assignee filter"
+// @Param        priority    query  int32  false "Priority filter"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects/{id}/tasks [get]
 func (h *ProjectHandler) ListTasksByProject(c *gin.Context) {
 	projectID := c.Param("id")
 	if projectID == "" {
@@ -480,6 +625,18 @@ func (h *ProjectHandler) ListTasksByProject(c *gin.Context) {
 	response.Success(c, http.StatusOK, tasks, "Tasks retrieved successfully")
 }
 
+// AddMemberToProject links an employee to a project team.
+// @Summary      Add project member
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Accept       json
+// @Produce      json
+// @Param        id     path string true "Project ID"
+// @Param        member body models.AddMemberToProjectRequest true "Member payload"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects/{id}/members [post]
 func (h *ProjectHandler) AddMemberToProject(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 	projectID := c.Param("id")
@@ -508,6 +665,17 @@ func (h *ProjectHandler) AddMemberToProject(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Member added to project successfully")
 }
 
+// RemoveMemberFromProject removes a project member.
+// @Summary      Remove project member
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id       path string true "Project ID"
+// @Param        memberId path string true "Member ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects/{id}/members/{memberId} [delete]
 func (h *ProjectHandler) RemoveMemberFromProject(c *gin.Context) {
 	userID := middleware.GetUserIDFromContext(c)
 	projectID := c.Param("id")
@@ -531,6 +699,16 @@ func (h *ProjectHandler) RemoveMemberFromProject(c *gin.Context) {
 	response.Success(c, http.StatusOK, nil, "Member removed from project successfully")
 }
 
+// ListProjectMembers retrieves members assigned to a project.
+// @Summary      List project members
+// @Tags         Projects
+// @Security     ApiKeyAuth
+// @Produce      json
+// @Param        id path string true "Project ID"
+// @Success      200 {object} response.Response
+// @Failure      400 {object} response.Response
+// @Failure      500 {object} response.Response
+// @Router       /api/v1/projects/{id}/members [get]
 func (h *ProjectHandler) ListProjectMembers(c *gin.Context) {
 	projectID := c.Param("id")
 	if projectID == "" {

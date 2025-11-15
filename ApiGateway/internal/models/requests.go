@@ -2,6 +2,16 @@ package models
 
 import "time"
 
+type PaginationQuery struct {
+	PageSize   int32 `form:"page_size" binding:"omitempty,min=1,max=100"`
+	PageNumber int32 `form:"page_number" binding:"omitempty,min=1"`
+}
+
+type DateRangeQuery struct {
+	StartDate string `form:"start_date"`
+	EndDate   string `form:"end_date"`
+}
+
 type LoginRequest struct {
 	Login    string `json:"login" binding:"required,min=3"`
 	Password string `json:"password" binding:"required,min=6"`
@@ -40,8 +50,7 @@ type UpdateProfileRequest struct {
 }
 
 type ListProfilesRequest struct {
-	PageSize     int32  `form:"page_size" binding:"omitempty,min=1,max=100"`
-	PageNumber   int32  `form:"page_number" binding:"omitempty,min=1"`
+	PaginationQuery
 	DepartmentID string `form:"department_id"`
 	PositionID   string `form:"position_id"`
 }
@@ -92,10 +101,9 @@ type UpdateProjectRequest struct {
 }
 
 type ListProjectsRequest struct {
-	PageSize   int32   `form:"page_size" binding:"omitempty,min=1,max=100"`
-	PageNumber int32   `form:"page_number" binding:"omitempty,min=1"`
-	ManagerID  *string `form:"manager_id,omitempty"`
-	Status     *int32  `form:"status,omitempty" binding:"omitempty,min=0,max=3"`
+	PaginationQuery
+	ManagerID *string `form:"manager_id,omitempty"`
+	Status    *int32  `form:"status,omitempty" binding:"omitempty,min=0,max=3"`
 }
 
 type CreateTaskRequest struct {
@@ -139,62 +147,51 @@ type RemoveMemberFromProjectRequest struct {
 }
 
 type GetTaskStatusHistoryRequest struct {
-	PageSize   int32 `form:"page_size" binding:"omitempty,min=1,max=100"`
-	PageNumber int32 `form:"page_number" binding:"omitempty,min=1"`
+	PaginationQuery
 }
+
 type GetProjectMetricsRequest struct {
 	StartDate *time.Time `form:"start_date,omitempty"`
 	EndDate   *time.Time `form:"end_date,omitempty"`
 }
 
 type AnalyticsDateRangeQuery struct {
-	StartDate string `form:"start_date"`
-	EndDate   string `form:"end_date"`
+	DateRangeQuery
 }
 
 type EmployeeMetricsQuery struct {
-	StartDate string `form:"start_date"`
-	EndDate   string `form:"end_date"`
+	DateRangeQuery
 }
 
 type ListEmployeeMetricsQuery struct {
-	PageSize     int32  `form:"page_size" binding:"omitempty,min=1,max=100"`
-	PageNumber   int32  `form:"page_number" binding:"omitempty,min=1"`
+	PaginationQuery
+	DateRangeQuery
 	DepartmentID string `form:"department_id"`
-	StartDate    string `form:"start_date"`
-	EndDate      string `form:"end_date"`
 }
 
 type TopPerformersQuery struct {
+	DateRangeQuery
 	Limit        int32  `form:"limit" binding:"omitempty,min=1,max=100"`
 	DepartmentID string `form:"department_id"`
-	StartDate    string `form:"start_date"`
-	EndDate      string `form:"end_date"`
 }
 
 type ProjectMetricsQuery struct {
-	StartDate string `form:"start_date"`
-	EndDate   string `form:"end_date"`
+	DateRangeQuery
 }
 
 type ListProjectMetricsQuery struct {
-	PageSize   int32  `form:"page_size" binding:"omitempty,min=1,max=100"`
-	PageNumber int32  `form:"page_number" binding:"omitempty,min=1"`
-	ManagerID  string `form:"manager_id"`
-	StartDate  string `form:"start_date"`
-	EndDate    string `form:"end_date"`
+	PaginationQuery
+	DateRangeQuery
+	ManagerID string `form:"manager_id"`
 }
 
 type DepartmentMetricsQuery struct {
-	StartDate string `form:"start_date"`
-	EndDate   string `form:"end_date"`
+	DateRangeQuery
 }
 
 type ListDepartmentMetricsQuery struct {
-	PageSize   int32  `form:"page_size" binding:"omitempty,min=1,max=100"`
-	PageNumber int32  `form:"page_number" binding:"omitempty,min=1"`
-	StartDate  string `form:"start_date"`
-	EndDate    string `form:"end_date"`
+	PaginationQuery
+	DateRangeQuery
 }
 
 type ProductivityTrendsQuery struct {
@@ -212,6 +209,5 @@ type CompletionRateTrendsQuery struct {
 }
 
 type DashboardStatsQuery struct {
-	StartDate string `form:"start_date"`
-	EndDate   string `form:"end_date"`
+	DateRangeQuery
 }

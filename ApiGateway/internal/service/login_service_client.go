@@ -9,7 +9,6 @@ import (
 
 	auth "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/login_service"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -21,24 +20,15 @@ type LoginServiceClient struct {
 }
 
 func NewLoginServiceClient(host, port, jwtSecret string) *LoginServiceClient {
-	addr := fmt.Sprintf("%s:%s", host, port)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	conn, err := grpc.DialContext(
-		ctx,
-		addr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	conn := dialGRPC(
+		"login service",
+		host,
+		port,
+		5*time.Second,
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(10*1024*1024),
 		),
-		grpc.WithBlock(),
 	)
-	if err != nil {
-		log.Fatalf("failed to connect to login service: %v", err)
-	}
-
 	return &LoginServiceClient{
 		client:    auth.NewLoginServiceClient(conn),
 		jwtSecret: jwtSecret,

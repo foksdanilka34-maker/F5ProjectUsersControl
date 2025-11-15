@@ -14,6 +14,7 @@ import (
 	employee "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/repo"
 	employeeServer "github.com/foksdanilka34-maker/F5ProjectUsersControl/EmployeeService/internal/app/employee/server"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/eventbus"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/storage"
 
 	"github.com/joho/godotenv"
@@ -50,7 +51,7 @@ func main() {
 	log.Println("Postgres connected")
 
 	employeeStorage := employee.NewStorage(pgPool)
-	
+
 	natsConfig := &storage.NatsConfig{
 		URL: storage.GetEnv("NATS_URL", "nats://localhost:4222"),
 	}
@@ -58,7 +59,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("nats connection error: %v", err)
 	}
-	publisher := natsclient.NewPublisher(natsClient)
+	defer natsClient.Close()
+	if err := eventbus.EnsureJetStreamStreams(natsClient.JS); err != nil {
+		log.Printf("warning: failed to ensure JetStream streams: %v", err)
+	}
+	publisher := natsclient.NewPublisher(natsClient.JS)
 
 	loginServiceConn, err := grpc.NewClient(
 		storage.GetEnv("LOGIN_SERVICE_GRPC_ADDR", "localhost:50051"),
