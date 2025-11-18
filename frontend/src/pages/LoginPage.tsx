@@ -3,13 +3,13 @@ import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const handleSubmit = () => {
-    if (email && password) {
-      console.log('Login attempt:', { email, password });
+    if (login && password) {
+      console.log('Login attempt:', { login, password });
       alert('Вход выполнен!');
     }
   };
@@ -38,7 +38,7 @@ export default function LoginForm() {
               F5
             </div>
           </div>
-          <p className="text-gray-400 text-sm mt-3">Войдите в личный кабинет</p>
+          <p className="text-gray-400 text-sm mt-3">Войдите в личный кабинет</p>
         </div>
 
         {/* Login Card */}
@@ -49,26 +49,26 @@ export default function LoginForm() {
           <div className="space-y-6 relative">
             <h2 className="text-2xl font-bold text-white mb-6">Вход в систему</h2>
 
-            {/* Email Field */}
+            {/* Login Field */}
             <div className="relative">
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Электронная почта
+                Логин
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => setFocusedField('email')}
+                  type="text"
+                  value={login}
+                  onChange={(e) => setLogin(e.target.value)}
+                  onFocus={() => setFocusedField('login')}
                   onBlur={() => setFocusedField(null)}
                   onKeyPress={handleKeyPress}
                   className={`w-full pl-12 pr-4 py-3.5 bg-gray-900/50 border rounded-xl text-white placeholder-gray-500 transition-all duration-300 focus:outline-none ${
-                    focusedField === 'email'
+                    focusedField === 'login'
                       ? 'border-emerald-400 shadow-lg shadow-emerald-500/20'
                       : 'border-gray-600 hover:border-gray-500'
                   }`}
-                  placeholder="your@email.com"
+                  placeholder="Введите ваш логин"
                 />
               </div>
             </div>
@@ -109,7 +109,7 @@ export default function LoginForm() {
               onClick={handleSubmit}
               className="w-full bg-gradient-to-r from-lime-400 to-emerald-400 hover:from-lime-500 hover:to-emerald-500 text-gray-900 font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-500/30 active:scale-[0.98]"
             >
-              Войти
+              Войти
             </button>
           </div>
         </div>
