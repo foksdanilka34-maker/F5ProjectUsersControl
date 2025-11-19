@@ -2,20 +2,14 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Activity,
-  AlertCircle,
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
   Bell,
-  Briefcase,
-  CheckCircle,
   ChevronDown,
   Filter,
   Plus,
   Search,
-  Target,
-  Users,
 } from 'lucide-react';
 import {
   Area,
@@ -40,114 +34,23 @@ const periodOptions = [
 const departmentOptions = ['Все отделы', 'Разработка', 'Маркетинг', 'HR'];
 const projectStatusOptions = ['Все проекты', 'Активные', 'На паузе', 'Риск'];
 
-const metricCards = [
-  {
-    label: 'Активные сотрудники',
-    value: 128,
-    delta: '+6,2% vs прошлый месяц',
-    trend: 'up' as const,
-    icon: Users,
-  },
-  {
-    label: 'Активные проекты',
-    value: 24,
-    delta: '+2 новых на этой неделе',
-    trend: 'up' as const,
-    icon: Briefcase,
-  },
-  {
-    label: 'Выполненные задачи',
-    value: 486,
-    delta: '−4,1% к прошлой неделе',
-    trend: 'down' as const,
-    icon: CheckCircle,
-  },
-  {
-    label: 'Просроченные задачи',
-    value: 17,
-    delta: '−3 за последние 24ч',
-    trend: 'up' as const,
-    icon: AlertCircle,
-  },
-];
+const metricCards: Array<{ label: string; value: number; delta: string; trend: 'up' | 'down'; icon: LucideIcon }> = [];
 
-const productivityTrend = [
-  { label: 'Пн', efficiency: 72, completed: 64 },
-  { label: 'Вт', efficiency: 75, completed: 71 },
-  { label: 'Ср', efficiency: 81, completed: 79 },
-  { label: 'Чт', efficiency: 77, completed: 68 },
-  { label: 'Пт', efficiency: 84, completed: 82 },
-  { label: 'Сб', efficiency: 69, completed: 54 },
-  { label: 'Вс', efficiency: 66, completed: 48 },
-];
+const productivityTrend: Array<{ label: string; efficiency: number; completed: number }> = [];
 
-const completionTrend = [
-  { week: '1-7', onTime: 68, overall: 74 },
-  { week: '8-14', onTime: 72, overall: 79 },
-  { week: '15-21', onTime: 76, overall: 81 },
-  { week: '22-28', onTime: 74, overall: 77 },
-  { week: '29-4', onTime: 79, overall: 85 },
-];
+const completionTrend: Array<{ week: string; onTime: number; overall: number }> = [];
 
-const kanbanColumns = [
-  {
-    title: 'Backlog',
-    color: 'border-gray-200',
-    tasks: [
-      { title: 'Формирование KPI отдела маркетинга', owner: 'Мария П.', priority: 'Высокий' },
-      { title: 'Проработка ролей в новом проекте Vostok', owner: 'Илья К.', priority: 'Средний' },
-    ],
-  },
-  {
-    title: 'В работе',
-    color: 'border-emerald-200',
-    tasks: [
-      { title: 'Релиз мобильного приложения 2.1', owner: 'Команда Mobile', priority: 'Критичный' },
-      { title: 'Онбординг 4 новых специалистов', owner: 'HR Team', priority: 'Высокий' },
-      { title: 'Подготовка демо по проекту Atlas', owner: 'Product Lab', priority: 'Средний' },
-    ],
-  },
-  {
-    title: 'На проверке',
-    color: 'border-amber-200',
-    tasks: [
-      { title: 'Аналитика потребления лицензий', owner: 'FinOps', priority: 'Низкий' },
-      { title: 'Фреймворк метрик эффективности команд', owner: 'PMO', priority: 'Высокий' },
-    ],
-  },
-];
+const kanbanColumns: Array<{ title: string; color: string; tasks: Array<{ title: string; owner: string; priority: string }> }> = [];
 
-const timeline = [
-  { title: 'Стендап команды Fusion', time: '09:30', status: 'В работе' },
-  { title: 'Дедлайн задач по проекту Northwind', time: '11:00', status: 'Высокий приоритет' },
-  { title: 'Согласование бюджета Q1', time: '13:00', status: 'Ожидает' },
-  { title: 'One-on-one с руководителем', time: '16:30', status: 'Запланировано' },
-];
+const timeline: Array<{ title: string; time: string; status: string }> = [];
 
-const leaders = [
-  { name: 'Александр М.', role: 'Lead Backend', score: '92', tasks: 48 },
-  { name: 'Екатерина Л.', role: 'Product Manager', score: '89', tasks: 41 },
-  { name: 'Владислав С.', role: 'QA Lead', score: '87', tasks: 36 },
-];
+const leaders: Array<{ name: string; role: string; score: string; tasks: number }> = [];
 
-const riskyProjects = [
-  { name: 'Project Nimbus', health: 54, eta: '−8 дней', status: 'Высокий риск' },
-  { name: 'Atlas 2.0', health: 62, eta: '−3 дня', status: 'Требует внимания' },
-  { name: 'Aurora', health: 71, eta: '+2 дня', status: 'На контроле' },
-];
+const riskyProjects: Array<{ name: string; health: number; eta: string; status: string }> = [];
 
-const activityFeed = [
-  { title: 'Создан новый проект «Siberia»', time: '5 мин назад', type: 'project' },
-  { title: 'Антон Н. завершил задачу «Настройка ETL»', time: '24 мин назад', type: 'task' },
-  { title: 'К команде Mobile присоединилась Дарья С.', time: '1 ч назад', type: 'employee' },
-  { title: 'Показатель on-time rate < 70% в Project Nimbus', time: '2 ч назад', type: 'alert' },
-];
+const activityFeed: Array<{ title: string; time: string; type: string }> = [];
 
-const systemStatuses = [
-  { label: 'Api Gateway', value: 'Зеленый', icon: CheckCircle, color: 'text-emerald-500' },
-  { label: 'Analytics service', value: 'Нагрузка ↑12%', icon: Activity, color: 'text-amber-500' },
-  { label: 'Projects DB', value: 'Репликация 25мс', icon: Target, color: 'text-emerald-500' },
-];
+const systemStatuses: Array<{ label: string; value: string; icon: LucideIcon; color: string }> = [];
 
 type TrendMode = 'productivity' | 'completion';
 
@@ -412,6 +315,11 @@ export default function DashboardPage() {
                 <MetricCard key={card.label} {...card} />
               ))}
             </div>
+            {!metricCards.length && (
+              <p className="text-sm text-gray-500">
+                Нет показателей: подключим AnalyticsService → `GetKPI`/`GetTrends`, и карточки заполнятся автоматически.
+              </p>
+            )}
 
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-[0_12px_40px_rgba(15,118,110,0.08)]">
@@ -424,27 +332,33 @@ export default function DashboardPage() {
                     Все проекты
                   </button>
                 </div>
-                <div className="mt-6 grid gap-4 md:grid-cols-3">
-                  {kanbanColumns.map((column) => (
-                    <div key={column.title} className={`rounded-2xl border ${column.color} bg-gray-50/70 p-4`}>
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-gray-800">{column.title}</h3>
-                        <span className="text-xs text-gray-400">{column.tasks.length}</span>
+                {kanbanColumns.length ? (
+                  <div className="mt-6 grid gap-4 md:grid-cols-3">
+                    {kanbanColumns.map((column) => (
+                      <div key={column.title} className={`rounded-2xl border ${column.color} bg-gray-50/70 p-4`}>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-sm font-semibold text-gray-800">{column.title}</h3>
+                          <span className="text-xs text-gray-400">{column.tasks.length}</span>
+                        </div>
+                        <div className="mt-4 space-y-4">
+                          {column.tasks.map((task) => (
+                            <div key={task.title} className="rounded-2xl bg-white p-3 shadow-sm">
+                              <p className="text-sm font-semibold text-gray-900">{task.title}</p>
+                              <p className="mt-1 text-xs text-gray-500">{task.owner}</p>
+                              <span className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                                {task.priority}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="mt-4 space-y-4">
-                        {column.tasks.map((task) => (
-                          <div key={task.title} className="rounded-2xl bg-white p-3 shadow-sm">
-                            <p className="text-sm font-semibold text-gray-900">{task.title}</p>
-                            <p className="mt-1 text-xs text-gray-500">{task.owner}</p>
-                            <span className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
-                              {task.priority}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-6 rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-gray-500">
+                    Нет карточек проектов — ждём ProjectService (`ListProjects` + `ListTasks`).
+                  </p>
+                )}
               </div>
 
               <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-[0_12px_40px_rgba(15,118,110,0.08)]">
@@ -457,19 +371,23 @@ export default function DashboardPage() {
                     Смотреть календарь
                   </button>
                 </div>
-                <div className="mt-6 space-y-5">
-                  {timeline.map((item) => (
-                    <div key={item.title} className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 text-gray-700">
-                        {item.time}
+                {timeline.length ? (
+                  <div className="mt-6 space-y-5">
+                    {timeline.map((item) => (
+                      <div key={item.title} className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 text-gray-700">
+                          {item.time}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                          <p className="text-xs text-gray-500">{item.status}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-                        <p className="text-xs text-gray-500">{item.status}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-6 text-sm text-gray-500">Нет расписания — подключим календарь после интеграции.</p>
+                )}
               </div>
             </div>
 
@@ -507,17 +425,19 @@ export default function DashboardPage() {
                 </div>
                 <div className="mt-6 h-72">
                   {trendMode === 'productivity' ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={productivityTrend}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
-                        <XAxis dataKey="label" stroke="#9ca3af" />
-                        <YAxis stroke="#9ca3af" domain={[50, 100]} />
-                        <Tooltip contentStyle={{ borderRadius: 16, borderColor: '#d1fae5' }} />
-                        <Line type="monotone" dataKey="efficiency" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} />
-                        <Line type="monotone" dataKey="completed" stroke="#a3e635" strokeWidth={3} dot={{ r: 4 }} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
+                    productivityTrend.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={productivityTrend}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                          <XAxis dataKey="label" stroke="#9ca3af" />
+                          <YAxis stroke="#9ca3af" domain={[50, 100]} />
+                          <Tooltip contentStyle={{ borderRadius: 16, borderColor: '#d1fae5' }} />
+                          <Line type="monotone" dataKey="efficiency" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} />
+                          <Line type="monotone" dataKey="completed" stroke="#a3e635" strokeWidth={3} dot={{ r: 4 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : null
+                  ) : completionTrend.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={completionTrend}>
                         <defs>
@@ -538,7 +458,13 @@ export default function DashboardPage() {
                         <Area type="monotone" dataKey="overall" stroke="#a3e635" fillOpacity={1} fill="url(#colorOverall)" />
                       </AreaChart>
                     </ResponsiveContainer>
-                  )}
+                  ) : null}
+                  {(((trendMode === 'productivity') && !productivityTrend.length) ||
+                    ((trendMode === 'completion') && !completionTrend.length)) && (
+                      <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-gray-200 px-4 text-sm text-gray-500">
+                        Нет данных для графика — ждём аналитический endpoint.
+                      </div>
+                    )}
                 </div>
               </div>
 
@@ -552,38 +478,42 @@ export default function DashboardPage() {
                     Экспорт
                   </button>
                 </div>
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Лидеры</p>
-                    <div className="mt-3 space-y-3">
-                      {leaders.map((leader) => (
-                        <div key={leader.name} className="rounded-2xl border border-gray-100 p-4">
-                          <p className="text-sm font-semibold text-gray-900">{leader.name}</p>
-                          <p className="text-xs text-gray-500">{leader.role}</p>
-                          <div className="mt-2 flex items-center justify-between text-sm">
-                            <span className="font-semibold text-emerald-600">{leader.score} баллов</span>
-                            <span className="text-gray-500">{leader.tasks} задач</span>
+                {leaders.length || riskyProjects.length ? (
+                  <div className="mt-6 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Лидеры</p>
+                      <div className="mt-3 space-y-3">
+                        {leaders.map((leader) => (
+                          <div key={leader.name} className="rounded-2xl border border-gray-100 p-4">
+                            <p className="text-sm font-semibold text-gray-900">{leader.name}</p>
+                            <p className="text-xs text-gray-500">{leader.role}</p>
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <span className="font-semibold text-emerald-600">{leader.score} баллов</span>
+                              <span className="text-gray-500">{leader.tasks} задач</span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Проекты риска</p>
+                      <div className="mt-3 space-y-3">
+                        {riskyProjects.map((project) => (
+                          <div key={project.name} className="rounded-2xl border border-gray-100 p-4">
+                            <p className="text-sm font-semibold text-gray-900">{project.name}</p>
+                            <p className="text-xs text-gray-500">{project.status}</p>
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <span className="font-semibold text-rose-600">Health {project.health}%</span>
+                              <span className="text-gray-500">ETA {project.eta}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Проекты риска</p>
-                    <div className="mt-3 space-y-3">
-                      {riskyProjects.map((project) => (
-                        <div key={project.name} className="rounded-2xl border border-gray-100 p-4">
-                          <p className="text-sm font-semibold text-gray-900">{project.name}</p>
-                          <p className="text-xs text-gray-500">{project.status}</p>
-                          <div className="mt-2 flex items-center justify-between text-sm">
-                            <span className="font-semibold text-rose-600">Health {project.health}%</span>
-                            <span className="text-gray-500">ETA {project.eta}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                ) : (
+                  <p className="mt-6 text-sm text-gray-500">Нет рейтингов и рисков — подключим аналитику ProjectService позже.</p>
+                )}
               </div>
             </div>
           </section>
@@ -600,40 +530,50 @@ export default function DashboardPage() {
                     Admin
                   </span>
                 </div>
-                <div className="mt-4 space-y-4">
-                  {systemStatuses.map((status) => (
-                    <div key={status.label} className="flex items-center justify-between rounded-2xl border border-gray-50 p-3">
-                      <div className="flex items-center gap-3">
-                        <status.icon className={`h-5 w-5 ${status.color}`} />
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{status.label}</p>
-                          <p className="text-xs text-gray-500">{status.value}</p>
+                {systemStatuses.length ? (
+                  <div className="mt-4 space-y-4">
+                    {systemStatuses.map((status) => (
+                      <div key={status.label} className="flex items-center justify-between rounded-2xl border border-gray-50 p-3">
+                        <div className="flex items-center gap-3">
+                          <status.icon className={`h-5 w-5 ${status.color}`} />
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{status.label}</p>
+                            <p className="text-xs text-gray-500">{status.value}</p>
+                          </div>
                         </div>
+                        <ChevronDown className="h-4 w-4 text-gray-400" />
                       </div>
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-gray-500">Мониторинг пуст — ждём health-check endpoint от backend.</p>
+                )}
               </div>
             )}
 
             <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-[0_12px_40px_rgba(15,118,110,0.08)]">
               <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">Активность</p>
               <h3 className="mt-2 text-lg font-semibold">Что произошло</h3>
-              <div className="mt-4 space-y-4">
-                {activityFeed.map((activity) => (
-                  <div key={activity.title} className="flex gap-3 rounded-2xl bg-gray-50/70 p-3">
-                    <div className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{activity.title}</p>
-                      <p className="text-xs text-gray-500">{activity.time}</p>
-                    </div>
+              {activityFeed.length ? (
+                <>
+                  <div className="mt-4 space-y-4">
+                    {activityFeed.map((activity) => (
+                      <div key={activity.title} className="flex gap-3 rounded-2xl bg-gray-50/70 p-3">
+                        <div className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{activity.title}</p>
+                          <p className="text-xs text-gray-500">{activity.time}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <button type="button" className="mt-4 text-sm font-medium text-emerald-600">
-                Смотреть всю ленту
-              </button>
+                  <button type="button" className="mt-4 text-sm font-medium text-emerald-600">
+                    Смотреть всю ленту
+                  </button>
+                </>
+              ) : (
+                <p className="mt-4 text-sm text-gray-500">Лента активности отключена — нужно подключить event bus.</p>
+              )}
             </div>
           </aside>
         </main>

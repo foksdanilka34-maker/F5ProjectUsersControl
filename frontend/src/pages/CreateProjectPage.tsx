@@ -11,19 +11,17 @@ import {
   UserCircle,
 } from 'lucide-react';
 
-const managers = ['Анна Петрова', 'Илья Коновалов', 'Мария Соколова', 'Дмитрий Белов'];
-
 type FormState = {
   name: string;
   description: string;
-  managerName: string;
+  managerId: string;
   dueDate: string;
 };
 
 const initialState: FormState = {
   name: '',
   description: '',
-  managerName: managers[0],
+  managerId: '',
   dueDate: '',
 };
 
@@ -32,8 +30,8 @@ export default function CreateProjectPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isValid = useMemo(() => {
-    return form.name.trim().length >= 3 && form.managerName.trim().length >= 3;
-  }, [form.managerName, form.name]);
+    return form.name.trim().length >= 3 && Boolean(form.managerId);
+  }, [form.managerId, form.name]);
 
   const handleChange = (field: keyof FormState) => (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -45,12 +43,8 @@ export default function CreateProjectPage() {
     event.preventDefault();
     if (!isValid) return;
     setIsSubmitting(true);
-    setTimeout(() => {
-      console.log('CreateProject payload (mock):', form);
-      alert('Проект сохранён (мок). При интеграции дернём ProjectService.CreateProject.');
-      setIsSubmitting(false);
-      setForm(initialState);
-    }, 900);
+    alert('ProjectService ещё не подключён, поэтому запрос не отправляется.');
+    setIsSubmitting(false);
   };
 
   return (
@@ -115,18 +109,16 @@ export default function CreateProjectPage() {
               <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-gray-400">Ответственные</h2>
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="text-sm font-medium text-gray-600">
-                  Менеджер
+                  Менеджер (employee_id)
                   <div className="relative">
                     <UserCircle className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <select
-                      value={form.managerName}
-                      onChange={handleChange('managerName')}
-                      className="mt-1 w-full appearance-none rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
-                    >
-                      {managers.map((manager) => (
-                        <option key={manager}>{manager}</option>
-                      ))}
-                    </select>
+                    <input
+                      value={form.managerId}
+                      onChange={handleChange('managerId')}
+                      placeholder="Введите ID менеджера"
+                      className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
+                    />
+                    <p className="mt-2 px-1 text-xs text-gray-400">Пока вводим ID вручную — EmployeeService предоставит список.</p>
                   </div>
                 </label>
                 <label className="text-sm font-medium text-gray-600">
@@ -176,7 +168,7 @@ export default function CreateProjectPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-lg font-semibold text-gray-900">{form.name || 'Название проекта'}</p>
-                <p className="text-sm text-gray-500">Менеджер: {form.managerName || '—'}</p>
+                <p className="text-sm text-gray-500">manager_id: {form.managerId || '—'}</p>
               </div>
             </div>
             <p className="mt-4 text-sm text-gray-600">{form.description || 'Описание появится здесь.'}</p>

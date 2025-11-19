@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarDays,
-  CheckCircle2,
   Filter,
   Layers,
   Loader2,
@@ -18,7 +17,7 @@ import {
   Users2,
 } from 'lucide-react';
 
-type ProjectId = 'prj-nimbus' | 'prj-atlas' | 'prj-aurora';
+type ProjectId = string;
 type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
 type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
@@ -42,167 +41,17 @@ type Task = {
 
 type ProjectBoard = Record<TaskStatus, Task[]>;
 
-const projectCards: ProjectCard[] = [
-  {
-    id: 'prj-nimbus',
-    name: 'Project Nimbus',
-    manager: 'Анна Петрова',
-    status: 'Активен',
-    due: '12 мар',
-    health: 'На контроле',
-    progress: 68,
-  },
-  {
-    id: 'prj-atlas',
-    name: 'Atlas 2.0',
-    manager: 'Илья Коновалов',
-    status: 'На паузе',
-    due: '27 апр',
-    health: 'Повышенный риск',
-    progress: 42,
-  },
-  {
-    id: 'prj-aurora',
-    name: 'Aurora',
-    manager: 'Мария Лебедева',
-    status: 'Активен',
-    due: '01 июн',
-    health: 'В норме',
-    progress: 83,
-  },
-];
+const projectCards: ProjectCard[] = [];
 
-const initialTaskBoards: Record<ProjectId, ProjectBoard> = {
-  'prj-nimbus': {
-    TODO: [
-      {
-        id: 't-101',
-        title: 'UX сценарии нового борда',
-        assignee: 'Екатерина',
-        priority: 'HIGH',
-        due: '19 фев',
-      },
-      {
-        id: 't-102',
-        title: 'Интеграция с аналитикой',
-        assignee: 'Backend Team',
-        priority: 'CRITICAL',
-        due: '21 фев',
-      },
-    ],
-    IN_PROGRESS: [
-      {
-        id: 't-103',
-        title: 'Настройка пайплайнов CI',
-        assignee: 'DevOps',
-        priority: 'MEDIUM',
-        due: '16 фев',
-      },
-      {
-        id: 't-104',
-        title: 'Тестирование push-уведомлений',
-        assignee: 'QA',
-        priority: 'LOW',
-        due: '18 фев',
-      },
-    ],
-    REVIEW: [
-      {
-        id: 't-105',
-        title: 'Документация API v2',
-        assignee: 'Андрей',
-        priority: 'MEDIUM',
-        due: '15 фев',
-      },
-    ],
-    DONE: [
-      {
-        id: 't-106',
-        title: 'Онбординг новых участников',
-        assignee: 'HR',
-        priority: 'LOW',
-        due: '13 фев',
-      },
-    ],
-  },
-  'prj-atlas': {
-    TODO: [
-      {
-        id: 't-201',
-        title: 'Исследование конкурентов',
-        assignee: 'Product',
-        priority: 'MEDIUM',
-        due: '05 мар',
-      },
-    ],
-    IN_PROGRESS: [
-      {
-        id: 't-202',
-        title: 'Обновление диаграммы архитектуры',
-        assignee: 'Architect',
-        priority: 'HIGH',
-        due: '02 мар',
-      },
-    ],
-    REVIEW: [],
-    DONE: [],
-  },
-  'prj-aurora': {
-    TODO: [
-      {
-        id: 't-301',
-        title: 'Сбор фидбэка пилота',
-        assignee: 'CS team',
-        priority: 'LOW',
-        due: '28 фев',
-      },
-    ],
-    IN_PROGRESS: [
-      {
-        id: 't-302',
-        title: 'Новый дизайн onboarding',
-        assignee: 'Design',
-        priority: 'MEDIUM',
-        due: '22 фев',
-      },
-    ],
-    REVIEW: [
-      {
-        id: 't-303',
-        title: 'Импорт данных из V1',
-        assignee: 'ETL team',
-        priority: 'HIGH',
-        due: '18 фев',
-      },
-    ],
-    DONE: [
-      {
-        id: 't-304',
-        title: 'Гайд для поддержки',
-        assignee: 'Support',
-        priority: 'LOW',
-        due: '10 фев',
-      },
-    ],
-  },
+const initialTaskBoards: Record<ProjectId, ProjectBoard> = {};
+const emptyBoard: ProjectBoard = {
+  TODO: [],
+  IN_PROGRESS: [],
+  REVIEW: [],
+  DONE: [],
 };
 
-const projectMembers: Record<ProjectId, { name: string; role: string }[]> = {
-  'prj-nimbus': [
-    { name: 'Анна Петрова', role: 'Manager' },
-    { name: 'Илья Коновалов', role: 'Tech Lead' },
-    { name: 'Екатерина Л.', role: 'Product' },
-    { name: 'Команда QA', role: 'QA' },
-  ],
-  'prj-atlas': [
-    { name: 'Дмитрий Б.', role: 'Manager' },
-    { name: 'Мария Л.', role: 'Design' },
-  ],
-  'prj-aurora': [
-    { name: 'Илья Коновалов', role: 'Manager' },
-    { name: 'Андрей М.', role: 'Backend' },
-  ],
-};
+const projectMembers: Record<ProjectId, { name: string; role: string }[]> = {};
 
 const boardOrder: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
 const boardLabels: Record<TaskStatus, string> = {
@@ -249,8 +98,8 @@ const emptyCopy: Record<TaskStatus, { title: string; body: string }> = {
 };
 
 export default function ProjectsHubPage() {
-  const [selectedProject, setSelectedProject] = useState(projectCards[0]);
-  const [boards, setBoards] = useState<Record<ProjectId, ProjectBoard>>(initialTaskBoards);
+  const [selectedProjectId, setSelectedProjectId] = useState<ProjectId | null>(projectCards[0]?.id ?? null);
+  const [boards] = useState<Record<ProjectId, ProjectBoard>>(initialTaskBoards);
   const [isChangingStatus, setIsChangingStatus] = useState<string | null>(null);
   const [dragState, setDragState] = useState<{
     projectId: ProjectId;
@@ -259,38 +108,27 @@ export default function ProjectsHubPage() {
   } | null>(null);
   const [hoveredColumn, setHoveredColumn] = useState<TaskStatus | null>(null);
 
-  const board = useMemo(() => boards[selectedProject.id], [boards, selectedProject.id]);
-  const members = projectMembers[selectedProject.id];
+  const selectedProject = useMemo(() => projectCards.find((project) => project.id === selectedProjectId) ?? null, [selectedProjectId]);
+  const board = useMemo(() => {
+    if (!selectedProjectId) {
+      return emptyBoard;
+    }
+    return boards[selectedProjectId] ?? emptyBoard;
+  }, [boards, selectedProjectId]);
+  const members = selectedProjectId ? projectMembers[selectedProjectId] ?? [] : [];
 
-  const handleMoveTask = (taskId: string, fromColumn: TaskStatus, nextColumn: TaskStatus, projectId: ProjectId) => {
+  const handleMoveTask = (taskId: string, fromColumn: TaskStatus, nextColumn: TaskStatus) => {
     if (fromColumn === nextColumn) return;
     setIsChangingStatus(taskId);
-    setBoards((prev) => {
-      const projectBoard = prev[projectId];
-      const taskToMove = projectBoard[fromColumn].find((task) => task.id === taskId);
-      if (!taskToMove) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [projectId]: {
-          ...projectBoard,
-          [fromColumn]: projectBoard[fromColumn].filter((task) => task.id !== taskId),
-          [nextColumn]: [taskToMove, ...projectBoard[nextColumn]],
-        },
-      };
-    });
-
     setTimeout(() => {
-      console.log('Would call MoveTaskRequest', { taskId, newStatus: nextColumn, projectId });
+      alert('MoveTaskRequest появится после интеграции ProjectService.');
       setIsChangingStatus(null);
-    }, 600);
+    }, 250);
   };
 
   const handleDrop = (targetColumn: TaskStatus) => {
-    if (!dragState || dragState.projectId !== selectedProject.id) return;
-    handleMoveTask(dragState.taskId, dragState.fromColumn, targetColumn, dragState.projectId);
+    if (!dragState || !selectedProjectId || dragState.projectId !== selectedProjectId) return;
+    handleMoveTask(dragState.taskId, dragState.fromColumn, targetColumn);
     setDragState(null);
     setHoveredColumn(null);
   };
@@ -335,44 +173,57 @@ export default function ProjectsHubPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Портфель</p>
                   <h2 className="mt-2 text-xl font-semibold">Активные проекты</h2>
                 </div>
-                <button className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600" type="button">
+                <button
+                  className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400"
+                  type="button"
+                  disabled
+                >
                   <Filter className="h-3.5 w-3.5" /> Фильтры
                 </button>
               </div>
               <div className="mt-5 space-y-4">
-                {projectCards.map((project) => (
-                  <button
-                    key={project.id}
-                    type="button"
-                    onClick={() => setSelectedProject(project)}
-                    className={`w-full rounded-3xl border px-4 py-4 text-left transition-all ${
-                      selectedProject.id === project.id
-                        ? 'border-emerald-200 bg-emerald-50/70 shadow-[0_20px_40px_rgba(16,185,129,0.2)]'
-                        : 'border-gray-100 bg-gray-50/80 hover:border-emerald-100'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{project.name}</p>
-                        <p className="text-xs text-gray-500">Менеджер: {project.manager}</p>
+                {projectCards.length === 0 ? (
+                  <div className="rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50/70 px-4 py-6 text-center text-sm text-gray-500">
+                    <p className="font-semibold text-gray-900">Пока нет данных от ProjectService</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Здесь появится список из ListProjectsResponse, как только подключим backend.
+                    </p>
+                  </div>
+                ) : (
+                  projectCards.map((project) => (
+                    <button
+                      key={project.id}
+                      type="button"
+                      onClick={() => setSelectedProjectId(project.id)}
+                      className={`w-full rounded-3xl border px-4 py-4 text-left transition-all ${
+                        selectedProjectId === project.id
+                          ? 'border-emerald-200 bg-emerald-50/70 shadow-[0_20px_40px_rgba(16,185,129,0.2)]'
+                          : 'border-gray-100 bg-gray-50/80 hover:border-emerald-100'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{project.name}</p>
+                          <p className="text-xs text-gray-500">Менеджер: {project.manager}</p>
+                        </div>
+                        <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase text-gray-500">
+                          {project.status}
+                        </span>
                       </div>
-                      <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase text-gray-500">
-                        {project.status}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                      <span>
-                        <CalendarDays className="mr-1 inline h-3.5 w-3.5 text-emerald-500" /> {project.due}
-                      </span>
-                      <span>
-                        <Activity className="mr-1 inline h-3.5 w-3.5 text-amber-500" /> {project.health}
-                      </span>
-                      <span>
-                        <Target className="mr-1 inline h-3.5 w-3.5 text-emerald-500" /> {project.progress}%
-                      </span>
-                    </div>
-                  </button>
-                ))}
+                      <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                        <span>
+                          <CalendarDays className="mr-1 inline h-3.5 w-3.5 text-emerald-500" /> {project.due}
+                        </span>
+                        <span>
+                          <Activity className="mr-1 inline h-3.5 w-3.5 text-amber-500" /> {project.health}
+                        </span>
+                        <span>
+                          <Target className="mr-1 inline h-3.5 w-3.5 text-emerald-500" /> {project.progress}%
+                        </span>
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 
@@ -380,23 +231,29 @@ export default function ProjectsHubPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Команда</p>
               <h2 className="mt-2 text-xl font-semibold">Участники проекта</h2>
               <div className="mt-4 space-y-3 text-sm text-gray-600">
-                {members.map((member) => (
-                  <div key={member.name} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3">
-                    <div>
-                      <p className="font-semibold text-gray-900">{member.name}</p>
-                      <p className="text-xs text-gray-500">{member.role}</p>
-                    </div>
-                    <button type="button" className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600">
-                      <Users2 className="mr-1 inline h-3.5 w-3.5" /> Роли
-                    </button>
+                {members.length === 0 ? (
+                  <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/70 px-4 py-6 text-center text-xs text-gray-500">
+                    ListProjectMembersResponse пока не подключён, поэтому участников нет.
                   </div>
-                ))}
+                ) : (
+                  members.map((member) => (
+                    <div key={member.name} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3">
+                      <div>
+                        <p className="font-semibold text-gray-900">{member.name}</p>
+                        <p className="text-xs text-gray-500">{member.role}</p>
+                      </div>
+                      <button type="button" className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600" disabled>
+                        <Users2 className="mr-1 inline h-3.5 w-3.5" /> Роли
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
               <div className="mt-4 flex gap-2">
-                <button type="button" className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600">
+                <button type="button" className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400" disabled>
                   <UserPlus className="mr-1 inline h-3.5 w-3.5" /> Добавить участника
                 </button>
-                <button type="button" className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600">
+                <button type="button" className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400" disabled>
                   <Users2 className="mr-1 inline h-3.5 w-3.5" /> Состав команды
                 </button>
               </div>
@@ -407,21 +264,29 @@ export default function ProjectsHubPage() {
             <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_25px_80px_rgba(6,95,70,0.08)]">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">{selectedProject.name}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">
+                    {selectedProject ? selectedProject.name : 'Нет данных'}
+                  </p>
                   <h2 className="mt-2 text-xl font-semibold">Задачи и статусы</h2>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs">
-                  <button className="rounded-full border border-gray-200 px-4 py-2 font-semibold text-gray-600" type="button">
+                  <button className="rounded-full border border-gray-200 px-4 py-2 font-semibold text-gray-400" type="button" disabled>
                     <Layers className="mr-1 inline h-3.5 w-3.5" /> Канбан
                   </button>
-                  <button className="rounded-full border border-gray-200 px-4 py-2 font-semibold text-gray-600" type="button">
+                  <button className="rounded-full border border-gray-200 px-4 py-2 font-semibold text-gray-400" type="button" disabled>
                     <TimerReset className="mr-1 inline h-3.5 w-3.5" /> SLA
                   </button>
-                  <button className="rounded-full border border-gray-200 px-4 py-2 font-semibold text-gray-600" type="button">
+                  <button className="rounded-full border border-gray-200 px-4 py-2 font-semibold text-gray-400" type="button" disabled>
                     <MoveRight className="mr-1 inline h-3.5 w-3.5" /> Журнал перемещений
                   </button>
                 </div>
               </div>
+
+              {!selectedProject && (
+                <div className="mt-4 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/80 px-4 py-3 text-sm text-gray-600">
+                  Канбан заработает, когда появится ответ ListProjects + ListProjectTasks для выбранного проекта.
+                </div>
+              )}
 
               <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4 text-sm text-gray-500">
@@ -466,7 +331,7 @@ export default function ProjectsHubPage() {
                       hoveredColumn === column ? 'bg-emerald-50/50 border-emerald-200' : ''
                     }`}
                     onDragOver={(event) => {
-                      if (dragState?.projectId !== selectedProject.id) return;
+                      if (!selectedProjectId || dragState?.projectId !== selectedProjectId) return;
                       event.preventDefault();
                       setHoveredColumn(column);
                     }}
@@ -492,10 +357,11 @@ export default function ProjectsHubPage() {
                             draggable
                             onDragStart={(event) => {
                               event.dataTransfer.setData('text/plain', task.id);
+                              if (!selectedProjectId) return;
                               setDragState({
                                 taskId: task.id,
                                 fromColumn: column,
-                                projectId: selectedProject.id,
+                                projectId: selectedProjectId,
                               });
                             }}
                             onDragEnd={() => {
@@ -528,7 +394,8 @@ export default function ProjectsHubPage() {
                           <p className="mt-1 text-xs text-gray-500">{emptyCopy[column].body}</p>
                           <button
                             type="button"
-                            className="mt-3 inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-1 text-xs font-semibold text-gray-600"
+                            className="mt-3 inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-1 text-xs font-semibold text-gray-400"
+                            disabled
                           >
                             <PlusCircle className="h-3.5 w-3.5" /> Новая задача
                           </button>
@@ -546,23 +413,12 @@ export default function ProjectsHubPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Активность</p>
                   <h2 className="mt-2 text-xl font-semibold">Журнал действий</h2>
                 </div>
-                <button className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600" type="button">
+                <button className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400" type="button" disabled>
                   <ArrowRight className="mr-1 inline h-3.5 w-3.5" /> Export
                 </button>
               </div>
-              <div className="mt-4 space-y-3 text-sm text-gray-600">
-                <div className="flex items-start gap-3 rounded-2xl bg-gray-50/80 px-4 py-3">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-500" />
-                  Анна перевела «Интеграция с аналитикой» в колонку В работе (MoveTaskRequest)
-                </div>
-                <div className="flex items-start gap-3 rounded-2xl bg-gray-50/80 px-4 py-3">
-                  <Users2 className="mt-0.5 h-4 w-4 text-emerald-500" />
-                  Добавлен новый участник: Игорь (AddMemberToProject)
-                </div>
-                <div className="flex items-start gap-3 rounded-2xl bg-gray-50/80 px-4 py-3">
-                  <Layers className="mt-0.5 h-4 w-4 text-emerald-500" />
-                  Создана задача «Новая аналитика SLA» (CreateTask)
-                </div>
+              <div className="mt-4 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/70 px-4 py-6 text-sm text-gray-600">
+                Здесь будет журнал из ListProjectActivityResponse. Сейчас ProjectService ещё не отдаёт события — оставляем плейсхолдер.
               </div>
             </div>
           </div>

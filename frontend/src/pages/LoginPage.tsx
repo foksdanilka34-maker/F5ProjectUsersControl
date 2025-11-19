@@ -1,22 +1,55 @@
-import { useState } from 'react';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { ApiError } from '../lib/apiClient';
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const { loginWithCredentials, isAuthenticated, refreshPending } = useAuth();
 
-  const handleSubmit = () => {
-    if (login && password) {
-      console.log('Login attempt:', { login, password });
-      alert('Вход выполнен!');
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
     }
-  };
+  }, [isAuthenticated, navigate]);
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSubmit();
+  const handleSubmit = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    setFormError(null);
+    setSuccessMessage(null);
+
+    if (!login || !password) {
+      setFormError('Введите логин и пароль.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await loginWithCredentials({ login, password });
+      setSuccessMessage('Авторизация успешна, перенаправляем на дашборд...');
+      navigate('/', { replace: true });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        const payloadMessage =
+          error.payload && typeof error.payload === 'object' && 'message' in error.payload
+            ? String((error.payload as Record<string, unknown>).message)
+            : undefined;
+        setFormError(`Ошибка ${error.status}: ${payloadMessage ?? 'не удалось выполнить вход'}`);
+      } else if (error instanceof Error) {
+        setFormError(error.message);
+      } else {
+        setFormError('Не удалось выполнить вход. Попробуйте ещё раз.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -46,8 +79,20 @@ export default function LoginForm() {
           {/* Card gradient accent */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full blur-3xl"></div>
           
-          <div className="space-y-6 relative">
+          <form className="space-y-6 relative" onSubmit={handleSubmit}>
             <h2 className="text-2xl font-bold text-white mb-6">Вход в систему</h2>
+            {formError && (
+              <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100 flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                <span>{formError}</span>
+              </div>
+            )}
+            {successMessage && (
+              <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100 flex items-start gap-2">
+                <CheckCircle2 className="h-5 w-5" />
+                <span>{successMessage}</span>
+              </div>
+            )}
 
             {/* Login Field */}
             <div className="relative">
@@ -62,7 +107,6 @@ export default function LoginForm() {
                   onChange={(e) => setLogin(e.target.value)}
                   onFocus={() => setFocusedField('login')}
                   onBlur={() => setFocusedField(null)}
-                  onKeyPress={handleKeyPress}
                   className={`w-full pl-12 pr-4 py-3.5 bg-gray-900/50 border rounded-xl text-white placeholder-gray-500 transition-all duration-300 focus:outline-none ${
                     focusedField === 'login'
                       ? 'border-emerald-400 shadow-lg shadow-emerald-500/20'
@@ -86,7 +130,6 @@ export default function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
-                  onKeyPress={handleKeyPress}
                   className={`w-full pl-12 pr-12 py-3.5 bg-gray-900/50 border rounded-xl text-white placeholder-gray-500 transition-all duration-300 focus:outline-none ${
                     focusedField === 'password'
                       ? 'border-emerald-400 shadow-lg shadow-emerald-500/20'
@@ -106,12 +149,26 @@ export default function LoginForm() {
 
             {/* Submit Button */}
             <button
-              onClick={handleSubmit}
-              className="w-full bg-gradient-to-r from-lime-400 to-emerald-400 hover:from-lime-500 hover:to-emerald-500 text-gray-900 font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-500/30 active:scale-[0.98]"
+              type="submit"
+              disabled={isSubmitting || refreshPending || !login || !password}
+              className={`w-full rounded-xl py-4 px-6 font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
+                isSubmitting || refreshPending
+                  ? 'bg-gray-600 text-gray-200 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900 hover:from-lime-500 hover:to-emerald-500'
+              }`}
             >
-              Войти
+              {isSubmitting || refreshPending ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" /> Выполняем вход...
+                </>
+              ) : (
+                'Войти'
+              )}
             </button>
-          </div>
+            <p className="text-xs text-gray-400 text-center">
+              POST /api/v1/auth/login отдаёт access_token, refresh реализован через HttpOnly cookie (POST /auth/refresh).
+            </p>
+          </form>
         </div>
 
         {/* Footer Text */}

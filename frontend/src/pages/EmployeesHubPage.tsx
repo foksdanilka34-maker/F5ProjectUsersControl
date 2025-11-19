@@ -17,30 +17,7 @@ import {
   Users,
 } from 'lucide-react';
 
-const profiles = [
-  { name: 'Антон Кузнецов', role: 'Product Lead', department: 'R&D', status: 'Активен' },
-  { name: 'Марина Светлова', role: 'HR Partner', department: 'People', status: 'В отпуске' },
-  { name: 'Илья Коновалов', role: 'Engineering Manager', department: 'Platform', status: 'Активен' },
-];
-
-const departments = [
-  { name: 'Разработка', head: 'Илья Коновалов', people: 42 },
-  { name: 'Маркетинг', head: 'Дарья Климова', people: 18 },
-  { name: 'Операции', head: 'Егор Ковалёв', people: 23 },
-];
-
-const positions = [
-  { title: 'Backend Engineer', employees: 14 },
-  { title: 'Product Manager', employees: 7 },
-  { title: 'QA Lead', employees: 3 },
-];
-
-const skills = [
-  { name: 'Go', owners: 18 },
-  { name: 'React', owners: 21 },
-  { name: 'Kubernetes', owners: 11 },
-  { name: 'Figma', owners: 9 },
-];
+import { useEmployeesData } from '../hooks/useEmployeesData';
 
 const tabs = ['Профили', 'Оргструктура', 'Навыки'];
 const statusStyles: Record<string, string> = {
@@ -53,29 +30,22 @@ export default function EmployeesHubPage() {
   const [activeTab, setActiveTab] = useState('Профили');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const profileStats = useMemo(
-    () => [
-      { label: 'Профилей в базе', value: profiles.length },
-      { label: 'Активные', value: profiles.filter((profile) => profile.status === 'Активен').length },
-      { label: 'Отделов', value: departments.length },
-      { label: 'Навыков', value: skills.length },
-    ],
-    [],
-  );
+  const { profiles: profilesState, departments: departmentsState, positions: positionsState, skills: skillsState, stats: profileStats } = useEmployeesData();
 
   const filteredProfiles = useMemo(() => {
+    const dataset = profilesState.items;
     if (!searchTerm.trim()) {
-      return profiles;
+      return dataset;
     }
     const normalized = searchTerm.toLowerCase();
-    return profiles.filter((profile) => {
+    return dataset.filter((profile) => {
       return (
-        profile.name.toLowerCase().includes(normalized) ||
-        profile.role.toLowerCase().includes(normalized) ||
-        profile.department.toLowerCase().includes(normalized)
+        `${profile.first_name} ${profile.last_name}`.toLowerCase().includes(normalized) ||
+        profile.position_id.toLowerCase().includes(normalized) ||
+        profile.department?.name?.toLowerCase().includes(normalized)
       );
     });
-  }, [searchTerm]);
+  }, [profilesState.items, searchTerm]);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-white via-emerald-50/40 to-white text-gray-900">
@@ -168,21 +138,26 @@ export default function EmployeesHubPage() {
                 </Link>
                 <button
                   type="button"
-                  className="rounded-3xl border border-gray-100 bg-gray-50/80 p-4 text-sm font-semibold text-gray-800"
+                  disabled
+                  className="rounded-3xl border border-gray-100 bg-gray-50/80 p-4 text-sm font-semibold text-gray-400"
+                  title="Редактирование появится после подключения employee-service"
                 >
                   <UserCog className="mb-2 h-5 w-5 text-emerald-500" />
                   Редактировать данные
-                  <p className="mt-1 text-xs font-normal text-gray-500">UpdateProfileRequest</p>
+                  <p className="mt-1 text-xs font-normal text-gray-400">UpdateProfileRequest (скоро)</p>
                 </button>
                 <button
                   type="button"
-                  className="rounded-3xl border border-gray-100 bg-gray-50/80 p-4 text-sm font-semibold text-gray-800"
+                  disabled
+                  className="rounded-3xl border border-gray-100 bg-gray-50/80 p-4 text-sm font-semibold text-gray-400"
+                  title="Изменение статусов включим после интеграции"
                 >
                   <ShieldCheck className="mb-2 h-5 w-5 text-emerald-500" />
                   Управление статусами
-                  <p className="mt-1 text-xs font-normal text-gray-500">ChangeUserStatusProfile</p>
+                  <p className="mt-1 text-xs font-normal text-gray-400">ChangeUserStatusProfile (скоро)</p>
                 </button>
               </div>
+              <p className="mt-3 text-xs text-gray-400">Заблокированные действия станут активными, когда подключим соответствующие endpoint&apos;ы.</p>
             </div>
 
             {activeTab === 'Профили' && (
@@ -199,7 +174,12 @@ export default function EmployeesHubPage() {
                   </div>
                 </div>
                 <div className="mt-5 overflow-hidden rounded-[28px] border border-gray-100">
-                  {filteredProfiles.length ? (
+                  {profilesState.loading ? (
+                    <div className="flex flex-col items-center justify-center bg-white/80 px-6 py-12 text-center text-sm text-gray-500">
+                      <Settings2 className="mb-3 h-6 w-6 animate-spin text-emerald-500" />
+                      Загружаем профили...
+                    </div>
+                  ) : filteredProfiles.length ? (
                     <table className="w-full text-left text-sm text-gray-600">
                       <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-400">
                         <tr>
@@ -212,25 +192,38 @@ export default function EmployeesHubPage() {
                       </thead>
                       <tbody>
                         {filteredProfiles.map((profile) => (
-                          <tr key={profile.name} className="border-t border-gray-100 bg-white/80">
-                            <td className="px-6 py-4 font-semibold text-gray-900">{profile.name}</td>
-                            <td className="px-6 py-4">{profile.role}</td>
-                            <td className="px-6 py-4">{profile.department}</td>
+                          <tr key={profile.id} className="border-t border-gray-100 bg-white/80">
+                            <td className="px-6 py-4 font-semibold text-gray-900">
+                              {profile.first_name} {profile.last_name}
+                              <p className="text-xs text-gray-400">{profile.email}</p>
+                            </td>
+                            <td className="px-6 py-4">{profile.position_id}</td>
+                            <td className="px-6 py-4">{profile.department?.name ?? '—'}</td>
                             <td className="px-6 py-4">
                               <span
                                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                                  statusStyles[profile.status] ?? 'bg-gray-100 text-gray-600'
+                                  profile.is_active ? statusStyles['Активен'] : statusStyles['Заблокирован']
                                 }`}
                               >
-                                {profile.status}
+                                {profile.is_active ? 'Активен' : 'Заблокирован'}
                               </span>
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex gap-2">
-                                <button type="button" className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600">
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-400 disabled:cursor-not-allowed"
+                                  title="Редактирование профилей появится после интеграции"
+                                >
                                   <Edit className="mr-1 inline h-3.5 w-3.5" /> Редактировать
                                 </button>
-                                <button type="button" className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600">
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-400 disabled:cursor-not-allowed"
+                                  title="Управление статусами появится после интеграции"
+                                >
                                   <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" /> Статус
                                 </button>
                               </div>
@@ -242,12 +235,16 @@ export default function EmployeesHubPage() {
                   ) : (
                     <div className="flex flex-col items-center justify-center bg-white/80 px-6 py-12 text-center text-sm text-gray-500">
                       <BadgeCheck className="mb-3 h-6 w-6 text-emerald-500" />
-                      Нет совпадений по запросу «{searchTerm}». Попробуйте изменить фильтры или сбросить поиск.
+                      {profilesState.error
+                        ? `Не удалось загрузить профили: ${profilesState.error}`
+                        : searchTerm
+                          ? `Нет совпадений по запросу «${searchTerm}». Перенастройте фильтр.`
+                          : 'Данные от employee-service пока недоступны.'}
                     </div>
                   )}
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  Поиск обрабатывается локально и пока не обращается к employee-service.
+                  Запрос: GET /api/v1/employees/profiles. Пагинацию добавим позже.
                 </p>
               </div>
             )}
@@ -260,23 +257,33 @@ export default function EmployeesHubPage() {
                       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Отделы</p>
                       <h2 className="mt-2 text-xl font-semibold">Управление департаментами</h2>
                     </div>
-                    <button className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600" type="button">
+                    <button
+                      className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400 disabled:cursor-not-allowed"
+                      type="button"
+                      disabled
+                      title="CRUD по департаментам появится после интеграции"
+                    >
                       <Building2 className="mr-1 inline h-3.5 w-3.5" /> Добавить
                     </button>
                   </div>
-                  <ul className="mt-5 space-y-3 text-sm text-gray-600">
-                    {departments.map((dep) => (
-                      <li key={dep.name} className="rounded-3xl border border-gray-100 bg-gray-50/80 px-4 py-3">
-                        <div className="flex items-center justify-between">
-                          <div>
+                  {departmentsState.loading ? (
+                    <p className="mt-5 text-sm text-gray-500">Загружаем данные...</p>
+                  ) : departmentsState.items.length ? (
+                    <ul className="mt-5 space-y-3 text-sm text-gray-600">
+                      {departmentsState.items.map((dep) => (
+                        <li key={dep.id} className="rounded-3xl border border-gray-100 bg-gray-50/80 px-4 py-3">
+                          <div className="flex items-center justify-between">
                             <p className="font-semibold text-gray-900">{dep.name}</p>
-                            <p className="text-xs text-gray-500">Руководитель: {dep.head}</p>
+                            <span className="text-xs text-gray-400">ID: {dep.id}</span>
                           </div>
-                          <span className="text-xs text-gray-400">{dep.people} сотрудников</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-5 rounded-3xl border border-dashed border-gray-200 px-4 py-6 text-sm text-gray-500">
+                      {departmentsState.error ? `Ошибка: ${departmentsState.error}` : 'Список департаментов пуст.'}
+                    </p>
+                  )}
                 </div>
                 <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
                   <div className="flex items-center justify-between">
@@ -284,20 +291,33 @@ export default function EmployeesHubPage() {
                       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Должности</p>
                       <h2 className="mt-2 text-xl font-semibold">Каталог позиций</h2>
                     </div>
-                    <button className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600" type="button">
+                    <button
+                      className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400 disabled:cursor-not-allowed"
+                      type="button"
+                      disabled
+                      title="CRUD по должностям появится после интеграции"
+                    >
                       <Layers3 className="mr-1 inline h-3.5 w-3.5" /> Добавить
                     </button>
                   </div>
-                  <ul className="mt-5 space-y-3 text-sm text-gray-600">
-                    {positions.map((position) => (
-                      <li key={position.title} className="rounded-3xl border border-gray-100 bg-gray-50/80 px-4 py-3">
-                        <div className="flex items-center justify-between">
-                          <p className="font-semibold text-gray-900">{position.title}</p>
-                          <span className="text-xs text-gray-400">{position.employees} специалистов</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  {positionsState.loading ? (
+                    <p className="mt-5 text-sm text-gray-500">Загружаем позиции...</p>
+                  ) : positionsState.items.length ? (
+                    <ul className="mt-5 space-y-3 text-sm text-gray-600">
+                      {positionsState.items.map((position) => (
+                        <li key={position.id} className="rounded-3xl border border-gray-100 bg-gray-50/80 px-4 py-3">
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold text-gray-900">{position.name}</p>
+                            <span className="text-xs text-gray-400">ID: {position.id}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-5 rounded-3xl border border-dashed border-gray-200 px-4 py-6 text-sm text-gray-500">
+                      {positionsState.error ? `Ошибка: ${positionsState.error}` : 'Каталог должностей пуст.'}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -310,22 +330,40 @@ export default function EmployeesHubPage() {
                     <h2 className="mt-2 text-xl font-semibold">Библиотека и назначение</h2>
                   </div>
                   <div className="flex gap-2">
-                    <button className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600" type="button">
+                    <button
+                      className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400 disabled:cursor-not-allowed"
+                      type="button"
+                      disabled
+                      title="CRUD по навыкам появится после интеграции"
+                    >
                       <ListChecks className="mr-1 inline h-3.5 w-3.5" /> Добавить навык
                     </button>
-                    <button className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600" type="button">
+                    <button
+                      className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400 disabled:cursor-not-allowed"
+                      type="button"
+                      disabled
+                      title="Назначение навыков подключим позже"
+                    >
                       <BadgeCheck className="mr-1 inline h-3.5 w-3.5" /> Назначить
                     </button>
                   </div>
                 </div>
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  {skills.map((skill) => (
-                    <div key={skill.name} className="rounded-3xl border border-gray-100 bg-gray-50/80 p-4">
-                      <p className="text-sm font-semibold text-gray-900">{skill.name}</p>
-                      <p className="text-xs text-gray-500">{skill.owners} специалистов</p>
-                    </div>
-                  ))}
-                </div>
+                {skillsState.loading ? (
+                  <p className="mt-5 text-sm text-gray-500">Загружаем навыки...</p>
+                ) : skillsState.items.length ? (
+                  <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    {skillsState.items.map((skill) => (
+                      <div key={skill.id} className="rounded-3xl border border-gray-100 bg-gray-50/80 p-4">
+                        <p className="text-sm font-semibold text-gray-900">{skill.name}</p>
+                        <p className="text-xs text-gray-500">ID: {skill.id}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-5 rounded-3xl border border-dashed border-gray-200 px-4 py-6 text-sm text-gray-500">
+                    {skillsState.error ? `Ошибка: ${skillsState.error}` : 'Навыков пока нет.'}
+                  </p>
+                )}
               </div>
             )}
           </div>

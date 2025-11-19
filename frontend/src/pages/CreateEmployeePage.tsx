@@ -7,15 +7,16 @@ import {
   Loader2,
   Lock,
   Mail,
-  Phone,
   Shield,
   User,
   UserPlus,
   Users,
 } from 'lucide-react';
+import { createProfile } from '../services/employeeService';
+import type { CreateProfileRequest } from '../services/types';
+import { ApiError } from '../lib/apiClient';
+import { useEmployeeReferences } from '../hooks/useEmployeeReferences';
 
-const departments = ['Разработка', 'Маркетинг', 'Операции', 'HR', 'Продажи'];
-const positions = ['Product Manager', 'Backend Engineer', 'QA Lead', 'HR Business Partner', 'Marketing Lead'];
 const roles = [
   { label: 'Admin', value: 'admin' },
   { label: 'Director', value: 'director' },
@@ -27,40 +28,40 @@ type FormState = {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
-  department: string;
-  position: string;
+  departmentId: string;
+  positionId: string;
   hireDate: string;
   login: string;
   password: string;
   role: string;
-  status: 'active' | 'inactive';
 };
 
 const initialState: FormState = {
   firstName: '',
   lastName: '',
   email: '',
-  phone: '',
-  department: departments[0],
-  position: positions[0],
+  departmentId: '',
+  positionId: '',
   hireDate: '',
   login: '',
   password: '',
   role: roles[3].value,
-  status: 'active',
 };
 
 export default function CreateEmployeePage() {
   const [form, setForm] = useState<FormState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+  const { departments, positions } = useEmployeeReferences();
 
   const isValid = useMemo(() => {
     return (
       form.firstName.trim().length > 1 &&
       form.lastName.trim().length > 1 &&
       form.email.includes('@') &&
+      form.positionId.trim().length > 0 &&
       form.login.trim().length >= 3 &&
       form.password.trim().length >= 6 &&
       Boolean(form.hireDate)
@@ -73,17 +74,36 @@ export default function CreateEmployeePage() {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!isValid) return;
+    if (!isValid || isSubmitting) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      console.log('New employee payload (mock)', form);
-      alert('Профиль сотрудника сохранён (мок). Интеграция появится позже.');
-      setIsSubmitting(false);
+    setSubmitError(null);
+    setSubmitSuccess(null);
+
+    try {
+      const payload = buildCreatePayload(form);
+      const response = await createProfile(payload);
+      const profile = response.data;
+      const message = response.message ?? 'Профиль создан';
+
+      setSubmitSuccess(
+        profile ? `${message}: ${profile.first_name} ${profile.last_name} (${profile.position_id})` : message,
+      );
       setForm(initialState);
-    }, 900);
+      setShowPassword(false);
+    } catch (error) {
+      setSubmitError(getErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReset = () => {
+    setForm(initialState);
+    setSubmitError(null);
+    setSubmitSuccess(null);
   };
 
   return (
@@ -100,7 +120,7 @@ export default function CreateEmployeePage() {
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Администрирование</p>
               <h1 className="mt-3 text-3xl font-semibold">Создать профиль сотрудника</h1>
               <p className="mt-2 text-sm text-gray-500">
-                Поля повторяют контракт `CreateProfileRequest` — позже сюда подключим API employee-service.
+                Поля повторяют контракт `CreateProfileRequest`, запрос уходит напрямую в employee-service через ApiGateway.
               </p>
             </div>
             <Link
@@ -111,6 +131,19 @@ export default function CreateEmployeePage() {
               Назад к дашборду
             </Link>
           </header>
+
+          {submitSuccess && (
+            <div className="mt-6 rounded-3xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-700">
+              {submitSuccess}
+            </div>
+          )}
+
+          {submitError && (
+            <div className="mt-6 flex items-start gap-3 rounded-3xl border border-rose-100 bg-rose-50/80 px-4 py-3 text-sm text-rose-700">
+              <AlertCircle className="mt-0.5 h-4 w-4" />
+              <span>{submitError}</span>
+            </div>
+          )}
 
           <form className="mt-8 space-y-8" onSubmit={handleSubmit}>
             <div className="space-y-4">
@@ -124,6 +157,7 @@ export default function CreateEmployeePage() {
                       value={form.firstName}
                       onChange={handleChange('firstName')}
                       placeholder="Антон"
+                      disabled={isSubmitting}
                       className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
                     />
                   </div>
@@ -136,6 +170,7 @@ export default function CreateEmployeePage() {
                       value={form.lastName}
                       onChange={handleChange('lastName')}
                       placeholder="Кузнецов"
+                      disabled={isSubmitting}
                       className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
                     />
                   </div>
@@ -149,18 +184,7 @@ export default function CreateEmployeePage() {
                       value={form.email}
                       onChange={handleChange('email')}
                       placeholder="name@company.ru"
-                      className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
-                    />
-                  </div>
-                </label>
-                <label className="text-sm font-medium text-gray-600">
-                  Телефон
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                      value={form.phone}
-                      onChange={handleChange('phone')}
-                      placeholder="+7 (999) 123-45-67"
+                      disabled={isSubmitting}
                       className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
                     />
                   </div>
@@ -172,28 +196,64 @@ export default function CreateEmployeePage() {
               <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-gray-400">Роль в компании</h2>
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="text-sm font-medium text-gray-600">
-                  Отдел
-                  <select
-                    value={form.department}
-                    onChange={handleChange('department')}
-                    className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/70 px-4 py-3 text-sm focus:border-emerald-400 focus:outline-none"
-                  >
-                    {departments.map((dep) => (
-                      <option key={dep}>{dep}</option>
-                    ))}
-                  </select>
+                  Отдел (department_id)
+                  <div className="relative">
+                    <input
+                      value={form.departmentId}
+                      onChange={handleChange('departmentId')}
+                      placeholder="Например, dep-rd"
+                      list="department-options"
+                      disabled={isSubmitting}
+                      className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-4 py-3 text-sm focus:border-emerald-400 focus:outline-none"
+                    />
+                    <datalist id="department-options">
+                      {departments.items.map((department) => (
+                        <option key={department.id} value={department.id}>
+                          {department.name}
+                        </option>
+                      ))}
+                    </datalist>
+                    <p className="mt-2 px-1 text-xs text-gray-400">
+                      {departments.loading
+                        ? 'Загружаем справочник отделов...'
+                        : departments.items.length
+                          ? 'Выберите ID из списка или введите вручную.'
+                          : 'Справочник пуст — введите ID вручную.'}
+                    </p>
+                    {departments.error && (
+                      <p className="px-1 text-xs text-rose-600">Не удалось загрузить отделы: {departments.error}</p>
+                    )}
+                  </div>
                 </label>
                 <label className="text-sm font-medium text-gray-600">
-                  Должность
-                  <select
-                    value={form.position}
-                    onChange={handleChange('position')}
-                    className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/70 px-4 py-3 text-sm focus:border-emerald-400 focus:outline-none"
-                  >
-                    {positions.map((position) => (
-                      <option key={position}>{position}</option>
-                    ))}
-                  </select>
+                  Должность (position_id)
+                  <div className="relative">
+                    <input
+                      value={form.positionId}
+                      onChange={handleChange('positionId')}
+                      placeholder="Например, pos-be"
+                      list="position-options"
+                      disabled={isSubmitting}
+                      className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-4 py-3 text-sm focus:border-emerald-400 focus:outline-none"
+                    />
+                    <datalist id="position-options">
+                      {positions.items.map((position) => (
+                        <option key={position.id} value={position.id}>
+                          {position.name}
+                        </option>
+                      ))}
+                    </datalist>
+                    <p className="mt-2 px-1 text-xs text-gray-400">
+                      {positions.loading
+                        ? 'Загружаем список позиций...'
+                        : positions.items.length
+                          ? 'Выберите ID из списка или введите вручную.'
+                          : 'Справочник пуст — введите ID вручную.'}
+                    </p>
+                    {positions.error && (
+                      <p className="px-1 text-xs text-rose-600">Не удалось загрузить позиции: {positions.error}</p>
+                    )}
+                  </div>
                 </label>
                 <label className="text-sm font-medium text-gray-600">
                   Дата выхода
@@ -203,27 +263,9 @@ export default function CreateEmployeePage() {
                       type="date"
                       value={form.hireDate}
                       onChange={handleChange('hireDate')}
+                      disabled={isSubmitting}
                       className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
                     />
-                  </div>
-                </label>
-                <label className="text-sm font-medium text-gray-600">
-                  Статус
-                  <div className="mt-1 flex gap-3">
-                    {['active', 'inactive'].map((status) => (
-                      <button
-                        key={status}
-                        type="button"
-                        onClick={() => setForm((prev) => ({ ...prev, status: status as FormState['status'] }))}
-                        className={`flex-1 rounded-2xl border px-4 py-3 text-sm font-semibold ${
-                          form.status === status
-                            ? 'border-emerald-400 bg-emerald-50 text-emerald-600'
-                            : 'border-gray-200 bg-white text-gray-500'
-                        }`}
-                      >
-                        {status === 'active' ? 'Активен' : 'Деактивирован'}
-                      </button>
-                    ))}
                   </div>
                 </label>
               </div>
@@ -240,6 +282,7 @@ export default function CreateEmployeePage() {
                       value={form.login}
                       onChange={handleChange('login')}
                       placeholder="a.kuznetsov"
+                      disabled={isSubmitting}
                       className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
                     />
                   </div>
@@ -249,6 +292,7 @@ export default function CreateEmployeePage() {
                   <select
                     value={form.role}
                     onChange={handleChange('role')}
+                    disabled={isSubmitting}
                     className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/70 px-4 py-3 text-sm focus:border-emerald-400 focus:outline-none"
                   >
                     {roles.map((role) => (
@@ -267,12 +311,14 @@ export default function CreateEmployeePage() {
                       value={form.password}
                       onChange={handleChange('password')}
                       placeholder="Минимум 6 символов"
+                      disabled={isSubmitting}
                       className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-emerald-600"
+                      disabled={isSubmitting}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-emerald-600 disabled:text-gray-400"
                     >
                       {showPassword ? 'Скрыть' : 'Показать'}
                     </button>
@@ -284,13 +330,14 @@ export default function CreateEmployeePage() {
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gray-50/70 px-4 py-3 text-sm">
               <div className="flex items-center gap-2 text-gray-500">
                 <AlertCircle className="h-4 w-4 text-amber-500" />
-                Интеграция с backend появится позже. Сейчас данные не уходят.
+                POST /api/v1/employees/profiles → CreateProfileRequest уходит в employee-service.
               </div>
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setForm(initialState)}
-                  className="rounded-full border border-gray-200 px-4 py-2 font-medium text-gray-600"
+                  onClick={handleReset}
+                  disabled={isSubmitting}
+                  className="rounded-full border border-gray-200 px-4 py-2 font-medium text-gray-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Очистить
                 </button>
@@ -317,23 +364,17 @@ export default function CreateEmployeePage() {
                 <p className="text-lg font-semibold text-gray-900">
                   {form.firstName || 'Имя'} {form.lastName || 'Фамилия'}
                 </p>
-                <p className="text-sm text-gray-500">{form.position}</p>
+                <p className="text-sm text-gray-500">{form.positionId || '—'}</p>
               </div>
             </div>
             <dl className="mt-6 space-y-3 text-sm text-gray-600">
               <div className="flex justify-between border-b border-gray-100 pb-2">
-                <span>Отдел</span>
-                <span className="font-semibold text-gray-800">{form.department}</span>
+                <span>Отдел (ID)</span>
+                <span className="font-semibold text-gray-800">{form.departmentId || '—'}</span>
               </div>
               <div className="flex justify-between border-b border-gray-100 pb-2">
-                <span>Роль</span>
-                <span className="font-semibold text-gray-800">{form.role}</span>
-              </div>
-              <div className="flex justify-between border-b border-gray-100 pb-2">
-                <span>Статус</span>
-                <span className="font-semibold text-emerald-600">
-                  {form.status === 'active' ? 'Активен' : 'Деактивирован'}
-                </span>
+                <span>Должность (ID)</span>
+                <span className="font-semibold text-gray-800">{form.positionId || '—'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Дата выхода</span>
@@ -363,4 +404,45 @@ export default function CreateEmployeePage() {
       </div>
     </div>
   );
+}
+
+function buildCreatePayload(form: FormState): CreateProfileRequest {
+  const trimmedDepartment = form.departmentId.trim();
+  const hireDateIso = formatHireDate(form.hireDate);
+
+  return {
+    first_name: form.firstName.trim(),
+    last_name: form.lastName.trim(),
+    position_id: form.positionId.trim(),
+    email: form.email.trim(),
+    hire_date: hireDateIso,
+    login: form.login.trim(),
+    password: form.password,
+    role: form.role,
+    ...(trimmedDepartment ? { department_id: trimmedDepartment } : {}),
+  };
+}
+
+function formatHireDate(date: string): string {
+  if (!date) return new Date().toISOString();
+  return new Date(`${date}T00:00:00Z`).toISOString();
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    const payload = error.payload;
+    if (payload && typeof payload === 'object') {
+      if ('error' in payload && payload.error) {
+        return String(payload.error);
+      }
+      if ('message' in payload && payload.message) {
+        return String(payload.message);
+      }
+    }
+    return `Ошибка ${error.status}`;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Не удалось создать профиль';
 }
