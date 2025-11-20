@@ -1,615 +1,411 @@
-import { useMemo, useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Activity,
-  AlertTriangle,
   ArrowLeft,
-  ArrowRight,
-  CalendarDays,
-  CheckCircle2,
-  Filter,
-  Layers,
-  Loader2,
-  MoveRight,
-  PlusCircle,
-  Target,
-  TimerReset,
-  UserPlus,
-  Users2,
+  Calendar,
+  Clock,
+  FolderKanban,
+  Layout,
+  MoreHorizontal,
+  Plus,
+  Users,
+  Loader2
 } from 'lucide-react';
+import { projectService } from '../api/services/project.service';
+import type { Project, Task } from '../api/types';
+import { useAuth } from '../contexts/AuthContext';
 
-type ProjectId = 'prj-nimbus' | 'prj-atlas' | 'prj-aurora';
-type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
-type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+// Map UI column IDs to API TaskStatus enum values
+// TaskStatus: 0=UNSPECIFIED, 1=TODO, 2=IN_PROGRESS, 3=REVIEW, 4=DONE
+const STATUS_MAP = {
+  TODO: 1,
+  IN_PROGRESS: 2,
+  DONE: 4
+} as const;
 
-type ProjectCard = {
-  id: ProjectId;
-  name: string;
-  manager: string;
-  status: string;
-  due: string;
-  health: string;
-  progress: number;
+// Reverse map for grouping
+const REVERSE_STATUS_MAP: Record<number, string> = {
+  1: 'TODO',
+  2: 'IN_PROGRESS',
+  3: 'IN_PROGRESS', // Map REVIEW to IN_PROGRESS for this simple board
+  4: 'DONE'
 };
 
-type Task = {
-  id: string;
-  title: string;
-  assignee: string;
-  priority: Priority;
-  due: string;
-};
-
-type ProjectBoard = Record<TaskStatus, Task[]>;
-
-const projectCards: ProjectCard[] = [
-  {
-    id: 'prj-nimbus',
-    name: 'Project Nimbus',
-    manager: 'Анна Петрова',
-    status: 'Активен',
-    due: '12 мар',
-    health: 'На контроле',
-    progress: 68,
-  },
-  {
-    id: 'prj-atlas',
-    name: 'Atlas 2.0',
-    manager: 'Илья Коновалов',
-    status: 'На паузе',
-    due: '27 апр',
-    health: 'Повышенный риск',
-    progress: 42,
-  },
-  {
-    id: 'prj-aurora',
-    name: 'Aurora',
-    manager: 'Мария Лебедева',
-    status: 'Активен',
-    due: '01 июн',
-    health: 'В норме',
-    progress: 83,
-  },
+const columns = [
+  { id: 'TODO', title: 'К выполнению', color: 'bg-gray-100 text-gray-600' },
+  { id: 'IN_PROGRESS', title: 'В работе', color: 'bg-blue-50 text-blue-600' },
+  { id: 'DONE', title: 'Готово', color: 'bg-emerald-50 text-emerald-600' },
 ];
 
-const initialTaskBoards: Record<ProjectId, ProjectBoard> = {
-  'prj-nimbus': {
-    TODO: [
-      {
-        id: 't-101',
-        title: 'UX сценарии нового борда',
-        assignee: 'Екатерина',
-        priority: 'HIGH',
-        due: '19 фев',
-      },
-      {
-        id: 't-102',
-        title: 'Интеграция с аналитикой',
-        assignee: 'Backend Team',
-        priority: 'CRITICAL',
-        due: '21 фев',
-      },
-    ],
-    IN_PROGRESS: [
-      {
-        id: 't-103',
-        title: 'Настройка пайплайнов CI',
-        assignee: 'DevOps',
-        priority: 'MEDIUM',
-        due: '16 фев',
-      },
-      {
-        id: 't-104',
-        title: 'Тестирование push-уведомлений',
-        assignee: 'QA',
-        priority: 'LOW',
-        due: '18 фев',
-      },
-    ],
-    REVIEW: [
-      {
-        id: 't-105',
-        title: 'Документация API v2',
-        assignee: 'Андрей',
-        priority: 'MEDIUM',
-        due: '15 фев',
-      },
-    ],
-    DONE: [
-      {
-        id: 't-106',
-        title: 'Онбординг новых участников',
-        assignee: 'HR',
-        priority: 'LOW',
-        due: '13 фев',
-      },
-    ],
-  },
-  'prj-atlas': {
-    TODO: [
-      {
-        id: 't-201',
-        title: 'Исследование конкурентов',
-        assignee: 'Product',
-        priority: 'MEDIUM',
-        due: '05 мар',
-      },
-    ],
-    IN_PROGRESS: [
-      {
-        id: 't-202',
-        title: 'Обновление диаграммы архитектуры',
-        assignee: 'Architect',
-        priority: 'HIGH',
-        due: '02 мар',
-      },
-    ],
-    REVIEW: [],
-    DONE: [],
-  },
-  'prj-aurora': {
-    TODO: [
-      {
-        id: 't-301',
-        title: 'Сбор фидбэка пилота',
-        assignee: 'CS team',
-        priority: 'LOW',
-        due: '28 фев',
-      },
-    ],
-    IN_PROGRESS: [
-      {
-        id: 't-302',
-        title: 'Новый дизайн onboarding',
-        assignee: 'Design',
-        priority: 'MEDIUM',
-        due: '22 фев',
-      },
-    ],
-    REVIEW: [
-      {
-        id: 't-303',
-        title: 'Импорт данных из V1',
-        assignee: 'ETL team',
-        priority: 'HIGH',
-        due: '18 фев',
-      },
-    ],
-    DONE: [
-      {
-        id: 't-304',
-        title: 'Гайд для поддержки',
-        assignee: 'Support',
-        priority: 'LOW',
-        due: '10 фев',
-      },
-    ],
-  },
-};
-
-const projectMembers: Record<ProjectId, { name: string; role: string }[]> = {
-  'prj-nimbus': [
-    { name: 'Анна Петрова', role: 'Manager' },
-    { name: 'Илья Коновалов', role: 'Tech Lead' },
-    { name: 'Екатерина Л.', role: 'Product' },
-    { name: 'Команда QA', role: 'QA' },
-  ],
-  'prj-atlas': [
-    { name: 'Дмитрий Б.', role: 'Manager' },
-    { name: 'Мария Л.', role: 'Design' },
-  ],
-  'prj-aurora': [
-    { name: 'Илья Коновалов', role: 'Manager' },
-    { name: 'Андрей М.', role: 'Backend' },
-  ],
-};
-
-const boardOrder: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'];
-const boardLabels: Record<TaskStatus, string> = {
-  TODO: 'Backlog',
-  IN_PROGRESS: 'В работе',
-  REVIEW: 'Проверка',
-  DONE: 'Готово',
-};
-const statusColor: Record<TaskStatus, string> = {
-  TODO: 'border-gray-200',
-  IN_PROGRESS: 'border-amber-200',
-  REVIEW: 'border-blue-200',
-  DONE: 'border-emerald-200',
-};
-const statusDot: Record<TaskStatus, string> = {
-  TODO: 'bg-gray-400',
-  IN_PROGRESS: 'bg-amber-400',
-  REVIEW: 'bg-sky-400',
-  DONE: 'bg-emerald-500',
-};
-const priorityChip: Record<Priority, string> = {
-  LOW: 'bg-gray-100 text-gray-600',
-  MEDIUM: 'bg-amber-50 text-amber-700',
-  HIGH: 'bg-rose-50 text-rose-700',
-  CRITICAL: 'bg-rose-100 text-rose-800',
-};
-const emptyCopy: Record<TaskStatus, { title: string; body: string }> = {
-  TODO: {
-    title: 'Нет задач в Backlog',
-    body: 'Создайте карточку через CreateTaskRequest, чтобы команда видела входящие.',
-  },
-  IN_PROGRESS: {
-    title: 'В работе пусто',
-    body: 'Перетащите карточку или запланируйте старт работ — статус обновится автоматически.',
-  },
-  REVIEW: {
-    title: 'Проверок нет',
-    body: 'Команда увидит здесь задачи со статусом REVIEW/READY_FOR_TEST.',
-  },
-  DONE: {
-    title: 'Готовых задач нет',
-    body: 'После MoveTaskRequest со статусом DONE карточки попадут сюда.',
-  },
-};
-
 export default function ProjectsHubPage() {
-  const [selectedProject, setSelectedProject] = useState(projectCards[0]);
-  const [boards, setBoards] = useState<Record<ProjectId, ProjectBoard>>(initialTaskBoards);
-  const [isChangingStatus, setIsChangingStatus] = useState<string | null>(null);
-  const [dragState, setDragState] = useState<{
-    projectId: ProjectId;
-    fromColumn: TaskStatus;
-    taskId: string;
-  } | null>(null);
-  const [hoveredColumn, setHoveredColumn] = useState<TaskStatus | null>(null);
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('Доска задач');
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Data state
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
-  const board = useMemo(() => boards[selectedProject.id], [boards, selectedProject.id]);
-  const members = projectMembers[selectedProject.id];
+  // Check if user can create projects
+  const canCreateProject = user?.role === 'manager' || user?.role === 'director';
 
-  const handleMoveTask = (taskId: string, fromColumn: TaskStatus, nextColumn: TaskStatus, projectId: ProjectId) => {
-    if (fromColumn === nextColumn) return;
-    setIsChangingStatus(taskId);
-    setBoards((prev) => {
-      const projectBoard = prev[projectId];
-      const taskToMove = projectBoard[fromColumn].find((task) => task.id === taskId);
-      if (!taskToMove) {
-        return prev;
+  // Fetch projects on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchProjects = async () => {
+      setIsLoading(true);
+      try {
+        const data = await projectService.listProjects({ page_size: 100 }).catch(err => {
+          console.error('Error fetching projects:', err);
+          return { projects: [], meta: {} };
+        });
+        
+        if (!isMounted) return;
+
+        const projectsList = Array.isArray(data?.projects) ? data.projects : [];
+        setProjects(projectsList);
+        
+        if (projectsList.length > 0) {
+          setSelectedProject(projectsList[0]);
+        } else {
+          setSelectedProject(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+        if (isMounted) setProjects([]);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
+    };
+    fetchProjects();
 
-      return {
-        ...prev,
-        [projectId]: {
-          ...projectBoard,
-          [fromColumn]: projectBoard[fromColumn].filter((task) => task.id !== taskId),
-          [nextColumn]: [taskToMove, ...projectBoard[nextColumn]],
-        },
-      };
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Fetch tasks when selected project changes
+  useEffect(() => {
+    if (!selectedProject) return;
+    let isMounted = true;
+
+    const fetchProjectDetails = async () => {
+      try {
+        const tasksData = await projectService.listTasksByProject(selectedProject.id).catch(err => {
+          console.error('Error fetching tasks:', err);
+          return [];
+        });
+        
+        if (isMounted) {
+          setTasks(Array.isArray(tasksData) ? tasksData : []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch project details:', error);
+        if (isMounted) setTasks([]);
+      }
+    };
+
+    fetchProjectDetails();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedProject]);
+
+  const handleMoveTask = async (taskId: string, newStatusKey: keyof typeof STATUS_MAP) => {
+    if (!selectedProject) return;
+    
+    const newStatus = STATUS_MAP[newStatusKey];
+    
+    try {
+      // Optimistic update
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+      );
+      
+      await projectService.moveTask(selectedProject.id, taskId, {
+        new_status: newStatus,
+        new_order_index: 0 // Default to top for now
+      });
+    } catch (error) {
+      console.error('Failed to move task:', error);
+      // Revert on failure
+      const tasksData = await projectService.listTasksByProject(selectedProject.id);
+      setTasks(Array.isArray(tasksData) ? tasksData : []);
+    }
+  };
+
+  const tasksByStatus = useMemo(() => {
+    const grouped: Record<string, Task[]> = {
+      TODO: [],
+      IN_PROGRESS: [],
+      DONE: []
+    };
+    
+    if (!Array.isArray(tasks)) return grouped;
+
+    tasks.forEach((task) => {
+      const statusKey = REVERSE_STATUS_MAP[task.status] || 'TODO';
+      if (grouped[statusKey]) {
+        grouped[statusKey].push(task);
+      } else {
+        grouped['TODO'].push(task);
+      }
     });
+    return grouped;
+  }, [tasks]);
 
-    setTimeout(() => {
-      console.log('Would call MoveTaskRequest', { taskId, newStatus: nextColumn, projectId });
-      setIsChangingStatus(null);
-    }, 600);
+  const getPriorityBadge = (priority: number) => {
+    // TaskPriority: 0=UNSPECIFIED, 1=LOW, 2=MEDIUM, 3=HIGH, 4=CRITICAL
+    switch (priority) {
+      case 3: // HIGH
+      case 4: // CRITICAL
+        return 'bg-rose-50 text-rose-600';
+      case 2: // MEDIUM
+        return 'bg-amber-50 text-amber-600';
+      default: // LOW or UNSPECIFIED
+        return 'bg-blue-50 text-blue-600';
+    }
   };
 
-  const handleDrop = (targetColumn: TaskStatus) => {
-    if (!dragState || dragState.projectId !== selectedProject.id) return;
-    handleMoveTask(dragState.taskId, dragState.fromColumn, targetColumn, dragState.projectId);
-    setDragState(null);
-    setHoveredColumn(null);
+  const getPriorityLabel = (priority: number) => {
+    switch (priority) {
+      case 4: return 'CRITICAL';
+      case 3: return 'HIGH';
+      case 2: return 'MEDIUM';
+      case 1: return 'LOW';
+      default: return 'NORMAL';
+    }
   };
+
+  if (isLoading && projects.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-12 h-12 text-emerald-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-white via-emerald-50/40 to-white text-gray-900">
+    <div className="relative min-h-screen bg-linear-to-br from-white via-emerald-50/40 to-white text-gray-900">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-28 top-10 h-[420px] w-[420px] rounded-full bg-emerald-100/55 blur-3xl" />
-        <div className="absolute -right-12 top-64 h-[360px] w-[360px] rounded-full bg-lime-100/60 blur-3xl" />
+        <div className="absolute -left-24 top-10 h-[420px] w-[420px] rounded-full bg-emerald-100/60 blur-3xl" />
+        <div className="absolute -right-16 top-52 h-[360px] w-[360px] rounded-full bg-lime-100/60 blur-3xl" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 py-10">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">Проекты</p>
-            <h1 className="mt-3 text-3xl font-semibold text-gray-900">Портфель и задачи</h1>
-            <p className="mt-2 text-sm text-gray-500">Список проектов, канбан, участники и действия ProjectService в одном месте.</p>
+            <h1 className="mt-3 text-3xl font-semibold text-gray-900">Управление задачами</h1>
+            <p className="mt-2 text-sm text-gray-500">
+              Канбан-доска, списки задач и управление участниками проектов.
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Link
-              to="/projects/new"
-              className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700"
-            >
-              <PlusCircle className="h-4 w-4" />
-              Новый проект
-            </Link>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              К дашборду
-            </Link>
-          </div>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            К дашборду
+          </Link>
         </header>
 
-        <section className="mt-8 grid gap-6 lg:grid-cols-[1.2fr,2.2fr]">
-          <div className="space-y-6">
-            <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_25px_80px_rgba(6,95,70,0.08)]">
+        <div className="mt-8 grid gap-6 lg:grid-cols-[300px,1fr]">
+          {/* Sidebar: Project List */}
+          <aside className="space-y-6">
+            <div className="rounded-4xl border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Портфель</p>
-                  <h2 className="mt-2 text-xl font-semibold">Активные проекты</h2>
-                </div>
-                <button className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600" type="button">
-                  <Filter className="h-3.5 w-3.5" /> Фильтры
-                </button>
+                <h2 className="text-lg font-semibold text-gray-900">Мои проекты</h2>
+                {canCreateProject && (
+                  <Link to="/projects/new" className="rounded-full p-2 text-gray-400 hover:bg-gray-50 hover:text-emerald-600">
+                    <Plus className="h-5 w-5" />
+                  </Link>
+                )}
               </div>
-              <div className="mt-5 space-y-4">
-                {projectCards.map((project) => (
+              <div className="mt-4 space-y-2">
+                {projects.map((project) => (
                   <button
                     key={project.id}
-                    type="button"
                     onClick={() => setSelectedProject(project)}
-                    className={`w-full rounded-3xl border px-4 py-4 text-left transition-all ${
-                      selectedProject.id === project.id
-                        ? 'border-emerald-200 bg-emerald-50/70 shadow-[0_20px_40px_rgba(16,185,129,0.2)]'
-                        : 'border-gray-100 bg-gray-50/80 hover:border-emerald-100'
+                    className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition-all ${
+                      selectedProject?.id === project.id
+                        ? 'bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{project.name}</p>
-                        <p className="text-xs text-gray-500">Менеджер: {project.manager}</p>
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                        selectedProject?.id === project.id ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        <FolderKanban className="h-4 w-4" />
                       </div>
-                      <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase text-gray-500">
-                        {project.status}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                      <span>
-                        <CalendarDays className="mr-1 inline h-3.5 w-3.5 text-emerald-500" /> {project.due}
-                      </span>
-                      <span>
-                        <Activity className="mr-1 inline h-3.5 w-3.5 text-amber-500" /> {project.health}
-                      </span>
-                      <span>
-                        <Target className="mr-1 inline h-3.5 w-3.5 text-emerald-500" /> {project.progress}%
-                      </span>
+                      <span className="font-medium">{project.name}</span>
                     </div>
                   </button>
                 ))}
-              </div>
-            </div>
-
-            <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Команда</p>
-              <h2 className="mt-2 text-xl font-semibold">Участники проекта</h2>
-              <div className="mt-4 space-y-3 text-sm text-gray-600">
-                {members.map((member) => (
-                  <div key={member.name} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3">
-                    <div>
-                      <p className="font-semibold text-gray-900">{member.name}</p>
-                      <p className="text-xs text-gray-500">{member.role}</p>
-                    </div>
-                    <button type="button" className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600">
-                      <Users2 className="mr-1 inline h-3.5 w-3.5" /> Роли
-                    </button>
+                {projects.length === 0 && (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    Нет активных проектов
                   </div>
-                ))}
-              </div>
-              <div className="mt-4 flex gap-2">
-                <button type="button" className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600">
-                  <UserPlus className="mr-1 inline h-3.5 w-3.5" /> Добавить участника
-                </button>
-                <button type="button" className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600">
-                  <Users2 className="mr-1 inline h-3.5 w-3.5" /> Состав команды
-                </button>
+                )}
               </div>
             </div>
-          </div>
+          </aside>
 
+          {/* Main Content */}
           <div className="space-y-6">
-            <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_25px_80px_rgba(6,95,70,0.08)]">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">{selectedProject.name}</p>
-                  <h2 className="mt-2 text-xl font-semibold">Задачи и статусы</h2>
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <button className="rounded-full border border-gray-200 px-4 py-2 font-semibold text-gray-600" type="button">
-                    <Layers className="mr-1 inline h-3.5 w-3.5" /> Канбан
-                  </button>
-                  <button className="rounded-full border border-gray-200 px-4 py-2 font-semibold text-gray-600" type="button">
-                    <TimerReset className="mr-1 inline h-3.5 w-3.5" /> SLA
-                  </button>
-                  <button className="rounded-full border border-gray-200 px-4 py-2 font-semibold text-gray-600" type="button">
-                    <MoveRight className="mr-1 inline h-3.5 w-3.5" /> Журнал перемещений
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4 text-sm text-gray-500">
-                  <p>Всего задач</p>
-                  <p className="mt-2 text-2xl font-semibold text-gray-900">
-                    {boardOrder.reduce((acc, column) => acc + board[column].length, 0)}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4 text-sm text-gray-500">
-                  <p>В работе</p>
-                  <p className="mt-2 text-2xl font-semibold text-amber-600">{board.IN_PROGRESS.length}</p>
-                </div>
-                <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4 text-sm text-gray-500">
-                  <p>Проверка</p>
-                  <p className="mt-2 text-2xl font-semibold text-blue-600">{board.REVIEW.length}</p>
-                </div>
-                <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4 text-sm text-gray-500">
-                  <p>Готово</p>
-                  <p className="mt-2 text-2xl font-semibold text-emerald-600">{board.DONE.length}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-gray-50/80 px-4 py-3 text-xs text-gray-500">
-                <p className="flex items-center gap-2 text-gray-600">
-                  Перетащите карточку в другую колонку — статус обновится, а ниже отобразится событие в журнале.
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {boardOrder.map((column) => (
-                    <span key={column} className="inline-flex items-center gap-2 font-semibold text-gray-500">
-                      <span className={`h-2 w-2 rounded-full ${statusDot[column]}`} />
-                      {boardLabels[column]}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {boardOrder.map((column) => (
-                  <div
-                    key={column}
-                    className={`flex h-full flex-col rounded-3xl border ${statusColor[column]} bg-gray-50/60 p-4 transition-colors ${
-                      hoveredColumn === column ? 'bg-emerald-50/50 border-emerald-200' : ''
-                    }`}
-                    onDragOver={(event) => {
-                      if (dragState?.projectId !== selectedProject.id) return;
-                      event.preventDefault();
-                      setHoveredColumn(column);
-                    }}
-                    onDragLeave={() => {
-                      if (hoveredColumn === column) {
-                        setHoveredColumn(null);
-                      }
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      handleDrop(column);
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-gray-900">{boardLabels[column]}</h3>
-                      <span className="text-xs text-gray-400">{board[column].length}</span>
+            {selectedProject ? (
+              <>
+                <div className="rounded-4xl border border-gray-100 bg-white/95 p-6 shadow-[0_25px_80px_rgba(6,95,70,0.08)]">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-2xl font-semibold text-gray-900">{selectedProject.name}</h2>
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                          Active
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-500">{selectedProject.description}</p>
                     </div>
-                    <div className="mt-3 space-y-3">
-                      {board[column].length ? (
-                        board[column].map((task) => (
-                          <div
-                            key={task.id}
-                            draggable
-                            onDragStart={(event) => {
-                              event.dataTransfer.setData('text/plain', task.id);
-                              setDragState({
-                                taskId: task.id,
-                                fromColumn: column,
-                                projectId: selectedProject.id,
-                              });
-                            }}
-                            onDragEnd={() => {
-                              setDragState(null);
-                              setHoveredColumn(null);
-                            }}
-                            className="cursor-grab rounded-2xl border border-white/80 bg-white/90 p-3 shadow-sm active:cursor-grabbing"
-                          >
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-semibold text-gray-900">{task.title}</p>
-                              <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${priorityChip[task.priority]}`}>
-                                {task.priority}
+                    <div className="flex items-center gap-3">
+                      <div className="flex -space-x-2">
+                        {/* Placeholder for members if we had them */}
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-gray-100 text-xs font-medium text-gray-600">
+                          +
+                        </div>
+                      </div>
+                      <button className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600">
+                        <Users className="mr-2 inline h-4 w-4" />
+                        Участники
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex border-b border-gray-100">
+                    {['Доска задач', 'Список', 'Календарь'].map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`mr-6 border-b-2 pb-3 text-sm font-medium transition-colors ${
+                          activeTab === tab
+                            ? 'border-emerald-500 text-emerald-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
+
+                  {activeTab === 'Доска задач' && (
+                    <div className="mt-6 grid gap-6 md:grid-cols-3">
+                      {columns.map((col) => (
+                        <div key={col.id} className="flex flex-col rounded-3xl bg-gray-50/50 p-4">
+                          <div className="mb-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${col.color}`}>
+                                {tasksByStatus[col.id]?.length || 0}
                               </span>
+                              <h3 className="text-sm font-semibold text-gray-700">{col.title}</h3>
                             </div>
-                            <p className="mt-1 text-xs text-gray-500">{task.assignee}</p>
-                            <p className="mt-1 text-xs text-gray-400">
-                              <CalendarDays className="mr-1 inline h-3 w-3 text-emerald-500" /> {task.due}
-                            </p>
-                            {isChangingStatus === task.id && (
-                              <div className="mt-2 flex items-center gap-2 text-xs text-emerald-600">
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                                MoveTaskRequest...
+                            <button className="text-gray-400 hover:text-gray-600">
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+                          
+                          <div className="flex-1 space-y-3">
+                            {tasksByStatus[col.id]?.map((task) => (
+                              <div
+                                key={task.id}
+                                className="group relative rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:shadow-md"
+                              >
+                                <div className="mb-2 flex items-start justify-between">
+                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getPriorityBadge(task.priority)}`}>
+                                    {getPriorityLabel(task.priority)}
+                                  </span>
+                                  <button className="opacity-0 transition-opacity group-hover:opacity-100">
+                                    <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                                  </button>
+                                </div>
+                                <h4 className="font-medium text-gray-900">{task.title}</h4>
+                                <p className="mt-1 text-xs text-gray-500 line-clamp-2">{task.description}</p>
+                                
+                                <div className="mt-4 flex items-center justify-between border-t border-gray-50 pt-3">
+                                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    <span>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</span>
+                                  </div>
+                                  {/* Simple move controls for now */}
+                                  <div className="flex gap-1">
+                                    {col.id !== 'TODO' && (
+                                      <button 
+                                        onClick={() => handleMoveTask(task.id, 'TODO')}
+                                        className="text-[10px] text-gray-400 hover:text-emerald-600"
+                                        title="Move to Todo"
+                                      >
+                                        ←
+                                      </button>
+                                    )}
+                                    {col.id !== 'IN_PROGRESS' && (
+                                      <button 
+                                        onClick={() => handleMoveTask(task.id, 'IN_PROGRESS')}
+                                        className="text-[10px] text-gray-400 hover:text-emerald-600"
+                                        title="Move to In Progress"
+                                      >
+                                        ↔
+                                      </button>
+                                    )}
+                                    {col.id !== 'DONE' && (
+                                      <button 
+                                        onClick={() => handleMoveTask(task.id, 'DONE')}
+                                        className="text-[10px] text-gray-400 hover:text-emerald-600"
+                                        title="Move to Done"
+                                      >
+                                        →
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            {tasksByStatus[col.id]?.length === 0 && (
+                              <div className="flex h-24 items-center justify-center rounded-2xl border border-dashed border-gray-200 text-xs text-gray-400">
+                                Нет задач
                               </div>
                             )}
                           </div>
-                        ))
-                      ) : (
-                        <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white/70 p-4 text-center text-sm text-gray-500">
-                          <p className="font-semibold text-gray-900">{emptyCopy[column].title}</p>
-                          <p className="mt-1 text-xs text-gray-500">{emptyCopy[column].body}</p>
-                          <button
-                            type="button"
-                            className="mt-3 inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-1 text-xs font-semibold text-gray-600"
-                          >
-                            <PlusCircle className="h-3.5 w-3.5" /> Новая задача
-                          </button>
                         </div>
-                      )}
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  )}
 
-            <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Активность</p>
-                  <h2 className="mt-2 text-xl font-semibold">Журнал действий</h2>
-                </div>
-                <button className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600" type="button">
-                  <ArrowRight className="mr-1 inline h-3.5 w-3.5" /> Export
-                </button>
-              </div>
-              <div className="mt-4 space-y-3 text-sm text-gray-600">
-                <div className="flex items-start gap-3 rounded-2xl bg-gray-50/80 px-4 py-3">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-500" />
-                  Анна перевела «Интеграция с аналитикой» в колонку В работе (MoveTaskRequest)
-                </div>
-                <div className="flex items-start gap-3 rounded-2xl bg-gray-50/80 px-4 py-3">
-                  <Users2 className="mt-0.5 h-4 w-4 text-emerald-500" />
-                  Добавлен новый участник: Игорь (AddMemberToProject)
-                </div>
-                <div className="flex items-start gap-3 rounded-2xl bg-gray-50/80 px-4 py-3">
-                  <Layers className="mt-0.5 h-4 w-4 text-emerald-500" />
-                  Создана задача «Новая аналитика SLA» (CreateTask)
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+                  {activeTab === 'Список' && (
+                    <div className="mt-6 text-center py-12 text-gray-500">
+                      <Layout className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+                      <p>Режим списка в разработке</p>
+                    </div>
+                  )}
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">API ProjectService</p>
-            <ul className="mt-4 space-y-3 text-sm text-gray-600">
-              <li className="flex items-start gap-3">
-                <PlusCircle className="mt-0.5 h-4 w-4 text-emerald-500" /> Create/Update/Delete Project
-              </li>
-              <li className="flex items-start gap-3">
-                <Layers className="mt-0.5 h-4 w-4 text-emerald-500" /> Create/Update/Delete/Move Task
-              </li>
-              <li className="flex items-start gap-3">
-                <Users2 className="mt-0.5 h-4 w-4 text-emerald-500" /> Add/Remove/List Members
-              </li>
-              <li className="flex items-start gap-3">
-                <Activity className="mt-0.5 h-4 w-4 text-emerald-500" /> ListProjects + фильтры (manager_id, status)
-              </li>
-            </ul>
-            <p className="mt-4 rounded-2xl bg-emerald-50/80 px-4 py-3 text-xs text-emerald-700">
-              Перетаскивание уже работает локально, при интеграции сюда добавим реальные запросы MoveTask/AssignTask и обновление по WebSocket/SSE.
-            </p>
-          </div>
-
-          <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-gray-400">Процессы</p>
-            <ul className="mt-4 space-y-3 text-sm text-gray-600">
-              <li className="flex items-start gap-3">
-                <Target className="mt-0.5 h-4 w-4 text-emerald-500" />
-                ListProjectsRequest → фильтр по статусу, пагинация
-              </li>
-              <li className="flex items-start gap-3">
-                <Users2 className="mt-0.5 h-4 w-4 text-emerald-500" />
-                ListProjectMembersResponse для списка участников
-              </li>
-              <li className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-500" />
-                AssignTaskRequest для смены ответственных
-              </li>
-              <li className="flex items-start gap-3">
-                <TimerReset className="mt-0.5 h-4 w-4 text-emerald-500" />
-                MoveTaskRequest + order_index для канбана
-              </li>
-            </ul>
+                  {activeTab === 'Календарь' && (
+                    <div className="mt-6 text-center py-12 text-gray-500">
+                      <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+                      <p>Календарь в разработке</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center rounded-4xl border border-gray-100 bg-white/95 p-12 text-center shadow-[0_25px_80px_rgba(6,95,70,0.08)]">
+                <FolderKanban className="mb-4 h-16 w-16 text-emerald-100" />
+                <h3 className="text-xl font-semibold text-gray-900">Выберите проект</h3>
+                <p className="mt-2 text-gray-500">
+                  Выберите проект из списка слева, чтобы увидеть задачи и детали.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

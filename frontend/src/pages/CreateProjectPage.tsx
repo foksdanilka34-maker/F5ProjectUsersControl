@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
+  AlertCircle,
   AlertTriangle,
   ArrowLeft,
   Calendar,
@@ -8,60 +9,70 @@ import {
   Loader2,
   Target,
   UserCheck,
-  UserCircle,
 } from 'lucide-react';
-
-const managers = ['Анна Петрова', 'Илья Коновалов', 'Мария Соколова', 'Дмитрий Белов'];
+import { projectService } from '../api';
 
 type FormState = {
   name: string;
   description: string;
-  managerName: string;
   dueDate: string;
 };
 
 const initialState: FormState = {
   name: '',
   description: '',
-  managerName: managers[0],
   dueDate: '',
 };
 
 export default function CreateProjectPage() {
+  const navigate = useNavigate();
   const [form, setForm] = useState<FormState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isValid = useMemo(() => {
-    return form.name.trim().length >= 3 && form.managerName.trim().length >= 3;
-  }, [form.managerName, form.name]);
+    return form.name.trim().length >= 3;
+  }, [form.name]);
 
   const handleChange = (field: keyof FormState) => (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isValid) return;
+    
     setIsSubmitting(true);
-    setTimeout(() => {
-      console.log('CreateProject payload (mock):', form);
-      alert('Проект сохранён (мок). При интеграции дернём ProjectService.CreateProject.');
+    setError(null);
+
+    try {
+      await projectService.createProject({
+        name: form.name,
+        description: form.description || undefined,
+        due_date: form.dueDate || undefined,
+      });
+
+      alert('Проект успешно создан!');
+      navigate('/projects');
+    } catch (err: any) {
+      console.error('Failed to create project:', err);
+      setError(err.response?.data?.error || 'Не удалось создать проект');
+    } finally {
       setIsSubmitting(false);
-      setForm(initialState);
-    }, 900);
+    }
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-white text-gray-900">
+    <div className="relative min-h-screen bg-linear-to-br from-white via-emerald-50/50 to-white text-gray-900">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-16 top-12 h-[420px] w-[420px] rounded-full bg-emerald-100/60 blur-3xl" />
         <div className="absolute -right-24 top-36 h-[360px] w-[360px] rounded-full bg-lime-100/60 blur-3xl" />
       </div>
 
       <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10 lg:flex-row">
-        <section className="flex-1 rounded-[32px] border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
+        <section className="flex-1 rounded-4xl border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-6">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">Менеджмент</p>
@@ -112,25 +123,10 @@ export default function CreateProjectPage() {
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-gray-400">Ответственные</h2>
-              <div className="grid gap-4 md:grid-cols-2">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-gray-400">Сроки</h2>
+              <div className="grid gap-4">
                 <label className="text-sm font-medium text-gray-600">
-                  Менеджер
-                  <div className="relative">
-                    <UserCircle className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <select
-                      value={form.managerName}
-                      onChange={handleChange('managerName')}
-                      className="mt-1 w-full appearance-none rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
-                    >
-                      {managers.map((manager) => (
-                        <option key={manager}>{manager}</option>
-                      ))}
-                    </select>
-                  </div>
-                </label>
-                <label className="text-sm font-medium text-gray-600">
-                  Дата завершения
+                  Дата завершения (опционально)
                   <div className="relative">
                     <Calendar className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <input
@@ -144,9 +140,17 @@ export default function CreateProjectPage() {
               </div>
             </div>
 
+            {error && (
+              <div className="rounded-2xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {error}
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gray-50/80 px-4 py-4 text-sm text-gray-500">
               <div className="flex items-center gap-2">
-                После интеграции данные полетят в ProjectService → CreateProject.
+                <AlertTriangle className="h-4 w-4 text-emerald-500" />
+                Менеджером проекта станет текущий пользователь.
               </div>
               <div className="flex gap-3">
                 <button
@@ -159,7 +163,7 @@ export default function CreateProjectPage() {
                 <button
                   type="submit"
                   disabled={!isValid || isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-lime-400 to-emerald-400 px-6 py-2 font-semibold text-gray-900 shadow-[0_15px_40px_rgba(132,204,22,0.35)] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full bg-linear-to-r from-lime-400 to-emerald-400 px-6 py-2 font-semibold text-gray-900 shadow-[0_15px_40px_rgba(132,204,22,0.35)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
                   Создать проект
@@ -169,14 +173,14 @@ export default function CreateProjectPage() {
           </form>
         </section>
 
-        <aside className="w-full rounded-[32px] border border-gray-100 bg-white/90 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.05)] lg:w-96">
+        <aside className="w-full rounded-4xl border border-gray-100 bg-white/90 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.05)] lg:w-96">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">Предпросмотр</p>
           <h2 className="mt-3 text-xl font-semibold text-gray-900">Обложка проекта</h2>
-          <div className="mt-6 rounded-[28px] border border-emerald-50 bg-gradient-to-br from-white to-emerald-50/50 p-6">
+          <div className="mt-6 rounded-[28px] border border-emerald-50 bg-linear-to-br from-white to-emerald-50/50 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-lg font-semibold text-gray-900">{form.name || 'Название проекта'}</p>
-                <p className="text-sm text-gray-500">Менеджер: {form.managerName || '—'}</p>
+                <p className="text-sm text-gray-500">Менеджер: текущий пользователь</p>
               </div>
             </div>
             <p className="mt-4 text-sm text-gray-600">{form.description || 'Описание появится здесь.'}</p>
