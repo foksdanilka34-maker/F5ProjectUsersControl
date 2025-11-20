@@ -9,15 +9,22 @@ import {
   ListChecks,
   Search,
   UserPlus,
-  Loader2
+  Loader2,
+  Trash2,
+  CheckCircle,
+  Ban
 } from 'lucide-react';
 import { employeeService } from '../api/services/employee.service';
-import type { Profile, Department, Position, Skill } from '../api/types';
+import type { Profile, Department, Position, Skill, UpdateProfileRequest } from '../api/types';
 import Modal from '../components/Modal';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const tabs = ['Профили', 'Оргструктура', 'Навыки'];
 
 export default function EmployeesHubPage() {
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('Профили');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -26,55 +33,94 @@ export default function EmployeesHubPage() {
   const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
   const [isPosModalOpen, setIsPosModalOpen] = useState(false);
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  
   const [newItemName, setNewItemName] = useState('');
+  const [editingItem, setEditingItem] = useState<Department | Position | Skill | null>(null);
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [profileForm, setProfileForm] = useState<UpdateProfileRequest>({});
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Data state
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [totalProfilesCount, setTotalProfilesCount] = useState(0);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
 
+  const fetchData = async () => {
+    // Don't set loading to true here to avoid flickering on updates
+    // or handle it more gracefully if needed
+    try {
+      const [profilesData, depsData, posData, skillsData] = await Promise.all([
+        employeeService.listProfiles({ page_size: 100 }).catch(err => {
+          console.error('Error fetching profiles:', err);
+          return { profiles: [], meta: { total_count: 0 } };
+        }),
+        employeeService.listDepartments().catch(err => {
+          console.error('Error fetching departments:', err);
+          return [];
+        }),
+        employeeService.listPositions().catch(err => {
+          console.error('Error fetching positions:', err);
+          return [];
+        }),
+        employeeService.listSkills().catch(err => {
+          console.error('Error fetching skills:', err);
+          return [];
+        })
+      ]);
+
+      setProfiles(Array.isArray(profilesData?.profiles) ? profilesData.profiles : []);
+      setTotalProfilesCount(profilesData?.meta?.total_count || (Array.isArray(profilesData?.profiles) ? profilesData.profiles.length : 0));
+      setDepartments(Array.isArray(depsData) ? depsData : []);
+      setPositions(Array.isArray(posData) ? posData : []);
+      setSkills(Array.isArray(skillsData) ? skillsData : []);
+    } catch (error) {
+      console.error('Failed to fetch employees data:', error);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
+    const init = async () => {
       setIsLoading(true);
-      try {
-        const [profilesData, depsData, posData, skillsData] = await Promise.all([
-          employeeService.listProfiles({ page_size: 100 }),
-          employeeService.listDepartments(),
-          employeeService.listPositions(),
-          employeeService.listSkills()
-        ]);
-
-        setProfiles(profilesData.profiles);
-        setDepartments(depsData);
-        setPositions(posData);
-        setSkills(skillsData);
-      } catch (error) {
-        console.error('Failed to fetch employees data:', error);
-      } finally {
-        setIsLoading(false);
-      }
+      await fetchData();
+      setIsLoading(false);
     };
-
-    fetchData();
+    init();
   }, []);
 
-  const openModal = (type: 'dept' | 'pos' | 'skill') => {
-    setNewItemName('');
+  const openModal = (type: 'dept' | 'pos' | 'skill', item?: Department | Position | Skill) => {
+    setNewItemName(item ? item.name : '');
+    setEditingItem(item || null);
+    
     if (type === 'dept') setIsDeptModalOpen(true);
     if (type === 'pos') setIsPosModalOpen(true);
     if (type === 'skill') setIsSkillModalOpen(true);
   };
 
+  const openEditProfileModal = (profile: Profile) => {
+    setEditingProfile(profile);
+    setProfileForm({
+      first_name: profile.first_name,
+      last_name: profile.last_name,
+      email: profile.email,
+      position_id: profile.position_id,
+      department_id: profile.department_id,
+      avatar_url: profile.avatar_url
+    });
+    setIsEditProfileModalOpen(true);
+  };
+
   const profileStats = useMemo(
     () => [
-      { label: 'Профилей в базе', value: profiles.length },
+      { label: 'Профилей в базе', value: totalProfilesCount },
       { label: 'Активные', value: profiles.filter((p) => p.is_active !== false).length },
       { label: 'Отделов', value: departments.length },
       { label: 'Навыков', value: skills.length },
     ],
-    [profiles, departments, skills],
+    [totalProfilesCount, profiles, departments, skills],
   );
 
   const filteredProfiles = useMemo(() => {
@@ -96,57 +142,169 @@ export default function EmployeesHubPage() {
     });
   }, [searchTerm, profiles]);
 
-  const handleCreateDepartment = async (e: React.FormEvent) => {
+  const handleCreateOrUpdateDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName.trim()) return;
 
     setIsSubmitting(true);
     try {
-      const newDept = await employeeService.createDepartment({ name: newItemName });
-      setDepartments([...departments, newDept]);
+      if (editingItem) {
+        await employeeService.updateDepartment(editingItem.id, { name: newItemName });
+        showToast('Отдел обновлен', 'success');
+      } else {
+        await employeeService.createDepartment({ name: newItemName });
+        showToast('Отдел создан', 'success');
+      }
+      await fetchData();
       setNewItemName('');
+      setEditingItem(null);
       setIsDeptModalOpen(false);
     } catch (error) {
-      console.error('Failed to create department:', error);
-      alert('Не удалось создать отдел');
+      console.error('Failed to save department:', error);
+      showToast('Не удалось сохранить отдел', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCreatePosition = async (e: React.FormEvent) => {
+  const handleDeleteDepartment = async (id: string) => {
+    if (!window.confirm('Вы уверены? Это действие нельзя отменить.')) return;
+    try {
+      await employeeService.deleteDepartment(id);
+      await fetchData();
+      showToast('Отдел удален', 'success');
+    } catch (error) {
+      console.error('Failed to delete department:', error);
+      showToast('Не удалось удалить отдел', 'error');
+    }
+  };
+
+  const handleCreateOrUpdatePosition = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName.trim()) return;
 
     setIsSubmitting(true);
     try {
-      const newPos = await employeeService.createPosition({ name: newItemName });
-      setPositions([...positions, newPos]);
+      if (editingItem) {
+        await employeeService.updatePosition(editingItem.id, { name: newItemName });
+        showToast('Должность обновлена', 'success');
+      } else {
+        await employeeService.createPosition({ name: newItemName });
+        showToast('Должность создана', 'success');
+      }
+      await fetchData();
       setNewItemName('');
+      setEditingItem(null);
       setIsPosModalOpen(false);
     } catch (error) {
-      console.error('Failed to create position:', error);
-      alert('Не удалось создать должность');
+      console.error('Failed to save position:', error);
+      showToast('Не удалось сохранить должность', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCreateSkill = async (e: React.FormEvent) => {
+  const handleDeletePosition = async (id: string) => {
+    if (!window.confirm('Вы уверены? Это действие нельзя отменить.')) return;
+    try {
+      await employeeService.deletePosition(id);
+      await fetchData();
+      showToast('Должность удалена', 'success');
+    } catch (error) {
+      console.error('Failed to delete position:', error);
+      showToast('Не удалось удалить должность', 'error');
+    }
+  };
+
+  const handleCreateOrUpdateSkill = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName.trim()) return;
 
     setIsSubmitting(true);
     try {
-      const newSkill = await employeeService.createSkill({ name: newItemName });
-      setSkills([...skills, newSkill]);
+      if (editingItem) {
+        await employeeService.updateSkill(editingItem.id, { name: newItemName });
+        showToast('Навык обновлен', 'success');
+      } else {
+        await employeeService.createSkill({ name: newItemName });
+        showToast('Навык создан', 'success');
+      }
+      await fetchData();
       setNewItemName('');
+      setEditingItem(null);
       setIsSkillModalOpen(false);
     } catch (error) {
-      console.error('Failed to create skill:', error);
-      alert('Не удалось создать навык');
+      console.error('Failed to save skill:', error);
+      showToast('Не удалось сохранить навык', 'error');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteSkill = async (id: string) => {
+    if (!window.confirm('Вы уверены? Это действие нельзя отменить.')) return;
+    try {
+      await employeeService.deleteSkill(id);
+      await fetchData();
+      showToast('Навык удален', 'success');
+    } catch (error) {
+      console.error('Failed to delete skill:', error);
+      showToast('Не удалось удалить навык', 'error');
+    }
+  };
+
+  const handleDeleteProfile = async (profile: Profile) => {
+    if (!window.confirm(`Вы уверены, что хотите удалить профиль ${profile.first_name} ${profile.last_name}?`)) return;
+    try {
+      await employeeService.deleteProfile(profile.id);
+      await fetchData();
+      showToast('Профиль удален', 'success');
+    } catch (error) {
+      console.error('Failed to delete profile:', error);
+      if (window.confirm('Удаление не поддерживается сервером. Деактивировать пользователя?')) {
+         try {
+            await employeeService.changeUserStatus(profile.id, { status: false });
+            await fetchData();
+            showToast('Пользователь деактивирован', 'success');
+         } catch (e) {
+            showToast('Не удалось деактивировать пользователя', 'error');
+         }
+      }
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProfile) return;
+
+    setIsSubmitting(true);
+    try {
+      await employeeService.updateProfile(editingProfile.id, profileForm);
+      await fetchData();
+      showToast('Профиль обновлен', 'success');
+      setIsEditProfileModalOpen(false);
+      setEditingProfile(null);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      showToast('Не удалось обновить профиль', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleUserStatus = async (profile: Profile) => {
+    const newStatus = !(profile.is_active !== false);
+    const action = newStatus ? 'активировать' : 'деактивировать';
+    
+    if (!window.confirm(`Вы уверены, что хотите ${action} сотрудника ${profile.first_name} ${profile.last_name}?`)) return;
+
+    try {
+      await employeeService.changeUserStatus(profile.id, { status: newStatus });
+      await fetchData();
+      showToast(`Сотрудник ${newStatus ? 'активирован' : 'деактивирован'}`, 'success');
+    } catch (error) {
+      console.error('Failed to change status:', error);
+      showToast('Не удалось изменить статус', 'error');
     }
   };
 
@@ -218,34 +376,17 @@ export default function EmployeesHubPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Быстрые действия</p>
                   <h2 className="mt-2 text-xl font-semibold">Что вы хотите сделать?</h2>
                 </div>
-                <label className="relative flex items-center">
-                  <Search className="absolute left-3 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    placeholder="Поиск сотрудника..."
-                    className="w-64 rounded-full border border-gray-200 bg-white px-9 py-2 text-sm text-gray-600 focus:border-emerald-400 focus:outline-none"
-                  />
-                  {searchTerm && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-3 text-xs font-semibold text-emerald-600"
-                    >
-                      Очистить
-                    </button>
-                  )}
-                </label>
               </div>
               <div className="mt-5 flex gap-4">
-                <Link
-                  to="/admin/employees/new"
-                  className="inline-flex items-center gap-2 rounded-3xl border border-emerald-100 bg-emerald-50/70 px-6 py-4 text-sm font-semibold text-emerald-800 shadow-[0_15px_40px_rgba(16,185,129,0.25)] hover:bg-emerald-100 transition-colors"
-                >
-                  <UserPlus className="h-5 w-5" />
-                  Добавить профиль
-                </Link>
+                {['admin', 'director'].includes(user?.role || '') && (
+                  <Link
+                    to="/admin/employees/new"
+                    className="inline-flex items-center gap-2 rounded-3xl border border-emerald-100 bg-emerald-50/70 px-6 py-4 text-sm font-semibold text-emerald-800 shadow-[0_15px_40px_rgba(16,185,129,0.25)] hover:bg-emerald-100 transition-colors"
+                  >
+                    <UserPlus className="h-5 w-5" />
+                    Добавить профиль
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -256,6 +397,25 @@ export default function EmployeesHubPage() {
                     <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Сотрудники</p>
                     <h2 className="mt-2 text-xl font-semibold">Список профилей</h2>
                   </div>
+                  <label className="relative flex items-center">
+                    <Search className="absolute left-3 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      placeholder="Поиск сотрудника..."
+                      className="w-full min-w-[300px] rounded-full border border-gray-200 bg-white px-9 py-2 text-sm text-gray-600 focus:border-emerald-400 focus:outline-none"
+                    />
+                    {searchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-3 text-xs font-semibold text-emerald-600"
+                      >
+                        Очистить
+                      </button>
+                    )}
+                  </label>
                 </div>
                 <div className="mt-5 overflow-hidden rounded-[28px] border border-gray-100">
                   {filteredProfiles.length ? (
@@ -291,9 +451,40 @@ export default function EmployeesHubPage() {
                               </span>
                             </td>
                             <td className="px-6 py-4">
-                              <button type="button" className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600 hover:bg-gray-100">
-                                <Edit className="mr-1 inline h-3.5 w-3.5" /> Редактировать
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => openEditProfileModal(profile)}
+                                  className="rounded-full p-2 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                                  title="Редактировать"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button 
+                                  onClick={() => handleToggleUserStatus(profile)}
+                                  className={`rounded-full p-2 transition-colors ${
+                                    profile.is_active !== false 
+                                      ? 'text-gray-400 hover:bg-rose-50 hover:text-rose-600' 
+                                      : 'text-gray-400 hover:bg-emerald-50 hover:text-emerald-600'
+                                  }`}
+                                  title={profile.is_active !== false ? "Деактивировать" : "Активировать"}
+                                >
+                                  {profile.is_active !== false ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteProfile(profile)}
+                                  className="rounded-full p-2 text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                                  title="Удалить"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteProfile(profile)}
+                                  className="rounded-full p-2 text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                                  title="Удалить профиль"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -327,9 +518,23 @@ export default function EmployeesHubPage() {
                   </div>
                   <ul className="mt-5 space-y-3 text-sm text-gray-600">
                     {departments.map((dep) => (
-                      <li key={dep.id} className="rounded-3xl border border-gray-100 bg-gray-50/80 px-4 py-3">
+                      <li key={dep.id} className="rounded-3xl border border-gray-100 bg-gray-50/80 px-4 py-3 group hover:bg-gray-50 transition-colors">
                         <div className="flex items-center justify-between">
                           <p className="font-semibold text-gray-900">{dep.name}</p>
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => openModal('dept', dep)}
+                              className="p-1.5 text-gray-400 hover:text-emerald-600 rounded-full hover:bg-emerald-50"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteDepartment(dep.id)}
+                              className="p-1.5 text-gray-400 hover:text-rose-600 rounded-full hover:bg-rose-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </li>
                     ))}
@@ -354,9 +559,23 @@ export default function EmployeesHubPage() {
                   </div>
                   <ul className="mt-5 space-y-3 text-sm text-gray-600">
                     {positions.map((position) => (
-                      <li key={position.id} className="rounded-3xl border border-gray-100 bg-gray-50/80 px-4 py-3">
+                      <li key={position.id} className="rounded-3xl border border-gray-100 bg-gray-50/80 px-4 py-3 group hover:bg-gray-50 transition-colors">
                         <div className="flex items-center justify-between">
                           <p className="font-semibold text-gray-900">{position.name}</p>
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => openModal('pos', position)}
+                              className="p-1.5 text-gray-400 hover:text-emerald-600 rounded-full hover:bg-emerald-50"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeletePosition(position.id)}
+                              className="p-1.5 text-gray-400 hover:text-rose-600 rounded-full hover:bg-rose-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </li>
                     ))}
@@ -387,8 +606,24 @@ export default function EmployeesHubPage() {
                 </div>
                 <div className="mt-5 grid gap-4 md:grid-cols-3 lg:grid-cols-4">
                   {skills.map((skill) => (
-                    <div key={skill.id} className="rounded-3xl border border-gray-100 bg-gray-50/80 p-4">
+                    <div key={skill.id} className="group relative rounded-3xl border border-gray-100 bg-gray-50/80 p-4 hover:bg-white hover:shadow-md transition-all">
                       <p className="text-sm font-semibold text-gray-900">{skill.name}</p>
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <button 
+                          onClick={() => openModal('skill', skill)}
+                          className="p-1.5 text-gray-400 hover:text-emerald-600 rounded-full hover:bg-emerald-50"
+                          title="Редактировать навык"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteSkill(skill.id)}
+                          className="p-1.5 text-gray-400 hover:text-rose-600 rounded-full hover:bg-rose-50"
+                          title="Удалить навык"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {skills.length === 0 && (
@@ -406,10 +641,10 @@ export default function EmployeesHubPage() {
       {/* Modals */}
       <Modal
         isOpen={isDeptModalOpen}
-        onClose={() => setIsDeptModalOpen(false)}
-        title="Новый отдел"
+        onClose={() => { setIsDeptModalOpen(false); setEditingItem(null); }}
+        title={editingItem ? "Редактировать отдел" : "Новый отдел"}
       >
-        <form onSubmit={handleCreateDepartment} className="space-y-4">
+        <form onSubmit={handleCreateOrUpdateDepartment} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Название отдела
@@ -426,7 +661,7 @@ export default function EmployeesHubPage() {
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setIsDeptModalOpen(false)}
+              onClick={() => { setIsDeptModalOpen(false); setEditingItem(null); }}
               className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
             >
               Отмена
@@ -436,7 +671,7 @@ export default function EmployeesHubPage() {
               disabled={!newItemName.trim() || isSubmitting}
               className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
             >
-              {isSubmitting ? 'Создание...' : 'Создать'}
+              {isSubmitting ? 'Сохранение...' : (editingItem ? 'Сохранить' : 'Создать')}
             </button>
           </div>
         </form>
@@ -444,10 +679,10 @@ export default function EmployeesHubPage() {
 
       <Modal
         isOpen={isPosModalOpen}
-        onClose={() => setIsPosModalOpen(false)}
-        title="Новая должность"
+        onClose={() => { setIsPosModalOpen(false); setEditingItem(null); }}
+        title={editingItem ? "Редактировать должность" : "Новая должность"}
       >
-        <form onSubmit={handleCreatePosition} className="space-y-4">
+        <form onSubmit={handleCreateOrUpdatePosition} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Название должности
@@ -464,7 +699,7 @@ export default function EmployeesHubPage() {
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setIsPosModalOpen(false)}
+              onClick={() => { setIsPosModalOpen(false); setEditingItem(null); }}
               className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
             >
               Отмена
@@ -474,7 +709,7 @@ export default function EmployeesHubPage() {
               disabled={!newItemName.trim() || isSubmitting}
               className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
             >
-              {isSubmitting ? 'Создание...' : 'Создать'}
+              {isSubmitting ? 'Сохранение...' : (editingItem ? 'Сохранить' : 'Создать')}
             </button>
           </div>
         </form>
@@ -482,10 +717,10 @@ export default function EmployeesHubPage() {
 
       <Modal
         isOpen={isSkillModalOpen}
-        onClose={() => setIsSkillModalOpen(false)}
-        title="Новый навык"
+        onClose={() => { setIsSkillModalOpen(false); setEditingItem(null); }}
+        title={editingItem ? "Редактировать навык" : "Новый навык"}
       >
-        <form onSubmit={handleCreateSkill} className="space-y-4">
+        <form onSubmit={handleCreateOrUpdateSkill} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Название навыка
@@ -502,7 +737,7 @@ export default function EmployeesHubPage() {
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setIsSkillModalOpen(false)}
+              onClick={() => { setIsSkillModalOpen(false); setEditingItem(null); }}
               className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
             >
               Отмена
@@ -512,7 +747,91 @@ export default function EmployeesHubPage() {
               disabled={!newItemName.trim() || isSubmitting}
               className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
             >
-              {isSubmitting ? 'Создание...' : 'Создать'}
+              {isSubmitting ? 'Сохранение...' : (editingItem ? 'Сохранить' : 'Создать')}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isEditProfileModalOpen}
+        onClose={() => { setIsEditProfileModalOpen(false); setEditingProfile(null); }}
+        title="Редактирование профиля"
+      >
+        <form onSubmit={handleUpdateProfile} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Имя</label>
+              <input
+                type="text"
+                value={profileForm.first_name || ''}
+                onChange={(e) => setProfileForm({ ...profileForm, first_name: e.target.value })}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-emerald-400 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Фамилия</label>
+              <input
+                type="text"
+                value={profileForm.last_name || ''}
+                onChange={(e) => setProfileForm({ ...profileForm, last_name: e.target.value })}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-emerald-400 focus:outline-none"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={profileForm.email || ''}
+              onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-emerald-400 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Отдел</label>
+            <select
+              value={profileForm.department_id || ''}
+              onChange={(e) => setProfileForm({ ...profileForm, department_id: e.target.value })}
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-emerald-400 focus:outline-none"
+            >
+              <option value="">Без отдела</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Должность</label>
+            <select
+              value={profileForm.position_id || ''}
+              onChange={(e) => setProfileForm({ ...profileForm, position_id: e.target.value })}
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-emerald-400 focus:outline-none"
+            >
+              <option value="">Без должности</option>
+              {positions.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => { setIsEditProfileModalOpen(false); setEditingProfile(null); }}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            >
+              Отмена
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Сохранение...' : 'Сохранить'}
             </button>
           </div>
         </form>

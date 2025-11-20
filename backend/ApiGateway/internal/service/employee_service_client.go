@@ -41,7 +41,7 @@ func (c *EmployeeServiceClient) GetProfile(ctx context.Context, userID string) (
 	})
 }
 
-func (c *EmployeeServiceClient) ListProfiles(ctx context.Context, pageSize, pageNumber int32, departmentID, positionID string) (*employeepb.ListProfilesResponse, error) {
+func (c *EmployeeServiceClient) ListProfiles(ctx context.Context, pageSize, pageNumber int32, departmentID, positionID *string) (*employeepb.ListProfilesResponse, error) {
 	return c.client.ListProfiles(ctx, &employeepb.ListProfilesRequest{
 		PageSize:     pageSize,
 		PageNumber:   pageNumber,

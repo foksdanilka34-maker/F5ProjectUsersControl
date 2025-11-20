@@ -13,6 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import { employeeService, type Department, type Position, type UserRole } from '../api';
+import { useToast } from '../contexts/ToastContext';
 
 const roles: Array<{ label: string; value: UserRole }> = [
   { label: 'Специалист', value: 'specialist' },
@@ -47,6 +48,7 @@ const initialState: FormState = {
 
 export default function CreateEmployeePage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [form, setForm] = useState<FormState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -136,11 +138,14 @@ export default function CreateEmployeePage() {
     setError(null);
 
     try {
+      // Convert date to RFC3339 format (ISO 8601)
+      const hireDateISO = new Date(form.hireDate).toISOString();
+
       await employeeService.createProfile({
         first_name: form.firstName,
         last_name: form.lastName,
         email: form.email,
-        hire_date: form.hireDate,
+        hire_date: hireDateISO,
         login: form.login,
         password: form.password,
         role: form.role,
@@ -148,7 +153,7 @@ export default function CreateEmployeePage() {
         department_id: form.departmentId || undefined,
       });
 
-      alert('Профиль сотрудника успешно создан!');
+      showToast('Профиль сотрудника успешно создан!', 'success');
       navigate('/admin/employees');
     } catch (err: any) {
       console.error('Failed to create profile:', err);

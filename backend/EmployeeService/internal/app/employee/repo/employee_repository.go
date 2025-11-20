@@ -105,12 +105,22 @@ func (s *Storage) GetProfile(ctx context.Context, userID string) (*emp.Profile, 
 }
 
 func (s *Storage) ListProfile(ctx context.Context, pageSize, pageNum int, departmentID, positionID string) ([]*emp.Profile, error) {
+	var depIDPtr *string
+	if departmentID != "" {
+		depIDPtr = &departmentID
+	}
+
+	var posIDPtr *string
+	if positionID != "" {
+		posIDPtr = &positionID
+	}
+
 	query := `SELECT id, first_name, last_name, position_id, email, department_id, avatar_url, hire_date, created_at, updated_at 
 				FROM employees.profiles 
 				WHERE ($1::UUID IS NULL OR department_id = $1) AND ($2::UUID IS NULL OR position_id = $2)
 				LIMIT $3 OFFSET $4`
 
-	rows, err := s.pgx.Query(ctx, query, departmentID, positionID, pageSize, (pageNum-1)*pageSize)
+	rows, err := s.pgx.Query(ctx, query, depIDPtr, posIDPtr, pageSize, (pageNum-1)*pageSize)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			log.Printf("no profiles found in ListProfile")

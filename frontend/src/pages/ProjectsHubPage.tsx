@@ -9,11 +9,16 @@ import {
   MoreHorizontal,
   Plus,
   Users,
-  Loader2
+  Loader2,
+  Trash2,
+  X,
+  Search
 } from 'lucide-react';
 import { projectService } from '../api/services/project.service';
-import type { Project, Task } from '../api/types';
+import { employeeService } from '../api/services/employee.service';
+import type { Project, Task, Profile, Department, Skill } from '../api/types';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 // Map UI column IDs to API TaskStatus enum values
 // TaskStatus: 0=UNSPECIFIED, 1=TODO, 2=IN_PROGRESS, 3=REVIEW, 4=DONE
@@ -39,6 +44,7 @@ const columns = [
 
 export default function ProjectsHubPage() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('Доска задач');
   const [isLoading, setIsLoading] = useState(true);
   
@@ -47,71 +53,68 @@ export default function ProjectsHubPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
 
+  // Add Member Modal State
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [availableEmployees, setAvailableEmployees] = useState<Profile[]>([]);
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+
+  // Filters
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
+
   // Check if user can create projects
   const canCreateProject = user?.role === 'manager' || user?.role === 'director';
 
+  const fetchProjects = async () => {
+    setIsLoading(true);
+    try {
+      const data = await projectService.listProjects({ page_size: 100 }).catch(err => {
+        console.error('Error fetching projects:', err);
+        return { projects: [], meta: {} };
+      });
+      
+      const projectsList = Array.isArray(data?.projects) ? data.projects : [];
+      setProjects(projectsList);
+      
+      // Only set selected project if none is selected and we have projects
+      // or if the currently selected project is not in the new list (handled by effect dependencies usually, but here we do it manually if needed)
+      if (!selectedProject && projectsList.length > 0) {
+        setSelectedProject(projectsList[0]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch projects:', error);
+      setProjects([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Fetch projects on mount
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchProjects = async () => {
-      setIsLoading(true);
-      try {
-        const data = await projectService.listProjects({ page_size: 100 }).catch(err => {
-          console.error('Error fetching projects:', err);
-          return { projects: [], meta: {} };
-        });
-        
-        if (!isMounted) return;
-
-        const projectsList = Array.isArray(data?.projects) ? data.projects : [];
-        setProjects(projectsList);
-        
-        if (projectsList.length > 0) {
-          setSelectedProject(projectsList[0]);
-        } else {
-          setSelectedProject(null);
-        }
-      } catch (error) {
-        console.error('Failed to fetch projects:', error);
-        if (isMounted) setProjects([]);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
     fetchProjects();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
+
+  const fetchTasks = async () => {
+    if (!selectedProject) return;
+    try {
+      const tasksData = await projectService.listTasksByProject(selectedProject.id).catch(err => {
+        console.error('Error fetching tasks:', err);
+        return [];
+      });
+      
+      setTasks(Array.isArray(tasksData) ? tasksData : []);
+    } catch (error) {
+      console.error('Failed to fetch project details:', error);
+      setTasks([]);
+    }
+  };
 
   // Fetch tasks when selected project changes
   useEffect(() => {
-    if (!selectedProject) return;
-    let isMounted = true;
-
-    const fetchProjectDetails = async () => {
-      try {
-        const tasksData = await projectService.listTasksByProject(selectedProject.id).catch(err => {
-          console.error('Error fetching tasks:', err);
-          return [];
-        });
-        
-        if (isMounted) {
-          setTasks(Array.isArray(tasksData) ? tasksData : []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch project details:', error);
-        if (isMounted) setTasks([]);
-      }
-    };
-
-    fetchProjectDetails();
-
-    return () => {
-      isMounted = false;
-    };
+    fetchTasks();
   }, [selectedProject]);
 
   const handleMoveTask = async (taskId: string, newStatusKey: keyof typeof STATUS_MAP) => {
@@ -129,13 +132,110 @@ export default function ProjectsHubPage() {
         new_status: newStatus,
         new_order_index: 0 // Default to top for now
       });
+      await fetchTasks();
     } catch (error) {
       console.error('Failed to move task:', error);
       // Revert on failure
-      const tasksData = await projectService.listTasksByProject(selectedProject.id);
-      setTasks(Array.isArray(tasksData) ? tasksData : []);
+      await fetchTasks();
     }
   };
+
+  const handleDeleteProject = async (project: Project) => {
+    if (!window.confirm(`Вы уверены, что хотите удалить проект "${project.name}"?`)) {
+      return;
+    }
+
+    try {
+      await projectService.deleteProject(project.id);
+      showToast('Проект успешно удален', 'success');
+      
+      await fetchProjects();
+      if (selectedProject?.id === project.id) {
+        setSelectedProject(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      showToast('Не удалось удалить проект', 'error');
+    }
+  };
+
+  const handleOpenAddMemberModal = async () => {
+    setIsAddMemberModalOpen(true);
+    // Reset filters
+    setMemberSearchQuery('');
+    setSelectedDepartmentId('');
+    setSelectedSkillIds([]);
+
+    if (availableEmployees.length === 0) {
+      setIsLoadingEmployees(true);
+      try {
+        const [profilesData, deptsData, skillsData] = await Promise.all([
+          employeeService.listProfiles({ page_size: 100 }),
+          employeeService.listDepartments(),
+          employeeService.listSkills()
+        ]);
+        
+        const activeEmployees = (profilesData.profiles || []).filter(p => p.is_active !== false);
+        setAvailableEmployees(activeEmployees);
+        setDepartments(deptsData || []);
+        setSkills(skillsData || []);
+      } catch (error) {
+        console.error('Failed to fetch employees/metadata:', error);
+        showToast('Не удалось загрузить данные', 'error');
+      } finally {
+        setIsLoadingEmployees(false);
+      }
+    }
+  };
+
+  const handleAddMember = async (userId: string) => {
+    if (!selectedProject) return;
+
+    try {
+      await projectService.addMemberToProject(selectedProject.id, { user_id: userId });
+      showToast('Сотрудник добавлен в проект', 'success');
+      setIsAddMemberModalOpen(false);
+    } catch (error) {
+      console.error('Failed to add member:', error);
+      showToast('Не удалось добавить участника', 'error');
+    }
+  };
+
+  const toggleSkillFilter = (skillId: string) => {
+    setSelectedSkillIds(prev => 
+      prev.includes(skillId) 
+        ? prev.filter(id => id !== skillId)
+        : [...prev, skillId]
+    );
+  };
+
+  const filteredEmployees = useMemo(() => {
+    return availableEmployees.filter(emp => {
+      // 1. Text Search
+      if (memberSearchQuery) {
+        const lowerQuery = memberSearchQuery.toLowerCase();
+        const matchesName = emp.first_name.toLowerCase().includes(lowerQuery) || 
+                            emp.last_name.toLowerCase().includes(lowerQuery) ||
+                            emp.email.toLowerCase().includes(lowerQuery);
+        if (!matchesName) return false;
+      }
+
+      // 2. Department Filter
+      if (selectedDepartmentId && emp.department?.id !== selectedDepartmentId) {
+        return false;
+      }
+
+      // 3. Skills Filter
+      if (selectedSkillIds.length > 0) {
+        const empSkillIds = emp.skills?.map(s => s.id) || [];
+        // Check if employee has ALL selected skills
+        const hasAllSkills = selectedSkillIds.every(id => empSkillIds.includes(id));
+        if (!hasAllSkills) return false;
+      }
+
+      return true;
+    });
+  }, [availableEmployees, memberSearchQuery, selectedDepartmentId, selectedSkillIds]);
 
   const tasksByStatus = useMemo(() => {
     const grouped: Record<string, Task[]> = {
@@ -277,10 +377,24 @@ export default function ProjectsHubPage() {
                           +
                         </div>
                       </div>
-                      <button className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600">
-                        <Users className="mr-2 inline h-4 w-4" />
-                        Участники
-                      </button>
+                      {canCreateProject && (
+                        <button 
+                          onClick={handleOpenAddMemberModal}
+                          className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600 hover:border-emerald-200 transition-colors"
+                        >
+                          <Users className="mr-2 inline h-4 w-4" />
+                          Участники
+                        </button>
+                      )}
+                      {canCreateProject && (
+                        <button 
+                          onClick={() => handleDeleteProject(selectedProject)}
+                          className="rounded-full border border-gray-200 bg-white p-2 text-gray-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-colors"
+                          title="Удалить проект"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -409,6 +523,101 @@ export default function ProjectsHubPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Member Modal */}
+      {isAddMemberModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Добавить участника</h3>
+              <button 
+                onClick={() => setIsAddMemberModalOpen(false)}
+                className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Поиск сотрудника..."
+                value={memberSearchQuery}
+                onChange={(e) => setMemberSearchQuery(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 pl-10 pr-4 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+
+            {/* Filters */}
+            <div className="mb-4 space-y-3">
+              {/* Department Select */}
+              <select
+                value={selectedDepartmentId}
+                onChange={(e) => setSelectedDepartmentId(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              >
+                <option value="">Все отделы</option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+
+              {/* Skills Chips */}
+              {skills.length > 0 && (
+                <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
+                  {skills.map(skill => (
+                    <button
+                      key={skill.id}
+                      onClick={() => toggleSkillFilter(skill.id)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        selectedSkillIds.includes(skill.id)
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                          : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                      }`}
+                    >
+                      {skill.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1">
+              {isLoadingEmployees ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                </div>
+              ) : filteredEmployees.length > 0 ? (
+                filteredEmployees.map((employee) => (
+                  <div key={employee.id} className="flex items-center justify-between rounded-xl border border-gray-100 p-3 hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
+                        {employee.first_name[0]}{employee.last_name[0]}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {employee.first_name} {employee.last_name}
+                        </p>
+                        <p className="text-xs text-gray-500">{employee.position?.name || 'Сотрудник'}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleAddMember(employee.id)}
+                      className="rounded-full bg-emerald-50 p-2 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                      title="Добавить"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-sm text-gray-500 py-4">Сотрудники не найдены</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

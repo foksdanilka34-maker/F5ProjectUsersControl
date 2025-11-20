@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -10,7 +10,10 @@ import {
   Target,
   UserCheck,
 } from 'lucide-react';
-import { projectService } from '../api';
+import { projectService, employeeService } from '../api';
+import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
+import type { Profile } from '../api/types';
 
 type FormState = {
   name: string;
@@ -26,9 +29,20 @@ const initialState: FormState = {
 
 export default function CreateProjectPage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { user } = useAuth();
   const [form, setForm] = useState<FormState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    if (user?.userId) {
+      employeeService.getProfile(user.userId)
+        .then(setCurrentUserProfile)
+        .catch(console.error);
+    }
+  }, [user?.userId]);
 
   const isValid = useMemo(() => {
     return form.name.trim().length >= 3;
@@ -48,13 +62,16 @@ export default function CreateProjectPage() {
     setError(null);
 
     try {
+      // Convert date to RFC3339 format (ISO 8601) if present
+      const dueDateISO = form.dueDate ? new Date(form.dueDate).toISOString() : undefined;
+
       await projectService.createProject({
         name: form.name,
         description: form.description || undefined,
-        due_date: form.dueDate || undefined,
+        due_date: dueDateISO,
       });
 
-      alert('Проект успешно создан!');
+      showToast('Проект успешно создан!', 'success');
       navigate('/projects');
     } catch (err: any) {
       console.error('Failed to create project:', err);
@@ -150,7 +167,9 @@ export default function CreateProjectPage() {
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gray-50/80 px-4 py-4 text-sm text-gray-500">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-emerald-500" />
-                Менеджером проекта станет текущий пользователь.
+                Менеджером проекта станет: <span className="font-semibold text-gray-700">
+                  {currentUserProfile ? `${currentUserProfile.first_name} ${currentUserProfile.last_name}` : 'Загрузка...'}
+                </span>
               </div>
               <div className="flex gap-3">
                 <button
@@ -180,7 +199,9 @@ export default function CreateProjectPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-lg font-semibold text-gray-900">{form.name || 'Название проекта'}</p>
-                <p className="text-sm text-gray-500">Менеджер: текущий пользователь</p>
+                <p className="text-sm text-gray-500">
+                  Менеджер: {currentUserProfile ? `${currentUserProfile.first_name} ${currentUserProfile.last_name}` : '...'}
+                </p>
               </div>
             </div>
             <p className="mt-4 text-sm text-gray-600">{form.description || 'Описание появится здесь.'}</p>

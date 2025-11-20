@@ -29,12 +29,13 @@ export const employeeService = {
   },
 
   async listProfiles(params?: ListProfilesParams): Promise<{ profiles: Profile[]; meta?: PaginationMeta }> {
-    const response = await apiClient.get<ApiResponse<Profile[]>>(
+    const response = await apiClient.get<ApiResponse<any>>(
       '/api/v1/employees/profiles',
       { params }
     );
+    const data = unwrapResponse(response.data);
     return {
-      profiles: unwrapResponse(response.data),
+      profiles: data.profiles || [],
       meta: response.data.meta,
     };
   },
@@ -52,6 +53,13 @@ export const employeeService = {
       data
     );
     return unwrapResponse(response.data);
+  },
+
+  async deleteProfile(id: string): Promise<void> {
+    const response = await apiClient.delete<ApiResponse>(
+      `/api/v1/employees/profiles/${id}`
+    );
+    unwrapResponse(response.data);
   },
 
   async changeUserStatus(id: string, data: ChangeUserStatusRequest): Promise<void> {
@@ -72,10 +80,11 @@ export const employeeService = {
   },
 
   async listDepartments(): Promise<Department[]> {
-    const response = await apiClient.get<ApiResponse<{ departments: Department[] }>>(
+    const response = await apiClient.get<ApiResponse<any>>(
       '/api/v1/employees/departments'
     );
-    return unwrapResponse(response.data).departments;
+    const data = unwrapResponse(response.data);
+    return data.departments || [];
   },
 
   async getDepartment(id: string): Promise<Department> {
@@ -110,10 +119,11 @@ export const employeeService = {
   },
 
   async listPositions(): Promise<Position[]> {
-    const response = await apiClient.get<ApiResponse<{ positions: Position[] }>>(
+    const response = await apiClient.get<ApiResponse<any>>(
       '/api/v1/employees/positions'
     );
-    return unwrapResponse(response.data).positions;
+    const data = unwrapResponse(response.data);
+    return data.positions || [];
   },
 
   async getPosition(id: string): Promise<Position> {
@@ -148,10 +158,11 @@ export const employeeService = {
   },
 
   async listSkills(): Promise<Skill[]> {
-    const response = await apiClient.get<ApiResponse<{ skills: Skill[] }>>(
+    const response = await apiClient.get<ApiResponse<any>>(
       '/api/v1/employees/skills'
     );
-    return unwrapResponse(response.data).skills;
+    const data = unwrapResponse(response.data);
+    return data.skills || [];
   },
 
   async addSkillToEmployee(employeeId: string, data: AddSkillToEmployeeRequest): Promise<void> {
@@ -167,5 +178,20 @@ export const employeeService = {
       `/api/v1/employees/profiles/${employeeId}/skills/${skillId}`
     );
     unwrapResponse(response.data);
+  },
+
+  async deleteSkill(id: string): Promise<void> {
+    const response = await apiClient.delete<ApiResponse>(
+      `/api/v1/employees/skills/${id}`
+    );
+    unwrapResponse(response.data);
+  },
+
+  async updateSkill(id: string, data: { name: string }): Promise<Skill> {
+    const response = await apiClient.put<ApiResponse<Skill>>(
+      `/api/v1/employees/skills/${id}`,
+      data
+    );
+    return unwrapResponse(response.data);
   },
 };

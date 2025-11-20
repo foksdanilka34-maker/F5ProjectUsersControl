@@ -134,8 +134,8 @@ func (h *EmployeeHandler) ListProfiles(c *gin.Context) {
 		c.Request.Context(),
 		req.PageSize,
 		req.PageNumber,
-		req.DepartmentID,
-		req.PositionID,
+		&req.DepartmentID,
+		&req.PositionID,
 	)
 	if err != nil {
 		log.Printf("ListProfiles service error: %v", err)

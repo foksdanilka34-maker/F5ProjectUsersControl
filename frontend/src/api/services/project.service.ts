@@ -27,12 +27,13 @@ export const projectService = {
   },
 
   async listProjects(params?: ListProjectsParams): Promise<{ projects: Project[]; meta?: PaginationMeta }> {
-    const response = await apiClient.get<ApiResponse<Project[]>>(
+    const response = await apiClient.get<ApiResponse<{ projects: Project[] }>>(
       '/api/v1/projects',
       { params }
     );
+    const data = unwrapResponse(response.data);
     return {
-      projects: unwrapResponse(response.data),
+      projects: data.projects || [],
       meta: response.data.meta,
     };
   },
@@ -92,11 +93,12 @@ export const projectService = {
   },
 
   async listTasksByProject(projectId: string, params?: ListTasksParams): Promise<Task[]> {
-    const response = await apiClient.get<ApiResponse<Task[]>>(
+    const response = await apiClient.get<ApiResponse<{ tasks: Task[] }>>(
       `/api/v1/projects/${projectId}/tasks`,
       { params }
     );
-    return unwrapResponse(response.data);
+    const data = unwrapResponse(response.data);
+    return data.tasks || [];
   },
 
   async getTask(projectId: string, taskId: string): Promise<Task> {

@@ -79,8 +79,8 @@ message GetProfileRequest {
 message ListProfilesRequest {
     int32 page_size = 1;
     int32 page_number = 2;
-    string department_id = 3;
-    string position_id = 4;
+    optional string department_id = 3;
+    optional string position_id = 4;
 }
 
 message ListProfilesResponse {
