@@ -34,6 +34,9 @@ export default function EmployeesHubPage() {
   const [isPosModalOpen, setIsPosModalOpen] = useState(false);
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isManageSkillsModalOpen, setIsManageSkillsModalOpen] = useState(false);
+  const [selectedProfileForSkills, setSelectedProfileForSkills] = useState<Profile | null>(null);
+  const [skillIdToAdd, setSkillIdToAdd] = useState<string>("");
   
   const [newItemName, setNewItemName] = useState('');
   const [editingItem, setEditingItem] = useState<Department | Position | Skill | null>(null);
@@ -130,17 +133,24 @@ export default function EmployeesHubPage() {
     const normalized = searchTerm.toLowerCase();
     return profiles.filter((profile) => {
       const fullName = `${profile.first_name} ${profile.last_name}`.toLowerCase();
-      const departmentName = profile.department?.name.toLowerCase() || '';
-      const positionName = profile.position?.name.toLowerCase() || '';
+      
+      const deptName = profile.department?.name || 
+                       (profile.department?.id ? departments.find(d => d.id === profile.department!.id)?.name : '') || 
+                       (profile.department_id ? departments.find(d => d.id === profile.department_id)?.name : '') || 
+                       '';
+                       
+      const posName = profile.position?.name || 
+                      (profile.position_id && positions.find(p => p.id === profile.position_id)?.name) || 
+                      '';
       
       return (
         fullName.includes(normalized) ||
-        departmentName.includes(normalized) ||
-        positionName.includes(normalized) ||
+        deptName.toLowerCase().includes(normalized) ||
+        posName.toLowerCase().includes(normalized) ||
         profile.email.toLowerCase().includes(normalized)
       );
     });
-  }, [searchTerm, profiles]);
+  }, [searchTerm, profiles, departments, positions]);
 
   const handleCreateOrUpdateDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -308,6 +318,55 @@ export default function EmployeesHubPage() {
     }
   };
 
+  const openManageSkillsModal = (profile: Profile) => {
+    setSelectedProfileForSkills(profile);
+    setSkillIdToAdd("");
+    setIsManageSkillsModalOpen(true);
+  };
+
+  const handleAddSkillToEmployee = async () => {
+    if (!selectedProfileForSkills || !skillIdToAdd) return;
+    try {
+      await employeeService.addSkillToEmployee(selectedProfileForSkills.id, { skill_id: skillIdToAdd });
+      showToast("Навык добавлен", "success");
+      setSkillIdToAdd("");
+      await fetchData();
+      // Update local state for immediate feedback
+      setSelectedProfileForSkills(prev => {
+          if (!prev) return null;
+          const skillToAdd = skills.find(s => s.id === skillIdToAdd);
+          if (!skillToAdd) return prev;
+          return {
+              ...prev,
+              skills: [...(prev.skills || []), skillToAdd]
+          };
+      });
+    } catch (error) {
+      console.error(error);
+      showToast("Не удалось добавить навык", "error");
+    }
+  };
+
+  const handleRemoveSkillFromEmployee = async (skillId: string) => {
+     if (!selectedProfileForSkills) return;
+     try {
+         await employeeService.removeSkillFromEmployee(selectedProfileForSkills.id, skillId);
+         showToast("Навык удален", "success");
+         await fetchData();
+         // Update local state
+         setSelectedProfileForSkills(prev => {
+             if (!prev) return null;
+             return {
+                 ...prev,
+                 skills: prev.skills?.filter(s => s.id !== skillId)
+             };
+         });
+     } catch (error) {
+         console.error(error);
+         showToast("Не удалось удалить навык", "error");
+     }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -437,8 +496,15 @@ export default function EmployeesHubPage() {
                               {profile.first_name} {profile.last_name}
                             </td>
                             <td className="px-6 py-4">{profile.email}</td>
-                            <td className="px-6 py-4">{profile.position?.name || '-'}</td>
-                            <td className="px-6 py-4">{profile.department?.name || '-'}</td>
+                            <td className="px-6 py-4">
+                              {profile.position?.name || (profile.position_id && positions.find(p => p.id === profile.position_id)?.name) || '-'}
+                            </td>
+                            <td className="px-6 py-4">
+                              {profile.department?.name || 
+                               (profile.department?.id && departments.find(d => d.id === profile.department!.id)?.name) || 
+                               (profile.department_id && departments.find(d => d.id === profile.department_id)?.name) || 
+                               '-'}
+                            </td>
                             <td className="px-6 py-4">
                               <span
                                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
@@ -452,6 +518,13 @@ export default function EmployeesHubPage() {
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => openManageSkillsModal(profile)}
+                                  className="rounded-full p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                                  title="Управление навыками"
+                                >
+                                  <ListChecks className="h-4 w-4" />
+                                </button>
                                 <button 
                                   onClick={() => openEditProfileModal(profile)}
                                   className="rounded-full p-2 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
@@ -474,13 +547,6 @@ export default function EmployeesHubPage() {
                                   onClick={() => handleDeleteProfile(profile)}
                                   className="rounded-full p-2 text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
                                   title="Удалить"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteProfile(profile)}
-                                  className="rounded-full p-2 text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                                  title="Удалить профиль"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
@@ -835,6 +901,71 @@ export default function EmployeesHubPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={isManageSkillsModalOpen}
+        onClose={() => { setIsManageSkillsModalOpen(false); setSelectedProfileForSkills(null); }}
+        title={`Навыки сотрудника: ${selectedProfileForSkills?.first_name} ${selectedProfileForSkills?.last_name}`}
+      >
+        <div className="space-y-6">
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Текущие навыки</h4>
+            <div className="flex flex-wrap gap-2">
+              {selectedProfileForSkills?.skills && selectedProfileForSkills.skills.length > 0 ? (
+                selectedProfileForSkills.skills.map(skill => (
+                  <span key={skill.id} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 border border-emerald-100">
+                    {skill.name}
+                    <button
+                      onClick={() => handleRemoveSkillFromEmployee(skill.id)}
+                      className="ml-1 rounded-full p-0.5 hover:bg-emerald-200 text-emerald-600"
+                      title="Удалить навык"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 italic">Навыки не назначены</p>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Добавить навык</h4>
+            <div className="flex gap-2">
+              <select
+                value={skillIdToAdd}
+                onChange={(e) => setSkillIdToAdd(e.target.value)}
+                className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+              >
+                <option value="">Выберите навык...</option>
+                {skills
+                  .filter(s => !selectedProfileForSkills?.skills?.some(ps => ps.id === s.id))
+                  .map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))
+                }
+              </select>
+              <button
+                onClick={handleAddSkillToEmployee}
+                disabled={!skillIdToAdd}
+                className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Добавить
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex justify-end pt-2">
+             <button
+              onClick={() => { setIsManageSkillsModalOpen(false); setSelectedProfileForSkills(null); }}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
