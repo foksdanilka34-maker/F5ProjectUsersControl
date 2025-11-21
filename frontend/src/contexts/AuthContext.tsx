@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authService, setAccessToken, type UserRole } from '../api';
+import { employeeService } from '../api/services/employee.service';
 import { jwtDecode } from 'jwt-decode';
 
 interface JWTPayload {
@@ -9,7 +10,7 @@ interface JWTPayload {
 }
 
 interface AuthContextType {
-  user: { userId: string; role: UserRole } | null;
+  user: { userId: string; role: UserRole; name?: string } | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
@@ -19,7 +20,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<{ userId: string; role: UserRole } | null>(null);
+  const [user, setUser] = useState<{ userId: string; role: UserRole; name?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Функция для принудительной очистки состояния аутентификации
@@ -33,6 +34,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (window as any).clearAuthState = clearAuthState;
   }, []);
 
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const profile = await employeeService.getProfile(userId);
+      return `${profile.first_name} ${profile.last_name}`;
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+      return undefined;
+    }
+  };
+
   // При загрузке приложения пытаемся восстановить сессию через refresh token (в cookie)
   useEffect(() => {
     const initAuth = async () => {
@@ -42,7 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (response.access_token) {
           const decoded = jwtDecode<JWTPayload>(response.access_token);
-          setUser({ userId: decoded.user_id, role: decoded.role });
+          const name = await fetchUserProfile(decoded.user_id);
+          setUser({ userId: decoded.user_id, role: decoded.role, name });
         }
       } catch (error) {
         // Нет валидной сессии - это нормально при первом запуске
@@ -61,8 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Декодируем JWT чтобы получить user_id и role
       const decoded = jwtDecode<JWTPayload>(response.access_token);
+      const name = await fetchUserProfile(decoded.user_id);
       
-      setUser({ userId: decoded.user_id, role: decoded.role });
+      setUser({ userId: decoded.user_id, role: decoded.role, name });
     } catch (error) {
       console.error('Login failed:', error);
       throw error;

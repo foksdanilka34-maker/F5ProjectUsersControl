@@ -24,13 +24,15 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { analyticsService } from '../api/services/analytics.service';
 import { projectService } from '../api/services/project.service';
+import { employeeService } from '../api/services/employee.service';
 import type { 
   DashboardStats, 
   ProductivityTrend, 
   CompletionRateTrend, 
   TopPerformer, 
   ProjectMetrics,
-  Project
+  Project,
+  Profile
 } from '../api/types';
 
 const periodOptions = [
@@ -124,36 +126,106 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch all data in parallel
-        const [
-          statsData,
-          prodTrendsData,
-          compTrendsData,
-          performersData,
-          projectMetricsData,
-          projectsData
-        ] = await Promise.all([
+        // Fetch all data in parallel using allSettled to prevent one failure from breaking everything
+        const results = await Promise.allSettled([
           analyticsService.getDashboardStats(),
           analyticsService.getProductivityTrends({ period: 'DAILY', limit: 7 }),
           analyticsService.getCompletionRateTrends({ period: 'WEEKLY', limit: 5 }),
           analyticsService.getTopPerformers({ limit: 3 }),
           analyticsService.listProjectMetrics(),
-          projectService.listProjects({ status: 1, page_size: 5 }) // 1 = ACTIVE
+          projectService.listProjects({ status: 1, page_size: 100 }), // 1 = ACTIVE
+          employeeService.listProfiles({ page_size: 100 })
         ]);
+
+        // Helper to safely get result
+        const getResult = <T,>(index: number, fallback: T): T => {
+          const result = results[index];
+          if (result.status === 'fulfilled') {
+            return result.value as T;
+          }
+          console.warn(`Failed to fetch data at index ${index}:`, result.reason);
+          return fallback;
+        };
+
+        const statsData = getResult<DashboardStats | null>(0, null);
+        const prodTrendsData = getResult<ProductivityTrend[]>(1, []);
+        const compTrendsData = getResult<CompletionRateTrend[]>(2, []);
+        const performersData = getResult<TopPerformer[]>(3, []);
+        const projectMetricsData = getResult<{ metrics: ProjectMetrics[] } | null>(4, null);
+        const projectsData = getResult<{ projects: Project[] } | null>(5, null);
+        const profilesData = getResult<{ profiles: Profile[] } | null>(6, null);
 
         setStats(statsData);
         setProductivityTrends(prodTrendsData);
         setCompletionTrends(compTrendsData);
-        setTopPerformers(performersData);
         
+        const allProfiles = profilesData?.profiles || [];
+        
+        // Map names to top performers
+        const mappedPerformers = performersData.map(p => {
+            const profile = allProfiles.find(prof => prof.id === p.employee_id);
+            let name = 'Unknown';
+            if (profile) {
+                name = `${profile.first_name} ${profile.last_name}`;
+            } else if (allProfiles.length === 0) {
+                name = 'Unknown (Profiles not loaded)';
+            } else {
+                // Fallback to showing ID if profile not found but profiles list is not empty
+                // This helps identify if it's a data mismatch
+                name = `Unknown (${p.employee_id.substring(0, 8)}...)`;
+            }
+
+            return {
+                ...p,
+                employee_name: name,
+                department_name: profile?.department?.name || 'Без отдела'
+            };
+        });
+        setTopPerformers(mappedPerformers);
+        
+        const allProjects = projectsData?.projects || [];
+        
+        // Map active projects with manager names
+        const mappedActiveProjects = allProjects.slice(0, 5).map(project => {
+            let managerName = project.manager_name;
+            if (!managerName && project.manager_id) {
+                 const managerProfile = allProfiles.find(prof => prof.id === project.manager_id);
+                 if (managerProfile) {
+                     managerName = `${managerProfile.first_name} ${managerProfile.last_name}`;
+                 }
+            }
+            return {
+                ...project,
+                manager_name: managerName
+            };
+        });
+        setActiveProjects(mappedActiveProjects);
+
         // Filter risky projects (health < 70) and sort by health ascending
-        const risky = projectMetricsData.metrics
-          .filter(p => p.health_score < 70)
+        // Map project names and manager names
+        const risky = (projectMetricsData?.metrics || [])
+          .map(p => {
+              const project = allProjects.find(proj => proj.id === p.project_id);
+              let managerName = project?.manager_name || p.manager_name;
+              
+              if (!managerName && project?.manager_id) {
+                  const managerProfile = allProfiles.find(prof => prof.id === project.manager_id);
+                  if (managerProfile) {
+                      managerName = `${managerProfile.first_name} ${managerProfile.last_name}`;
+                  }
+              }
+              
+              return {
+                  ...p,
+                  project_name: project?.name || p.project_name || 'Unknown Project',
+                  manager_name: managerName || 'Unknown Manager',
+                  is_known: !!project
+              };
+          })
+          .filter(p => p.health_score < 70 && p.is_known)
           .sort((a, b) => a.health_score - b.health_score)
           .slice(0, 3);
         setRiskyProjects(risky);
-
-        setActiveProjects(projectsData.projects);
 
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -301,7 +373,7 @@ export default function DashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={productivityTrends}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
-                    <XAxis dataKey="date" stroke="#9ca3af" tickFormatter={(val) => new Date(val).toLocaleDateString('ru-RU', { weekday: 'short' })} />
+                    <XAxis dataKey="date" stroke="#9ca3af" tickFormatter={(val) => val ? new Date(val).toLocaleDateString('ru-RU', { weekday: 'short' }) : ''} />
                     <YAxis stroke="#9ca3af" domain={[0, 100]} />
                     <Tooltip contentStyle={{ borderRadius: 16, borderColor: '#d1fae5' }} />
                     <Line type="monotone" dataKey="productivity_score" name="Эффективность" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} />
@@ -317,7 +389,7 @@ export default function DashboardPage() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="4 4" stroke="#d1d5db" />
-                    <XAxis dataKey="date" stroke="#9ca3af" tickFormatter={(val) => new Date(val).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} />
+                    <XAxis dataKey="date" stroke="#9ca3af" tickFormatter={(val) => val ? new Date(val).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : ''} />
                     <YAxis stroke="#9ca3af" domain={[0, 100]} />
                     <Tooltip contentStyle={{ borderRadius: 16, borderColor: '#d1fae5' }} />
                     <Area type="monotone" dataKey="on_time_rate" name="В срок" stroke="#10b981" fillOpacity={1} fill="url(#colorOnTime)" />
@@ -349,7 +421,7 @@ export default function DashboardPage() {
                       <p className="text-xs text-gray-500">{leader.department_name || 'Без отдела'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-emerald-600">{leader.productivity_score.toFixed(0)} баллов</p>
+                      <p className="text-sm font-bold text-emerald-600">{(leader.productivity_score || 0).toFixed(0)} баллов</p>
                       <p className="text-xs text-gray-500">{leader.completed_tasks} задач</p>
                     </div>
                   </div>

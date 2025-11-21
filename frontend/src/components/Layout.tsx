@@ -72,7 +72,7 @@ export default function Layout() {
                     {user?.role?.[0]?.toUpperCase() || 'U'}
                   </div>
                   <div className="text-left hidden sm:block">
-                    <p className="text-sm font-medium text-gray-700">Пользователь</p>
+                    <p className="text-sm font-medium text-gray-700">{user?.name || 'Пользователь'}</p>
                     <p className="text-[11px] uppercase tracking-wide text-gray-400">{user?.role}</p>
                   </div>
                   <ChevronDown className="h-4 w-4 text-gray-400" />

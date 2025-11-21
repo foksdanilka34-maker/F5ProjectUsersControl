@@ -74,6 +74,9 @@ func calculateScores(metrics *analytics.EmployeeMetrics) {
 	if finalScore < 0 {
 		finalScore = 0
 	}
+	if finalScore > 100 {
+		finalScore = 100
+	}
 
 	metrics.EfficiencyScore = math.Round(finalScore*100) / 100
 }

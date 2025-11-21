@@ -12,10 +12,12 @@ import {
   Loader2,
   Trash2,
   CheckCircle,
-  Ban
+  Ban,
+  BarChart3
 } from 'lucide-react';
 import { employeeService } from '../api/services/employee.service';
-import type { Profile, Department, Position, Skill, UpdateProfileRequest } from '../api/types';
+import { analyticsService } from '../api/services/analytics.service';
+import type { Profile, Department, Position, Skill, UpdateProfileRequest, EmployeeMetrics } from '../api/types';
 import Modal from '../components/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -35,7 +37,11 @@ export default function EmployeesHubPage() {
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isManageSkillsModalOpen, setIsManageSkillsModalOpen] = useState(false);
+  const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [selectedProfileForSkills, setSelectedProfileForSkills] = useState<Profile | null>(null);
+  const [selectedProfileForAnalytics, setSelectedProfileForAnalytics] = useState<Profile | null>(null);
+  const [employeeMetrics, setEmployeeMetrics] = useState<EmployeeMetrics | null>(null);
+  const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
   const [skillIdToAdd, setSkillIdToAdd] = useState<string>("");
   
   const [newItemName, setNewItemName] = useState('');
@@ -93,6 +99,22 @@ export default function EmployeesHubPage() {
     };
     init();
   }, []);
+
+  const openAnalyticsModal = async (profile: Profile) => {
+    setSelectedProfileForAnalytics(profile);
+    setIsAnalyticsModalOpen(true);
+    setIsLoadingMetrics(true);
+    try {
+      const metrics = await analyticsService.getEmployeeMetrics(profile.id);
+      setEmployeeMetrics(metrics);
+    } catch (error) {
+      console.error('Failed to fetch metrics:', error);
+      showToast('Не удалось загрузить аналитику', 'error');
+      setEmployeeMetrics(null);
+    } finally {
+      setIsLoadingMetrics(false);
+    }
+  };
 
   const openModal = (type: 'dept' | 'pos' | 'skill', item?: Department | Position | Skill) => {
     setNewItemName(item ? item.name : '');
@@ -494,8 +516,19 @@ export default function EmployeesHubPage() {
                       <tbody>
                         {filteredProfiles.map((profile) => (
                           <tr key={profile.id} className="border-t border-gray-100 bg-white/80 hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-4 font-semibold text-gray-900">
-                              {profile.first_name} {profile.last_name}
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-xs">
+                                  {profile.first_name[0]}{profile.last_name[0]}
+                                </div>
+                                <button 
+                                  onClick={() => openAnalyticsModal(profile)}
+                                  className="group flex items-center gap-2 font-semibold text-gray-900 hover:text-emerald-600 transition-colors text-left"
+                                >
+                                  {profile.first_name} {profile.last_name}
+                                  <BarChart3 className="h-4 w-4 text-gray-300 group-hover:text-emerald-500 transition-colors" />
+                                </button>
+                              </div>
                             </td>
                             <td className="px-6 py-4">{profile.email}</td>
                             <td className="px-6 py-4">
@@ -523,34 +556,38 @@ export default function EmployeesHubPage() {
                                 <button
                                   onClick={() => openManageSkillsModal(profile)}
                                   className="rounded-full p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                                  title="Управление навыками"
+                                  title="Навыки"
                                 >
-                                  <ListChecks className="h-4 w-4" />
+                                  <ListChecks className="h-5 w-5" />
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => openEditProfileModal(profile)}
-                                  className="rounded-full p-2 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                                  className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
                                   title="Редактировать"
                                 >
-                                  <Edit className="h-4 w-4" />
+                                  <Edit className="h-5 w-5" />
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => handleToggleUserStatus(profile)}
                                   className={`rounded-full p-2 transition-colors ${
-                                    profile.is_active !== false 
-                                      ? 'text-gray-400 hover:bg-rose-50 hover:text-rose-600' 
+                                    profile.is_active !== false
+                                      ? 'text-gray-400 hover:bg-rose-50 hover:text-rose-600'
                                       : 'text-gray-400 hover:bg-emerald-50 hover:text-emerald-600'
                                   }`}
-                                  title={profile.is_active !== false ? "Деактивировать" : "Активировать"}
+                                  title={profile.is_active !== false ? 'Деактивировать' : 'Активировать'}
                                 >
-                                  {profile.is_active !== false ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                                  {profile.is_active !== false ? (
+                                    <Ban className="h-5 w-5" />
+                                  ) : (
+                                    <CheckCircle className="h-5 w-5" />
+                                  )}
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => handleDeleteProfile(profile)}
-                                  className="rounded-full p-2 text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                                  className="rounded-full p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                                   title="Удалить"
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-5 w-5" />
                                 </button>
                               </div>
                             </td>
@@ -903,6 +940,80 @@ export default function EmployeesHubPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={isAnalyticsModalOpen}
+        onClose={() => { setIsAnalyticsModalOpen(false); setSelectedProfileForAnalytics(null); setEmployeeMetrics(null); }}
+        title={`Аналитика: ${selectedProfileForAnalytics?.first_name} ${selectedProfileForAnalytics?.last_name}`}
+      >
+        {isLoadingMetrics ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+          </div>
+        ) : employeeMetrics ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-2xl bg-emerald-50 p-4">
+                <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider">Завершенные задачи</p>
+                <p className="mt-2 text-2xl font-bold text-emerald-900">{employeeMetrics.completed_tasks || 0}</p>
+              </div>
+              <div className="rounded-2xl bg-blue-50 p-4">
+                <p className="text-xs font-medium text-blue-600 uppercase tracking-wider">В работе</p>
+                <p className="mt-2 text-2xl font-bold text-blue-900">{employeeMetrics.in_progress_tasks || 0}</p>
+              </div>
+              <div className="rounded-2xl bg-rose-50 p-4">
+                <p className="text-xs font-medium text-rose-600 uppercase tracking-wider">Просрочено</p>
+                <p className="mt-2 text-2xl font-bold text-rose-900">{employeeMetrics.overdue_tasks || 0}</p>
+              </div>
+              <div className="rounded-2xl bg-purple-50 p-4">
+                <p className="text-xs font-medium text-purple-600 uppercase tracking-wider">Всего задач</p>
+                <p className="mt-2 text-2xl font-bold text-purple-900">{employeeMetrics.total_tasks || 0}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">Процент выполнения</span>
+                  <span className="font-medium text-gray-900">{Math.round(employeeMetrics.completion_rate || 0)}%</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                  <div 
+                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                    style={{ width: `${employeeMetrics.completion_rate || 0}%` }}
+                  />
+                </div>
+              </div>
+              
+              <div className="rounded-xl border border-gray-100 p-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Среднее время выполнения</span>
+                  <span className="font-medium text-gray-900">{(employeeMetrics.average_completion_time_hours || 0).toFixed(1)} ч.</span>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-100 p-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Оценка продуктивности</span>
+                  <span className="font-medium text-emerald-600">{(employeeMetrics.productivity_score || 0).toFixed(1)} / 100</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12 text-gray-500">
+            Нет данных для отображения
+          </div>
+        )}
+        <div className="flex justify-end pt-4">
+          <button
+            onClick={() => { setIsAnalyticsModalOpen(false); setSelectedProfileForAnalytics(null); setEmployeeMetrics(null); }}
+            className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+          >
+            Закрыть
+          </button>
+        </div>
       </Modal>
 
       <Modal

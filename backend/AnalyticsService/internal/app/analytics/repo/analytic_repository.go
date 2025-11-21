@@ -841,6 +841,9 @@ func (s *Storage) GetDashboardStats(ctx context.Context, startDate, endDate *tim
 		if efficiencyScore < 0 {
 			efficiencyScore = 0
 		}
+		if efficiencyScore > 100 {
+			efficiencyScore = 100
+		}
 
 		stats.TopEmployees = append(stats.TopEmployees, analytics.TopEmployee{
 			ID:              employeeID,
