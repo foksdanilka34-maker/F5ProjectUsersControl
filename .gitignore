@@ -8,7 +8,7 @@
 *.so
 *.dylib
 
-/environment
+backend/environment
 /build
 
 
