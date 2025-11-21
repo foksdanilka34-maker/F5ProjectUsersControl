@@ -106,11 +106,20 @@ export const analyticsService = {
     const eventSource = new EventSource(url);
 
     if (onMessage) {
+      eventSource.addEventListener('dashboard-stats', (event) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          const statsData = parsed.data || parsed; 
+          onMessage(mapDashboardStats(statsData));
+        } catch (error) {
+          console.error('Failed to parse SSE message:', error);
+        }
+      });
+      
+      // Also listen to generic messages just in case
       eventSource.onmessage = (event) => {
         try {
           const parsed = JSON.parse(event.data);
-          // SSE usually wraps data. Check structure.
-          // Assuming parsed.data is the stats object if using standard response wrapper
           const statsData = parsed.data || parsed; 
           onMessage(mapDashboardStats(statsData));
         } catch (error) {

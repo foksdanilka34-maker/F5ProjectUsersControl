@@ -114,6 +114,7 @@ export default function DashboardPage() {
   const [topPerformers, setTopPerformers] = useState<TopPerformer[]>([]);
   const [riskyProjects, setRiskyProjects] = useState<ProjectMetrics[]>([]);
   const [activeProjects, setActiveProjects] = useState<Project[]>([]);
+  const [activeProjectsCount, setActiveProjectsCount] = useState(0);
 
   const permissions = useMemo(
     () => ({
@@ -123,116 +124,151 @@ export default function DashboardPage() {
     [user],
   );
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch all data in parallel using allSettled to prevent one failure from breaking everything
-        const results = await Promise.allSettled([
-          analyticsService.getDashboardStats(),
-          analyticsService.getProductivityTrends({ period: 'DAILY', limit: 7 }),
-          analyticsService.getCompletionRateTrends({ period: 'WEEKLY', limit: 5 }),
-          analyticsService.getTopPerformers({ limit: 3 }),
-          analyticsService.listProjectMetrics(),
-          projectService.listProjects({ status: 1, page_size: 100 }), // 1 = ACTIVE
-          employeeService.listProfiles({ page_size: 100 })
-        ]);
+  const fetchTrendsAndLeaders = async () => {
+      // Determine API params based on selected period
+      let prodPeriod: 'DAILY' | 'WEEKLY' | 'MONTHLY' = 'DAILY';
+      let prodLimit = 7;
+      let compPeriod: 'DAILY' | 'WEEKLY' | 'MONTHLY' = 'WEEKLY';
+      let compLimit = 5;
 
-        // Helper to safely get result
-        const getResult = <T,>(index: number, fallback: T): T => {
-          const result = results[index];
-          if (result.status === 'fulfilled') {
-            return result.value as T;
+      switch (period) {
+        case 'weekly':
+          prodPeriod = 'DAILY';
+          prodLimit = 7;
+          compPeriod = 'DAILY';
+          compLimit = 7;
+          break;
+        case 'monthly':
+          prodPeriod = 'WEEKLY';
+          prodLimit = 4;
+          compPeriod = 'WEEKLY';
+          compLimit = 4;
+          break;
+        case 'quarterly':
+          prodPeriod = 'MONTHLY';
+          prodLimit = 3;
+          compPeriod = 'MONTHLY';
+          compLimit = 3;
+          break;
+      }
+
+      const results = await Promise.allSettled([
+        analyticsService.getProductivityTrends({ period: prodPeriod, limit: prodLimit }),
+        analyticsService.getCompletionRateTrends({ period: compPeriod, limit: compLimit }),
+        analyticsService.getTopPerformers({ limit: 3 }),
+        analyticsService.listProjectMetrics(),
+        projectService.listProjects({ status: 1, page_size: 100 }),
+        employeeService.listProfiles({ page_size: 100 })
+      ]);
+
+      const getResult = <T,>(index: number, fallback: T): T => {
+        const result = results[index];
+        return result.status === 'fulfilled' ? result.value as T : fallback;
+      };
+
+      setProductivityTrends(getResult<ProductivityTrend[]>(0, []));
+      setCompletionTrends(getResult<CompletionRateTrend[]>(1, []));
+      
+      const performersData = getResult<TopPerformer[]>(2, []);
+      const projectMetricsData = getResult<{ metrics: ProjectMetrics[] } | null>(3, null);
+      const projectsData = getResult<{ projects: Project[], meta?: { total_count?: number } } | null>(4, null);
+      const profilesData = getResult<{ profiles: Profile[] } | null>(5, null);
+
+      const allProfiles = profilesData?.profiles || [];
+      const allProjects = projectsData?.projects || [];
+
+      setActiveProjectsCount(projectsData?.meta?.total_count || allProjects.length);
+
+      // Map performers
+      const mappedPerformers = performersData.map(p => {
+          const profile = allProfiles.find(prof => prof.id === p.employee_id);
+          let name = 'Unknown';
+          if (profile) {
+              name = `${profile.first_name} ${profile.last_name}`;
+          } else if (allProfiles.length === 0) {
+              name = 'Unknown (Profiles not loaded)';
+          } else {
+              name = `Unknown (${p.employee_id.substring(0, 8)}...)`;
           }
-          console.warn(`Failed to fetch data at index ${index}:`, result.reason);
-          return fallback;
-        };
+          return {
+              ...p,
+              employee_name: name,
+              department_name: profile?.department?.name || 'Без отдела'
+          };
+      });
+      setTopPerformers(mappedPerformers);
 
-        const statsData = getResult<DashboardStats | null>(0, null);
-        const prodTrendsData = getResult<ProductivityTrend[]>(1, []);
-        const compTrendsData = getResult<CompletionRateTrend[]>(2, []);
-        const performersData = getResult<TopPerformer[]>(3, []);
-        const projectMetricsData = getResult<{ metrics: ProjectMetrics[] } | null>(4, null);
-        const projectsData = getResult<{ projects: Project[] } | null>(5, null);
-        const profilesData = getResult<{ profiles: Profile[] } | null>(6, null);
+      // Map active projects
+      const mappedActiveProjects = allProjects.slice(0, 5).map(project => {
+          let managerName = project.manager_name;
+          if (!managerName && project.manager_id) {
+               const managerProfile = allProfiles.find(prof => prof.id === project.manager_id);
+               if (managerProfile) {
+                   managerName = `${managerProfile.first_name} ${managerProfile.last_name}`;
+               }
+          }
+          return { ...project, manager_name: managerName };
+      });
+      setActiveProjects(mappedActiveProjects);
 
-        setStats(statsData);
-        setProductivityTrends(prodTrendsData);
-        setCompletionTrends(compTrendsData);
-        
-        const allProfiles = profilesData?.profiles || [];
-        
-        // Map names to top performers
-        const mappedPerformers = performersData.map(p => {
-            const profile = allProfiles.find(prof => prof.id === p.employee_id);
-            let name = 'Unknown';
-            if (profile) {
-                name = `${profile.first_name} ${profile.last_name}`;
-            } else if (allProfiles.length === 0) {
-                name = 'Unknown (Profiles not loaded)';
-            } else {
-                // Fallback to showing ID if profile not found but profiles list is not empty
-                // This helps identify if it's a data mismatch
-                name = `Unknown (${p.employee_id.substring(0, 8)}...)`;
+      // Map risky projects
+      const risky = (projectMetricsData?.metrics || [])
+        .map(p => {
+            const project = allProjects.find(proj => proj.id === p.project_id);
+            let managerName = project?.manager_name || p.manager_name;
+            if (!managerName && project?.manager_id) {
+                const managerProfile = allProfiles.find(prof => prof.id === project.manager_id);
+                if (managerProfile) {
+                    managerName = `${managerProfile.first_name} ${managerProfile.last_name}`;
+                }
             }
-
             return {
                 ...p,
-                employee_name: name,
-                department_name: profile?.department?.name || 'Без отдела'
+                project_name: project?.name || p.project_name || 'Unknown Project',
+                manager_name: managerName || 'Unknown Manager',
+                is_known: !!project
             };
-        });
-        setTopPerformers(mappedPerformers);
-        
-        const allProjects = projectsData?.projects || [];
-        
-        // Map active projects with manager names
-        const mappedActiveProjects = allProjects.slice(0, 5).map(project => {
-            let managerName = project.manager_name;
-            if (!managerName && project.manager_id) {
-                 const managerProfile = allProfiles.find(prof => prof.id === project.manager_id);
-                 if (managerProfile) {
-                     managerName = `${managerProfile.first_name} ${managerProfile.last_name}`;
-                 }
-            }
-            return {
-                ...project,
-                manager_name: managerName
-            };
-        });
-        setActiveProjects(mappedActiveProjects);
+        })
+        .filter(p => p.health_score < 70 && p.is_known)
+        .sort((a, b) => a.health_score - b.health_score)
+        .slice(0, 3);
+      setRiskyProjects(risky);
+  };
 
-        // Filter risky projects (health < 70) and sort by health ascending
-        // Map project names and manager names
-        const risky = (projectMetricsData?.metrics || [])
-          .map(p => {
-              const project = allProjects.find(proj => proj.id === p.project_id);
-              let managerName = project?.manager_name || p.manager_name;
-              
-              if (!managerName && project?.manager_id) {
-                  const managerProfile = allProfiles.find(prof => prof.id === project.manager_id);
-                  if (managerProfile) {
-                      managerName = `${managerProfile.first_name} ${managerProfile.last_name}`;
-                  }
-              }
-              
-              return {
-                  ...p,
-                  project_name: project?.name || p.project_name || 'Unknown Project',
-                  manager_name: managerName || 'Unknown Manager',
-                  is_known: !!project
-              };
-          })
-          .filter(p => p.health_score < 70 && p.is_known)
-          .sort((a, b) => a.health_score - b.health_score)
-          .slice(0, 3);
-        setRiskyProjects(risky);
-
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const statsData = await analyticsService.getDashboardStats();
+        setStats(statsData);
+        await fetchTrendsAndLeaders();
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       }
     };
 
-    fetchData();
+    fetchInitialData();
+
+    // Subscribe to real-time dashboard stats updates
+    const eventSource = analyticsService.streamDashboardStats(
+      { interval_seconds: 5 },
+      (newStats) => {
+        setStats((prevStats) => {
+          // If stats changed, update them AND re-fetch trends/lists
+          if (JSON.stringify(prevStats) !== JSON.stringify(newStats)) {
+            fetchTrendsAndLeaders(); // Refresh charts and lists
+            return newStats;
+          }
+          return prevStats;
+        });
+      },
+      (error) => {
+        console.warn('Dashboard stream error (reconnecting...):', error);
+      }
+    );
+
+    return () => {
+      eventSource.close();
+    };
   }, [period]); // Refetch when period changes (logic to be implemented for period filtering)
 
   return (
@@ -289,7 +325,7 @@ export default function DashboardPage() {
           />
           <MetricCard 
             label="Активные проекты" 
-            value={stats?.active_projects || 0} 
+            value={activeProjectsCount} 
             icon={Briefcase} 
           />
           <MetricCard 
