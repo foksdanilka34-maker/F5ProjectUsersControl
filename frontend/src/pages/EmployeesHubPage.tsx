@@ -415,6 +415,7 @@ export default function EmployeesHubPage() {
           ))}
         </div>
 
+        {['admin', 'director'].includes(user?.role || '') && (
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {profileStats.map((stat) => (
             <div
@@ -426,9 +427,11 @@ export default function EmployeesHubPage() {
             </div>
           ))}
         </div>
+        )}
 
         <section className="mt-8 grid gap-6 lg:grid-cols-[1fr]">
           <div className="space-y-6">
+            {['admin', 'director'].includes(user?.role || '') && (
             <div className="rounded-4xl border border-gray-100 bg-white/95 p-6 shadow-[0_25px_80px_rgba(6,95,70,0.08)]">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -437,7 +440,6 @@ export default function EmployeesHubPage() {
                 </div>
               </div>
               <div className="mt-5 flex gap-4">
-                {['admin', 'director'].includes(user?.role || '') && (
                   <Link
                     to="/admin/employees/new"
                     className="inline-flex items-center gap-2 rounded-3xl border border-emerald-100 bg-emerald-50/70 px-6 py-4 text-sm font-semibold text-emerald-800 shadow-[0_15px_40px_rgba(16,185,129,0.25)] hover:bg-emerald-100 transition-colors"
@@ -445,9 +447,9 @@ export default function EmployeesHubPage() {
                     <UserPlus className="h-5 w-5" />
                     Добавить профиль
                   </Link>
-                )}
               </div>
             </div>
+            )}
 
             {activeTab === 'Профили' && (
               <div className="rounded-4xl border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">

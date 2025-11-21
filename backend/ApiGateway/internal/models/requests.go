@@ -124,8 +124,8 @@ type UpdateTaskRequest struct {
 }
 
 type MoveTaskRequest struct {
-	NewStatus     int32 `json:"new_status" binding:"required,min=1,max=4"`
-	NewOrderIndex int32 `json:"new_order_index" binding:"required,min=0"`
+	NewStatus     int32  `json:"new_status" binding:"required,min=1,max=4"`
+	NewOrderIndex *int32 `json:"new_order_index" binding:"required,min=0"`
 }
 
 type AssignTaskRequest struct {

@@ -173,11 +173,11 @@ export interface Task {
   assignee_id?: string;
   assignee_name?: string;
   order_index: number;
-  created_at: string;
-  updated_at: string;
-  due_date: string;
-  started_at?: string;
-  completed_at?: string;
+  created_at: string | { seconds: number; nanos: number };
+  updated_at: string | { seconds: number; nanos: number };
+  due_date: string | { seconds: number; nanos: number };
+  started_at?: string | { seconds: number; nanos: number };
+  completed_at?: string | { seconds: number; nanos: number };
 }
 
 export interface CreateTaskRequest {
@@ -208,7 +208,7 @@ export interface AssignTaskRequest {
 
 export interface ProjectMember {
   user_id: string;
-  user_name: string;
+  full_name: string;
   role: string;
   added_at: string;
 }

@@ -62,10 +62,11 @@ export const projectService = {
 
   // ===== Project Members =====
   async listProjectMembers(projectId: string): Promise<ProjectMember[]> {
-    const response = await apiClient.get<ApiResponse<ProjectMember[]>>(
+    const response = await apiClient.get<ApiResponse<{ members: ProjectMember[] }>>(
       `/api/v1/projects/${projectId}/members`
     );
-    return unwrapResponse(response.data);
+    const data = unwrapResponse(response.data);
+    return data.members || [];
   },
 
   async addMemberToProject(projectId: string, data: AddMemberToProjectRequest): Promise<void> {

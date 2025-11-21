@@ -2,21 +2,18 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
-  Calendar,
   Clock,
   FolderKanban,
-  Layout,
-  MoreHorizontal,
   Plus,
-  Users,
   Loader2,
   Trash2,
   X,
-  Search
+  Search,
+  Pencil
 } from 'lucide-react';
 import { projectService } from '../api/services/project.service';
 import { employeeService } from '../api/services/employee.service';
-import type { Project, Task, Profile, Department, Skill } from '../api/types';
+import type { Project, Task, Profile, Department, Skill, ProjectMember } from '../api/types';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
@@ -42,16 +39,171 @@ const columns = [
   { id: 'DONE', title: 'Готово', color: 'bg-emerald-50 text-emerald-600' },
 ];
 
+interface TaskModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: any) => Promise<void>;
+  task?: Task | null;
+  initialStatus?: number;
+  members: ProjectMember[];
+}
+
+const safeDate = (dateStr?: string | any) => {
+  if (!dateStr) return '';
+  
+  // Handle Protobuf Timestamp object { seconds: number, nanos: number }
+  if (typeof dateStr === 'object' && dateStr !== null && 'seconds' in dateStr) {
+    const seconds = Number(dateStr.seconds);
+    const d = new Date(seconds * 1000);
+    return !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '';
+  }
+
+  // Handle ISO string
+  if (typeof dateStr === 'string') {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split('T')[0];
+    }
+  }
+  
+  return '';
+};
+
+function TaskModal({ isOpen, onClose, onSave, task, initialStatus, members }: TaskModalProps) {
+  const [title, setTitle] = useState(task?.title || '');
+  const [description, setDescription] = useState(task?.description || '');
+  const [priority, setPriority] = useState<number>(task?.priority || 1);
+  const [assigneeId, setAssigneeId] = useState(task?.assignee_id || '');
+  const [dueDate, setDueDate] = useState(safeDate(task?.due_date) || new Date().toISOString().split('T')[0]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTitle(task?.title || '');
+      setDescription(task?.description || '');
+      setPriority(task?.priority || 1);
+      setAssigneeId(task?.assignee_id || '');
+      setDueDate(safeDate(task?.due_date) || new Date().toISOString().split('T')[0]);
+    }
+  }, [isOpen, task]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await onSave({
+        title,
+        description,
+        priority: Number(priority),
+        assignee_id: assigneeId || undefined,
+        due_date: dueDate ? new Date(dueDate).toISOString() : new Date().toISOString(),
+        status: task ? undefined : initialStatus // Only set status on create
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4 transition-all duration-300 ease-out">
+      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-300 ease-out">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">{task ? 'Редактировать задачу' : 'Новая задача'}</h3>
+          <button onClick={onClose} className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Название</label>
+            <input
+              required
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Приоритет</label>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(Number(e.target.value))}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              >
+                <option value={1}>Low</option>
+                <option value={2}>Medium</option>
+                <option value={3}>High</option>
+                <option value={4}>Critical</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Срок</label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Исполнитель</label>
+            <select
+              value={assigneeId}
+              onChange={(e) => setAssigneeId(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2 px-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value="">Не назначен</option>
+              {members.map(m => (
+                <option key={m.user_id} value={m.user_id}>{m.full_name || 'Unknown'}</option>
+              ))}
+            </select>
+          </div>
+          <div className="pt-4 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+            >
+              Отмена
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {isLoading ? 'Сохранение...' : 'Сохранить'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectsHubPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState('Доска задач');
   const [isLoading, setIsLoading] = useState(true);
   
   // Data state
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
 
   // Add Member Modal State
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
@@ -59,14 +211,23 @@ export default function ProjectsHubPage() {
   const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
 
+  // Task Modal State
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [taskModalInitialStatus, setTaskModalInitialStatus] = useState<number>(STATUS_MAP.TODO);
+
   // Filters
   const [departments, setDepartments] = useState<Department[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
 
-  // Check if user can create projects
-  const canCreateProject = user?.role === 'manager' || user?.role === 'director';
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+
+  // Check if user can create projects (Manager/Director/Admin)
+  const isManager = user?.role === 'manager' || user?.role === 'director' || user?.role === 'admin';
+  const isSpecialist = user?.role === 'specialist';
+  const canCreateProject = isManager;
 
   const fetchProjects = async () => {
     setIsLoading(true);
@@ -79,8 +240,6 @@ export default function ProjectsHubPage() {
       const projectsList = Array.isArray(data?.projects) ? data.projects : [];
       setProjects(projectsList);
       
-      // Only set selected project if none is selected and we have projects
-      // or if the currently selected project is not in the new list (handled by effect dependencies usually, but here we do it manually if needed)
       if (!selectedProject && projectsList.length > 0) {
         setSelectedProject(projectsList[0]);
       }
@@ -92,30 +251,69 @@ export default function ProjectsHubPage() {
     }
   };
 
-  // Fetch projects on mount
   useEffect(() => {
     fetchProjects();
   }, []);
 
-  const fetchTasks = async () => {
+  const fetchProjectData = async () => {
     if (!selectedProject) return;
     try {
-      const tasksData = await projectService.listTasksByProject(selectedProject.id).catch(err => {
-        console.error('Error fetching tasks:', err);
-        return [];
-      });
+      const [tasksData, membersData] = await Promise.all([
+        projectService.listTasksByProject(selectedProject.id).catch(() => []),
+        projectService.listProjectMembers(selectedProject.id).catch(() => [])
+      ]);
       
       setTasks(Array.isArray(tasksData) ? tasksData : []);
+      setProjectMembers(Array.isArray(membersData) ? membersData : []);
     } catch (error) {
       console.error('Failed to fetch project details:', error);
       setTasks([]);
+      setProjectMembers([]);
     }
   };
 
-  // Fetch tasks when selected project changes
   useEffect(() => {
-    fetchTasks();
+    fetchProjectData();
   }, [selectedProject]);
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!selectedProject || !window.confirm('Удалить участника из проекта?')) return;
+    try {
+      await projectService.removeMemberFromProject(selectedProject.id, userId);
+      showToast('Участник удален', 'success');
+      fetchProjectData();
+    } catch (error) {
+      console.error('Failed to remove member:', error);
+      showToast('Не удалось удалить участника', 'error');
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.setData('text/plain', taskId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedTaskId(taskId);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e: React.DragEvent, statusKey: keyof typeof STATUS_MAP) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData('text/plain');
+    if (!taskId) return;
+
+    const targetStatus = STATUS_MAP[statusKey];
+    
+    // Find the task to check if status is actually changing
+    const task = tasks.find(t => t.id === taskId);
+    if (task && task.status !== targetStatus) {
+      await handleMoveTask(taskId, statusKey);
+    }
+    
+    setDraggedTaskId(null);
+  };
 
   const handleMoveTask = async (taskId: string, newStatusKey: keyof typeof STATUS_MAP) => {
     if (!selectedProject) return;
@@ -123,20 +321,19 @@ export default function ProjectsHubPage() {
     const newStatus = STATUS_MAP[newStatusKey];
     
     try {
-      // Optimistic update
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
       );
       
       await projectService.moveTask(selectedProject.id, taskId, {
         new_status: newStatus,
-        new_order_index: 0 // Default to top for now
+        new_order_index: 0
       });
-      await fetchTasks();
+      await fetchProjectData();
     } catch (error) {
       console.error('Failed to move task:', error);
-      // Revert on failure
-      await fetchTasks();
+      showToast('Не удалось переместить задачу', 'error');
+      await fetchProjectData();
     }
   };
 
@@ -161,7 +358,6 @@ export default function ProjectsHubPage() {
 
   const handleOpenAddMemberModal = async () => {
     setIsAddMemberModalOpen(true);
-    // Reset filters
     setMemberSearchQuery('');
     setSelectedDepartmentId('');
     setSelectedSkillIds([]);
@@ -177,8 +373,8 @@ export default function ProjectsHubPage() {
         
         const activeEmployees = (profilesData.profiles || []).filter(p => p.is_active !== false);
         setAvailableEmployees(activeEmployees);
-        setDepartments(deptsData || []);
-        setSkills(skillsData || []);
+        setDepartments(Array.isArray(deptsData) ? deptsData : []);
+        setSkills(Array.isArray(skillsData) ? skillsData : []);
       } catch (error) {
         console.error('Failed to fetch employees/metadata:', error);
         showToast('Не удалось загрузить данные', 'error');
@@ -195,6 +391,7 @@ export default function ProjectsHubPage() {
       await projectService.addMemberToProject(selectedProject.id, { user_id: userId });
       showToast('Сотрудник добавлен в проект', 'success');
       setIsAddMemberModalOpen(false);
+      fetchProjectData();
     } catch (error) {
       console.error('Failed to add member:', error);
       showToast('Не удалось добавить участника', 'error');
@@ -209,26 +406,69 @@ export default function ProjectsHubPage() {
     );
   };
 
+  // Task Handlers
+  const handleOpenCreateTask = (status: number) => {
+    setEditingTask(null);
+    setTaskModalInitialStatus(status);
+    setIsTaskModalOpen(true);
+  };
+
+  const handleOpenEditTask = (task: Task) => {
+    setEditingTask(task);
+    setTaskModalInitialStatus(task.status);
+    setIsTaskModalOpen(true);
+  };
+
+  const handleSaveTask = async (taskData: any) => {
+    if (!selectedProject) return;
+    
+    try {
+      if (editingTask) {
+        await projectService.updateTask(selectedProject.id, editingTask.id, taskData);
+        showToast('Задача обновлена', 'success');
+      } else {
+        await projectService.createTask(selectedProject.id, {
+          ...taskData,
+          status: taskModalInitialStatus
+        });
+        showToast('Задача создана', 'success');
+      }
+      setIsTaskModalOpen(false);
+      fetchProjectData();
+    } catch (error) {
+      console.error('Failed to save task:', error);
+      showToast('Не удалось сохранить задачу', 'error');
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!selectedProject || !window.confirm('Удалить задачу?')) return;
+    try {
+      await projectService.deleteTask(selectedProject.id, taskId);
+      showToast('Задача удалена', 'success');
+      fetchProjectData();
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      showToast('Не удалось удалить задачу', 'error');
+    }
+  };
+
   const filteredEmployees = useMemo(() => {
     return availableEmployees.filter(emp => {
-      // 1. Text Search
       if (memberSearchQuery) {
         const lowerQuery = memberSearchQuery.toLowerCase();
-        const matchesName = emp.first_name.toLowerCase().includes(lowerQuery) || 
-                            emp.last_name.toLowerCase().includes(lowerQuery) ||
-                            emp.email.toLowerCase().includes(lowerQuery);
+        const matchesName = (emp.first_name || '').toLowerCase().includes(lowerQuery) || 
+                            (emp.last_name || '').toLowerCase().includes(lowerQuery) ||
+                            (emp.email || '').toLowerCase().includes(lowerQuery);
         if (!matchesName) return false;
       }
 
-      // 2. Department Filter
       if (selectedDepartmentId && emp.department?.id !== selectedDepartmentId) {
         return false;
       }
 
-      // 3. Skills Filter
       if (selectedSkillIds.length > 0) {
         const empSkillIds = emp.skills?.map(s => s.id) || [];
-        // Check if employee has ALL selected skills
         const hasAllSkills = selectedSkillIds.every(id => empSkillIds.includes(id));
         if (!hasAllSkills) return false;
       }
@@ -247,6 +487,13 @@ export default function ProjectsHubPage() {
     if (!Array.isArray(tasks)) return grouped;
 
     tasks.forEach((task) => {
+      if (!task) return;
+      
+      // Filter for specialists: only show tasks assigned to them
+      if (isSpecialist && task.assignee_id !== user?.userId) {
+        return;
+      }
+
       const statusKey = REVERSE_STATUS_MAP[task.status] || 'TODO';
       if (grouped[statusKey]) {
         grouped[statusKey].push(task);
@@ -255,17 +502,16 @@ export default function ProjectsHubPage() {
       }
     });
     return grouped;
-  }, [tasks]);
+  }, [tasks, isSpecialist, user]);
 
   const getPriorityBadge = (priority: number) => {
-    // TaskPriority: 0=UNSPECIFIED, 1=LOW, 2=MEDIUM, 3=HIGH, 4=CRITICAL
     switch (priority) {
-      case 3: // HIGH
-      case 4: // CRITICAL
+      case 3:
+      case 4:
         return 'bg-rose-50 text-rose-600';
-      case 2: // MEDIUM
+      case 2:
         return 'bg-amber-50 text-amber-600';
-      default: // LOW or UNSPECIFIED
+      default:
         return 'bg-blue-50 text-blue-600';
     }
   };
@@ -301,7 +547,7 @@ export default function ProjectsHubPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">Проекты</p>
             <h1 className="mt-3 text-3xl font-semibold text-gray-900">Управление задачами</h1>
             <p className="mt-2 text-sm text-gray-500">
-              Канбан-доска, списки задач и управление участниками проектов.
+              Канбан-доска и управление участниками проектов.
             </p>
           </div>
           <Link
@@ -371,21 +617,6 @@ export default function ProjectsHubPage() {
                       <p className="mt-1 text-sm text-gray-500">{selectedProject.description}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="flex -space-x-2">
-                        {/* Placeholder for members if we had them */}
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-gray-100 text-xs font-medium text-gray-600">
-                          +
-                        </div>
-                      </div>
-                      {canCreateProject && (
-                        <button 
-                          onClick={handleOpenAddMemberModal}
-                          className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600 hover:border-emerald-200 transition-colors"
-                        >
-                          <Users className="mr-2 inline h-4 w-4" />
-                          Участники
-                        </button>
-                      )}
                       {canCreateProject && (
                         <button 
                           onClick={() => handleDeleteProject(selectedProject)}
@@ -398,117 +629,137 @@ export default function ProjectsHubPage() {
                     </div>
                   </div>
 
-                  <div className="mt-6 flex border-b border-gray-100">
-                    {['Доска задач', 'Список', 'Календарь'].map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`mr-6 border-b-2 pb-3 text-sm font-medium transition-colors ${
-                          activeTab === tab
-                            ? 'border-emerald-500 text-emerald-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
-                      >
-                        {tab}
-                      </button>
-                    ))}
-                  </div>
-
-                  {activeTab === 'Доска задач' && (
-                    <div className="mt-6 grid gap-6 md:grid-cols-3">
-                      {columns.map((col) => (
-                        <div key={col.id} className="flex flex-col rounded-3xl bg-gray-50/50 p-4">
-                          <div className="mb-4 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${col.color}`}>
-                                {tasksByStatus[col.id]?.length || 0}
-                              </span>
-                              <h3 className="text-sm font-semibold text-gray-700">{col.title}</h3>
-                            </div>
-                            <button className="text-gray-400 hover:text-gray-600">
-                              <Plus className="h-4 w-4" />
+                  {/* Team Section */}
+                  <div className="mt-6 border-t border-gray-100 pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-gray-900">Команда проекта</h3>
+                         {canCreateProject && (
+                            <button 
+                              onClick={handleOpenAddMemberModal}
+                              className="text-xs font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                            >
+                              <Plus className="h-3 w-3" /> Добавить
                             </button>
-                          </div>
-                          
-                          <div className="flex-1 space-y-3">
-                            {tasksByStatus[col.id]?.map((task) => (
-                              <div
-                                key={task.id}
-                                className="group relative rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:shadow-md"
+                          )}
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      {projectMembers.map((member) => (
+                        <div key={member.user_id} className="flex items-center gap-2 rounded-full border border-gray-100 bg-gray-50 px-3 py-1.5 pr-4">
+                           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
+                              {member.full_name?.[0] || '?'}
+                           </div>
+                           <div className="flex flex-col">
+                              <span className="text-xs font-medium text-gray-700">{member.full_name || 'Unknown'}</span>
+                              <span className="text-[10px] text-gray-400">{member.role}</span>
+                           </div>
+                           {canCreateProject && (
+                              <button 
+                                onClick={() => handleRemoveMember(member.user_id)}
+                                className="ml-2 text-gray-400 hover:text-rose-500"
                               >
-                                <div className="mb-2 flex items-start justify-between">
-                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getPriorityBadge(task.priority)}`}>
-                                    {getPriorityLabel(task.priority)}
-                                  </span>
-                                  <button className="opacity-0 transition-opacity group-hover:opacity-100">
-                                    <MoreHorizontal className="h-4 w-4 text-gray-400" />
-                                  </button>
-                                </div>
-                                <h4 className="font-medium text-gray-900">{task.title}</h4>
-                                <p className="mt-1 text-xs text-gray-500 line-clamp-2">{task.description}</p>
-                                
-                                <div className="mt-4 flex items-center justify-between border-t border-gray-50 pt-3">
-                                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                                    <Clock className="h-3.5 w-3.5" />
-                                    <span>{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</span>
-                                  </div>
-                                  {/* Simple move controls for now */}
-                                  <div className="flex gap-1">
-                                    {col.id !== 'TODO' && (
-                                      <button 
-                                        onClick={() => handleMoveTask(task.id, 'TODO')}
-                                        className="text-[10px] text-gray-400 hover:text-emerald-600"
-                                        title="Move to Todo"
-                                      >
-                                        ←
-                                      </button>
-                                    )}
-                                    {col.id !== 'IN_PROGRESS' && (
-                                      <button 
-                                        onClick={() => handleMoveTask(task.id, 'IN_PROGRESS')}
-                                        className="text-[10px] text-gray-400 hover:text-emerald-600"
-                                        title="Move to In Progress"
-                                      >
-                                        ↔
-                                      </button>
-                                    )}
-                                    {col.id !== 'DONE' && (
-                                      <button 
-                                        onClick={() => handleMoveTask(task.id, 'DONE')}
-                                        className="text-[10px] text-gray-400 hover:text-emerald-600"
-                                        title="Move to Done"
-                                      >
-                                        →
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                            {tasksByStatus[col.id]?.length === 0 && (
-                              <div className="flex h-24 items-center justify-center rounded-2xl border border-dashed border-gray-200 text-xs text-gray-400">
-                                Нет задач
-                              </div>
-                            )}
-                          </div>
+                                <X className="h-3 w-3" />
+                              </button>
+                           )}
                         </div>
                       ))}
+                      {projectMembers.length === 0 && (
+                        <p className="text-sm text-gray-400 italic">Нет участников</p>
+                      )}
                     </div>
-                  )}
+                  </div>
 
-                  {activeTab === 'Список' && (
-                    <div className="mt-6 text-center py-12 text-gray-500">
-                      <Layout className="mx-auto h-12 w-12 text-gray-300 mb-3" />
-                      <p>Режим списка в разработке</p>
-                    </div>
-                  )}
-
-                  {activeTab === 'Календарь' && (
-                    <div className="mt-6 text-center py-12 text-gray-500">
-                      <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-3" />
-                      <p>Календарь в разработке</p>
-                    </div>
-                  )}
+                  {/* Task Board */}
+                  <div className="mt-6 grid gap-6 md:grid-cols-3">
+                    {columns.map((col) => (
+                      <div 
+                        key={col.id} 
+                        className="flex flex-col rounded-3xl bg-gray-50/50 p-4 transition-colors"
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, col.id as keyof typeof STATUS_MAP)}
+                      >
+                        <div className="mb-4 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${col.color}`}>
+                              {tasksByStatus[col.id]?.length || 0}
+                            </span>
+                            <h3 className="text-sm font-semibold text-gray-700">{col.title}</h3>
+                          </div>
+                          {col.id === 'TODO' && (
+                            <button 
+                              onClick={() => handleOpenCreateTask(STATUS_MAP[col.id as keyof typeof STATUS_MAP])}
+                              className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 opacity-80 transition-all hover:scale-110 hover:opacity-100 hover:shadow-md"
+                              title="Добавить задачу"
+                            >
+                              <Plus className="h-5 w-5" />
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="flex-1 space-y-3">
+                          {tasksByStatus[col.id]?.map((task) => (
+                            <div
+                              key={task.id}
+                              draggable={!isManager}
+                              onDragStart={(e) => handleDragStart(e, task.id)}
+                              className={`group relative rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:shadow-md ${
+                                !isManager ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+                              } ${
+                                draggedTaskId === task.id ? 'opacity-50' : ''
+                              }`}
+                            >
+                              <div className="mb-2 flex items-start justify-between">
+                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getPriorityBadge(task.priority)}`}>
+                                  {getPriorityLabel(task.priority)}
+                                </span>
+                                <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                  <button 
+                                    onClick={() => handleOpenEditTask(task)}
+                                    className="text-gray-400 hover:text-emerald-600"
+                                    title="Редактировать"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteTask(task.id)}
+                                    className="text-gray-400 hover:text-rose-600"
+                                    title="Удалить"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                              <h4 className="font-medium text-gray-900">{task.title}</h4>
+                              <p className="mt-1 text-xs text-gray-500 line-clamp-2">{task.description}</p>
+                              
+                              {task.assignee_id && (
+                                <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+                                  <div className="h-4 w-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[8px] font-bold">
+                                    {(projectMembers.find(m => m.user_id === task.assignee_id)?.full_name?.[0]) || '?'}
+                                  </div>
+                                  <span>{projectMembers.find(m => m.user_id === task.assignee_id)?.full_name || 'Unknown'}</span>
+                                </div>
+                              )}
+                              
+                              <div className="mt-4 flex items-center justify-between border-t border-gray-50 pt-3">
+                                <div className="flex items-center gap-2 text-xs text-gray-400">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  <span>{safeDate(task.due_date) ? new Date(safeDate(task.due_date)).toLocaleDateString() : 'No date'}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {tasksByStatus[col.id]?.length === 0 && col.id === 'TODO' && (
+                            <button 
+                              onClick={() => handleOpenCreateTask(STATUS_MAP[col.id as keyof typeof STATUS_MAP])}
+                              className="flex h-24 w-full items-center justify-center rounded-2xl border border-dashed border-gray-200 text-xs text-gray-400 hover:border-emerald-200 hover:bg-emerald-50/50 hover:text-emerald-600 transition-all"
+                            >
+                              + Добавить задачу
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </>
             ) : (
@@ -618,6 +869,15 @@ export default function ProjectsHubPage() {
           </div>
         </div>
       )}
+
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => setIsTaskModalOpen(false)}
+        onSave={handleSaveTask}
+        task={editingTask}
+        initialStatus={taskModalInitialStatus}
+        members={projectMembers}
+      />
     </div>
   );
 }

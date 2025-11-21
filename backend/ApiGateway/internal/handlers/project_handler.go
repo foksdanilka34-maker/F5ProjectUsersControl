@@ -502,7 +502,7 @@ func (h *ProjectHandler) MoveTask(c *gin.Context) {
 	protoReq := &projectpb.MoveTaskRequest{
 		TaskId:        taskID,
 		NewStatus:     projectpb.TaskStatus(req.NewStatus),
-		NewOrderIndex: req.NewOrderIndex,
+		NewOrderIndex: *req.NewOrderIndex,
 	}
 
 	task, err := h.projectService.MoveTask(c.Request.Context(), protoReq)
