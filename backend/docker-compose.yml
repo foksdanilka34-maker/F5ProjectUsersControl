@@ -1,70 +1,109 @@
 services:
-  auth_db:
+  identity_db:
     image: postgres:17-alpine
-    container_name: auth_service_db
+    container_name: identity_db
     restart: always
     environment:
-      POSTGRES_USER: ${AUTH_DB_USER}
-      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
-      POSTGRES_DB: ${AUTH_DB}
+      POSTGRES_USER: identity
+      POSTGRES_PASSWORD: identity
+      POSTGRES_DB: identity
     ports:
-      - "${AUTH_DB_PORT}:5432"
+      - "5432:5432"
     volumes:
-      - ./environment/auth_db:/var/lib/postgresql/data
+      - identity_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER} -d ${AUTH_DB}"]
-      interval: 60s
+      test: ["CMD-SHELL", "pg_isready -U identity -d identity"]
+      interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
     networks:
       - app_network
-  
-  migrate_auth:
+
+  business_db:
+    image: postgres:17-alpine
+    container_name: business_db
+    restart: always
+    environment:
+      POSTGRES_USER: business
+      POSTGRES_PASSWORD: business
+      POSTGRES_DB: business
+    ports:
+      - "5433:5432"
+    volumes:
+      - business_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U business -d business"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  logs_db:
+    image: postgres:17-alpine
+    container_name: logs_db
+    restart: always
+    environment:
+      POSTGRES_USER: logs
+      POSTGRES_PASSWORD: logs
+      POSTGRES_DB: logs
+    ports:
+      - "5434:5432"
+    volumes:
+      - logs_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logs -d logs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  migrate_identity:
     image: migrate/migrate
     entrypoint: ["migrate"]
     depends_on:
-      auth_db: { condition: service_healthy }
+      identity_db:
+        condition: service_healthy
     volumes:
-      - ./LoginService/migrations:/migrations
+      - ./migrations/identity:/migrations
     command: >
       -path /migrations
-      -database "postgres://${AUTH_DB_USER}:${AUTH_DB_PASSWORD}@auth_db:5432/${AUTH_DB}?sslmode=disable"
+      -database "postgres://identity:identity@identity_db:5432/identity?sslmode=disable"
       up
-    networks: [app_network]
-
-  employee_db:
-    image: postgres:17-alpine
-    container_name: employee_service_db
-    restart: always
-    environment:
-      POSTGRES_USER: ${EMPL_DB_USER}
-      POSTGRES_PASSWORD: ${EMPL_DB_PASSWORD}
-      POSTGRES_DB: ${EMPL_DB}
-    ports:
-      - "${EMPL_DB_PORT}:5432"
-    volumes:
-      - ./environment/empl_db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${EMPL_DB_USER} -d ${EMPL_DB}"]
-      interval: 60s
-      timeout: 5s
-      retries: 3
     networks:
       - app_network
-    
-  migrate_employee:
-      image: migrate/migrate
-      entrypoint: ["migrate"]
-      depends_on:
-        employee_db: { condition: service_healthy }
-      volumes:
-        - ./EmployeeService/migrations:/migrations
-      command: >
-        -path /migrations
-        -database "postgres://${EMPL_DB_USER}:${EMPL_DB_PASSWORD}@employee_db:5432/${EMPL_DB}?sslmode=disable"
-        up
-      networks: [app_network]
-  
+
+  migrate_business:
+    image: migrate/migrate
+    entrypoint: ["migrate"]
+    depends_on:
+      business_db:
+        condition: service_healthy
+    volumes:
+      - ./migrations/business:/migrations
+    command: >
+      -path /migrations
+      -database "postgres://business:business@business_db:5432/business?sslmode=disable"
+      up
+    networks:
+      - app_network
+
+  migrate_logs:
+    image: migrate/migrate
+    entrypoint: ["migrate"]
+    depends_on:
+      logs_db:
+        condition: service_healthy
+    volumes:
+      - ./migrations/logs:/migrations
+    command: >
+      -path /migrations
+      -database "postgres://logs:logs@logs_db:5432/logs?sslmode=disable"
+      up
+    networks:
+      - app_network
+
   nats:
     image: nats:2.10-alpine
     container_name: nats
@@ -73,109 +112,30 @@ services:
       - "8222:8222"
     command: ["--js", "--sd=/data", "--http_port=8222"]
     volumes:
-      - nats-data:/data
+      - nats_data:/data
     restart: always
+    networks:
+      - app_network
 
   nats-setup:
     image: natsio/nats-box:latest
-    container_name: nats-jetstream-setup
+    container_name: nats-setup
     depends_on:
       - nats
     entrypoint: ["sh", "-c"]
-    command: >
+    command: |
       until nats --server nats:4222 server check >/dev/null 2>&1; do sleep 1; done
-      if ! nats --server nats:4222 stream info employee-events >/dev/null 2>&1; then
-        nats --server nats:4222 stream add employee-events --storage file --retention limits --subjects employee.event.* --max-msgs -1
-      fi
-      if ! nats --server nats:4222 stream info project-events >/dev/null 2>&1; then
-        nats --server nats:4222 stream add project-events --storage file --retention limits --subjects project.* --subjects task.* --max-msgs -1
-      fi
-      if ! nats --server nats:4222 stream info login-commands >/dev/null 2>&1; then
-        nats --server nats:4222 stream add login-commands --storage file --retention limits --subjects login.command.deactivate --max-msgs -1
-      fi
+      nats --server nats:4222 stream add employee-events --storage file --retention limits --subjects "employee.event.*" --max-msgs=-1 --defaults 2>/dev/null || true
+      nats --server nats:4222 stream add logs-stream --storage file --retention limits --subjects "logs.*" --max-msgs=-1 --defaults 2>/dev/null || true
     restart: "no"
     networks:
       - app_network
 
-  project_db:
-    image: postgres:17-alpine
-    container_name: project_service_db
-    restart: always
-    environment:
-      POSTGRES_USER: ${PROJECT_DB_USER}
-      POSTGRES_PASSWORD: ${PROJECT_DB_PASSWORD}
-      POSTGRES_DB: ${PROJECT_DB}
-    ports:
-      - "${PROJECT_DB_PORT}:5432"
-    volumes:
-      - ./environment/project_db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PROJECT_DB_USER} -d ${PROJECT_DB}"]
-      interval: 60s
-      timeout: 5s
-      retries: 3
-    networks:
-      - app_network
-  
-  migrate_project:
-    image: migrate/migrate
-    entrypoint: ["migrate"]
-    depends_on:
-      project_db: { condition: service_healthy }
-    volumes:
-      - ./ProjectService/migrations:/migrations
-    command: >
-      -path /migrations
-      -database "postgres://${PROJECT_DB_USER}:${PROJECT_DB_PASSWORD}@project_db:5432/${PROJECT_DB}?sslmode=disable"
-      up
-    networks: [app_network]
-  
-  analytics_db:
-    image: postgres:17-alpine
-    container_name: analytics_service_db
-    restart: always
-    environment:
-      POSTGRES_USER: ${ANALYTICS_DB_USER}
-      POSTGRES_PASSWORD: ${ANALYTICS_DB_PASSWORD}
-      POSTGRES_DB: ${ANALYTICS_DB}
-    ports:
-      - "${ANALYTICS_DB_PORT}:5432"
-    volumes:
-      - ./environment/analytics_db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${ANALYTICS_DB_USER} -d ${ANALYTICS_DB}"]
-      interval: 60s
-      timeout: 5s
-      retries: 3
-    networks:
-      - app_network
-
-  analytics_redis:
-    image: redis:7
-    container_name: analytics_cache
-    restart: always
-    ports:
-      - "${ANALYTICS_REDIS_PORT}:6379"
-    volumes:
-      - ./environment/analytics_redis:/data
-    networks:
-      - app_network
-
-  migrate_analytics:
-    image: migrate/migrate
-    entrypoint: ["migrate"]
-    depends_on:
-      analytics_db: { condition: service_healthy }
-    volumes:
-      - ./AnalyticsService/migrations:/migrations
-    command: >
-      -path /migrations
-      -database "postgres://${ANALYTICS_DB_USER}:${ANALYTICS_DB_PASSWORD}@analytics_db:5432/${ANALYTICS_DB}?sslmode=disable"
-      up
-    networks: [app_network]
-
 volumes:
-  nats-data:
+  identity_data:
+  business_data:
+  logs_data:
+  nats_data:
 
 networks:
   app_network:

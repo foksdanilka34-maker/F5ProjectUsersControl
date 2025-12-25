@@ -10,7 +10,7 @@
 
 backend/environment
 /build
-
+environment/
 
 # Test binary, build with `go test -c`
 *.test

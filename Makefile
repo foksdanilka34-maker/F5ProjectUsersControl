@@ -1,66 +1,71 @@
-.PHONY: proto build build-all run clean kill-port stop
- 
+.PHONY: proto build build-all run clean kill stop fmt
+
+# ============= Build =============
 build-all:
-	cd backend && go build -o ../build/login_service ./LoginService/cmd/login_service && \
-	go build -o ../build/employee_service ./EmployeeService/cmd/employee_service && \
-	go build -o ../build/project_service ./ProjectService/cmd/project_service && \
-	go build -o ../build/analytics_service ./AnalyticsService/cmd/analytics_service && \
-	go build -o ../build/api_gateway ./ApiGateway/cmd/api-gateway
+	cd backend && go build -o ../build/identity_service ./cmd/identity && \
+	go build -o ../build/business_service ./cmd/business && \
+	go build -o ../build/logs_service ./cmd/logs && \
+	go build -o ../build/gateway ./cmd/gateway
 
-proto-login:
-	protoc --proto_path=backend/api \
-	    --go-grpc_out=paths=source_relative:backend/gen/go \
-	    backend/api/login_service/auth.proto
-	protoc --proto_path=backend/api \
-	    --go_out=paths=source_relative:backend/gen/go \
-	    backend/api/login_service/auth.proto
+build-identity:
+	cd backend && go build -o ../build/identity_service ./cmd/identity
 
-proto-empl:
-	protoc --proto_path=backend/api \
-	    --go-grpc_out=paths=source_relative:backend/gen/go \
-	    backend/api/employee_service/employee.proto
-	protoc --proto_path=backend/api \
-	    --go_out=paths=source_relative:backend/gen/go \
-	    backend/api/employee_service/employee.proto
+build-business:
+	cd backend && go build -o ../build/business_service ./cmd/business
 
-proto-proj:
-	protoc --proto_path=backend/api \
-	    --go-grpc_out=paths=source_relative:backend/gen/go \
-	    backend/api/project_service/project.proto
-	protoc --proto_path=backend/api \
-	    --go_out=paths=source_relative:backend/gen/go \
-	    backend/api/project_service/project.proto
+build-logs:
+	cd backend && go build -o ../build/logs_service ./cmd/logs
 
-proto-analytics:
-	protoc --proto_path=backend/api \
-	    --go-grpc_out=paths=source_relative:backend/gen/go \
-	    backend/api/analytics_service/analytics.proto
-	protoc --proto_path=backend/api \
-	    --go_out=paths=source_relative:backend/gen/go \
-	    backend/api/analytics_service/analytics.proto
+build-gateway:
+	cd backend && go build -o ../build/gateway ./cmd/gateway
 
+# ============= Proto =============
+proto-identity:
+	protoc --proto_path=backend/api \
+		--go_out=paths=source_relative:backend/gen/go \
+		--go-grpc_out=paths=source_relative:backend/gen/go \
+		backend/api/identity/identity.proto
+
+proto-business:
+	protoc --proto_path=backend/api \
+		--go_out=paths=source_relative:backend/gen/go \
+		--go-grpc_out=paths=source_relative:backend/gen/go \
+		backend/api/business/business.proto
+
+proto: proto-identity proto-business
+
+# ============= Run =============
+run-identity:
+	cd backend && go run ./cmd/identity/main.go
+
+run-business:
+	cd backend && go run ./cmd/business/...
+
+run-logs:
+	cd backend && go run ./cmd/logs/main.go
+
+run-gateway:
+	cd backend && go run ./cmd/gateway/main.go
+
+# ============= Docker =============
+docker-up:
+	cd backend && docker-compose up -d
+
+docker-down:
+	cd backend && docker-compose down
+
+docker-logs:
+	cd backend && docker-compose logs -f
+
+# ============= Utils =============
 fmt:
 	cd backend && go fmt ./...
 
-build:
-	cd backend && go build -o ../build/login_service ./LoginService/cmd/login_service
-
-run-ls:
-	cd backend && go run ./LoginService/cmd/login_service/main.go
-run-es:
-	cd backend && go run ./EmployeeService/cmd/employee_service/main.go
-run-ps:
-	cd backend && go run ./ProjectService/cmd/project_service/main.go
-run-as:
-	cd backend && go run ./AnalyticsService/cmd/analytics_service/main.go
-run-ag:
-	cd backend && go run ./ApiGateway/cmd/api-gateway/main.go
+tidy:
+	cd backend && go mod tidy
 
 kill:
-	lsof -i :50051 | grep LISTEN | awk '{print $$2}' | xargs kill -9 2>/dev/null || true
-
-stop:
-	pkill -f "login_service" || true
+	lsof -i :50051 -i :50052 -i :8080 | grep LISTEN | awk '{print $$2}' | xargs kill -9 2>/dev/null || true
 
 clean:
 	rm -rf build/

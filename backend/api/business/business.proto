@@ -1,0 +1,358 @@
+syntax = "proto3";
+
+package business;
+
+option go_package = "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/business";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service BusinessService {
+    // Project
+    rpc CreateProject(CreateProjectRequest) returns (Project);
+    rpc GetProject(GetProjectRequest) returns (Project);
+    rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+    rpc UpdateProject(UpdateProjectRequest) returns (Project);
+    rpc DeleteProject(DeleteProjectRequest) returns (google.protobuf.Empty);
+
+    // Task
+    rpc CreateTask(CreateTaskRequest) returns (Task);
+    rpc GetTask(GetTaskRequest) returns (Task);
+    rpc UpdateTask(UpdateTaskRequest) returns (Task);
+    rpc DeleteTask(DeleteTaskRequest) returns (google.protobuf.Empty);
+    rpc MoveTask(MoveTaskRequest) returns (Task);
+    rpc AssignTask(AssignTaskRequest) returns (Task);
+    rpc ListTasksByProject(ListTasksByProjectRequest) returns (ListTasksByProjectResponse);
+
+    // Members
+    rpc AddMemberToProject(AddMemberToProjectRequest) returns (google.protobuf.Empty);
+    rpc RemoveMemberFromProject(RemoveMemberFromProjectRequest) returns (google.protobuf.Empty);
+    rpc ListProjectMembers(ListProjectMembersRequest) returns (ListProjectMembersResponse);
+
+    // Analytics
+    rpc GetEmployeeMetrics(GetEmployeeMetricsRequest) returns (EmployeeMetricsResponse);
+    rpc ListEmployeeMetrics(ListEmployeeMetricsRequest) returns (ListEmployeeMetricsResponse);
+    rpc GetTopPerformers(GetTopPerformersRequest) returns (ListEmployeeMetricsResponse);
+    
+    rpc GetProjectMetrics(GetProjectMetricsRequest) returns (ProjectMetricsResponse);
+    rpc ListProjectMetrics(ListProjectMetricsRequest) returns (ListProjectMetricsResponse);
+    
+    rpc GetProductivityTrends(GetProductivityTrendsRequest) returns (ProductivityTrendsResponse);
+    rpc GetCompletionRateTrends(GetCompletionRateTrendsRequest) returns (CompletionRateTrendsResponse);
+    
+    rpc GetDashboardStats(GetDashboardStatsRequest) returns (DashboardStatsResponse);
+}
+
+// Enums
+enum TaskStatus {
+    TASK_STATUS_UNSPECIFIED = 0;
+    TODO = 1;
+    IN_PROGRESS = 2;
+    REVIEW = 3;
+    DONE = 4;
+}
+
+enum TaskPriority {
+    PRIORITY_UNSPECIFIED = 0;
+    LOW = 1;
+    MEDIUM = 2;
+    HIGH = 3;
+    CRITICAL = 4;
+}
+
+enum ProjectStatus {
+    PROJECT_STATUS_UNSPECIFIED = 0;
+    ACTIVE = 1;
+    ON_HOLD = 2;
+    ARCHIVED = 3;
+}
+
+enum Period {
+    PERIOD_UNSPECIFIED = 0;
+    PERIOD_DAILY = 1;
+    PERIOD_WEEKLY = 2;
+    PERIOD_MONTHLY = 3;
+}
+
+enum HealthStatus {
+    HEALTH_STATUS_UNSPECIFIED = 0;
+    HEALTH_STATUS_HEALTHY = 1;
+    HEALTH_STATUS_AT_RISK = 2;
+    HEALTH_STATUS_CRITICAL = 3;
+}
+
+// Project messages
+message Project {
+    int64 id = 1;
+    string name = 2;
+    string description = 3;
+    int64 manager_id = 4;
+    ProjectStatus status = 5;
+    google.protobuf.Timestamp due_date = 6;
+    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp updated_at = 8;
+}
+
+message CreateProjectRequest {
+    string name = 1;
+    optional string description = 2;
+    int64 manager_id = 3;
+    optional google.protobuf.Timestamp due_date = 4;
+}
+
+message GetProjectRequest {
+    int64 project_id = 1;
+}
+
+message ListProjectsRequest {
+    int32 page_size = 1;
+    int32 page_number = 2;
+    optional int64 manager_id = 3;
+    optional ProjectStatus status = 4;
+}
+
+message ListProjectsResponse {
+    repeated Project projects = 1;
+    int32 total_count = 2;
+}
+
+message UpdateProjectRequest {
+    int64 project_id = 1;
+    optional string name = 2;
+    optional string description = 3;
+    optional ProjectStatus status = 4;
+    optional google.protobuf.Timestamp due_date = 5;
+}
+
+message DeleteProjectRequest {
+    int64 project_id = 1;
+}
+
+// Task messages
+message Task {
+    int64 id = 1;
+    int64 project_id = 2;
+    string title = 3;
+    string description = 4;
+    TaskStatus status = 5;
+    TaskPriority priority = 6;
+    int64 assignee_id = 7;
+    int64 creator_id = 8;
+    int32 order_index = 9;
+    google.protobuf.Timestamp due_date = 10;
+    google.protobuf.Timestamp created_at = 11;
+    google.protobuf.Timestamp updated_at = 12;
+    optional google.protobuf.Timestamp started_at = 13;
+    optional google.protobuf.Timestamp completed_at = 14;
+}
+
+message CreateTaskRequest {
+    int64 project_id = 1;
+    string title = 2;
+    string description = 3;
+    optional TaskPriority priority = 4;
+    int64 creator_id = 5;
+    optional int64 assignee_id = 6;
+    google.protobuf.Timestamp due_date = 7;
+}
+
+message GetTaskRequest {
+    int64 task_id = 1;
+}
+
+message UpdateTaskRequest {
+    int64 task_id = 1;
+    optional string title = 2;
+    optional string description = 3;
+    optional TaskStatus status = 4;
+    optional TaskPriority priority = 5;
+    optional int64 assignee_id = 6;
+    optional google.protobuf.Timestamp due_date = 7;
+}
+
+message DeleteTaskRequest {
+    int64 task_id = 1;
+}
+
+message MoveTaskRequest {
+    int64 task_id = 1;
+    TaskStatus new_status = 2;
+    int32 new_order_index = 3;
+}
+
+message AssignTaskRequest {
+    int64 task_id = 1;
+    int64 assignee_id = 2;
+}
+
+message ListTasksByProjectRequest {
+    int64 project_id = 1;
+    optional TaskStatus status = 2;
+    optional int64 assignee_id = 3;
+    optional TaskPriority priority = 4;
+}
+
+message ListTasksByProjectResponse {
+    repeated Task tasks = 1;
+}
+
+// Member messages
+message ProjectMember {
+    int64 user_id = 1;
+    string full_name = 2;
+    string role = 3;
+}
+
+message AddMemberToProjectRequest {
+    int64 project_id = 1;
+    int64 user_id = 2;
+}
+
+message RemoveMemberFromProjectRequest {
+    int64 project_id = 1;
+    int64 user_id = 2;
+}
+
+message ListProjectMembersRequest {
+    int64 project_id = 1;
+}
+
+message ListProjectMembersResponse {
+    repeated ProjectMember members = 1;
+}
+
+// Analytics messages
+message EmployeeMetrics {
+    int64 employee_id = 1;
+    int32 assigned_tasks = 2;
+    int32 completed_tasks = 3;
+    int32 in_progress_tasks = 4;
+    int32 overdue_tasks = 5;
+    double completion_rate = 6;
+    double on_time_rate = 7;
+}
+
+message GetEmployeeMetricsRequest {
+    int64 employee_id = 1;
+}
+
+message EmployeeMetricsResponse {
+    EmployeeMetrics metrics = 1;
+}
+
+message ListEmployeeMetricsRequest {
+    optional int32 page_size = 1;
+    optional int32 page_number = 2;
+    optional int64 department_id = 3;
+}
+
+message ListEmployeeMetricsResponse {
+    repeated EmployeeMetrics metrics = 1;
+    int32 total_count = 2;
+}
+
+message GetTopPerformersRequest {
+    int32 limit = 1;
+    optional int64 department_id = 2;
+}
+
+message ProjectMetrics {
+    int64 project_id = 1;
+    int64 manager_id = 2;
+    int32 total_tasks = 3;
+    int32 completed_tasks = 4;
+    int32 in_progress_tasks = 5;
+    int32 overdue_tasks = 6;
+    int32 team_size = 7;
+    double progress_percent = 8;
+    double on_time_rate = 9;
+    HealthStatus health_status = 10;
+}
+
+message GetProjectMetricsRequest {
+    int64 project_id = 1;
+}
+
+message ProjectMetricsResponse {
+    ProjectMetrics metrics = 1;
+    google.protobuf.Timestamp calculated_at = 2;
+}
+
+message ListProjectMetricsRequest {
+    optional int32 page_size = 1;
+    optional int32 page_number = 2;
+    optional int64 manager_id = 3;
+}
+
+message ListProjectMetricsResponse {
+    repeated ProjectMetrics metrics = 1;
+    int32 total_count = 2;
+}
+
+message GetProductivityTrendsRequest {
+    Period period = 1;
+    int32 limit = 2;
+    optional int64 department_id = 3;
+    optional int64 employee_id = 4;
+}
+
+message ProductivityTrendsResponse {
+    repeated ProductivityTrendEntry entries = 1;
+    Period period = 2;
+}
+
+message ProductivityTrendEntry {
+    google.protobuf.Timestamp date = 1;
+    int32 tasks_completed = 2;
+    double avg_completion_rate = 3;
+}
+
+message GetCompletionRateTrendsRequest {
+    Period period = 1;
+    int32 limit = 2;
+    optional int64 project_id = 3;
+}
+
+message CompletionRateTrendsResponse {
+    repeated CompletionRateTrendEntry entries = 1;
+    Period period = 2;
+}
+
+message CompletionRateTrendEntry {
+    google.protobuf.Timestamp date = 1;
+    double on_time_rate = 2;
+    int32 completed_count = 3;
+    int32 overdue_count = 4;
+}
+
+message GetDashboardStatsRequest {
+    optional google.protobuf.Timestamp start_date = 1;
+    optional google.protobuf.Timestamp end_date = 2;
+}
+
+message DashboardStatsResponse {
+    int32 total_employees = 1;
+    int32 active_employees = 2;
+    int32 total_projects = 3;
+    int32 active_projects = 4;
+    int32 total_tasks = 5;
+    int32 completed_tasks = 6;
+    int32 overdue_tasks = 7;
+    double avg_completion_rate = 8;
+    double avg_on_time_rate = 9;
+    repeated TopEmployee top_employees = 10;
+    repeated ProblematicProject problematic_projects = 11;
+    google.protobuf.Timestamp calculated_at = 12;
+}
+
+message TopEmployee {
+    int64 employee_id = 1;
+    double completion_rate = 2;
+    int32 tasks_completed = 3;
+}
+
+message ProblematicProject {
+    int64 project_id = 1;
+    double on_time_rate = 2;
+    HealthStatus health_status = 3;
+}

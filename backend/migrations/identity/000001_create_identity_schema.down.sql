@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS identity.profile_skills;
+DROP TABLE IF EXISTS identity.profiles;
+DROP TABLE IF EXISTS identity.skills;
+DROP TABLE IF EXISTS identity.positions;
+DROP TABLE IF EXISTS identity.departments;
+DROP TABLE IF EXISTS identity.sessions;
+DROP TABLE IF EXISTS identity.credentials;
+DROP TYPE IF EXISTS identity.user_role;
+DROP SCHEMA IF EXISTS identity;
