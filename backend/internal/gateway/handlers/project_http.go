@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	pb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/business"
 )
@@ -56,7 +57,13 @@ func (h *ProjectHTTPHandler) Create(w http.ResponseWriter, r *http.Request) {
 	project, err := h.client.CreateProject(r.Context(), pbReq)
 	if err != nil {
 		log.Println("project create error:", err)
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		errMsg := err.Error()
+		// Проверяем на ошибку уникальности
+		if strings.Contains(errMsg, "already exists") {
+			http.Error(w, `{"error":"Проект с таким именем уже существует"}`, http.StatusConflict)
+			return
+		}
+		http.Error(w, `{"error":"`+errMsg+`"}`, http.StatusInternalServerError)
 		return
 	}
 
@@ -101,6 +108,12 @@ func (h *ProjectHTTPHandler) List(w http.ResponseWriter, r *http.Request) {
 		managerID, err := parseID(managerIDStr)
 		if err == nil {
 			pbReq.ManagerId = &managerID
+		}
+	}
+	if memberIDStr := query.Get("member_id"); memberIDStr != "" {
+		memberID, err := parseID(memberIDStr)
+		if err == nil {
+			pbReq.MemberId = &memberID
 		}
 	}
 	if statusStr := query.Get("status"); statusStr != "" {

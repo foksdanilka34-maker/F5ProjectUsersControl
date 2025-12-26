@@ -1,51 +1,93 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle,
   ArrowLeft,
-  Calendar,
   FileText,
   Loader2,
   Target,
-  UserCheck,
-  UserCircle,
+  CheckCircle,
+  Shield,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { createProject } from '../services/projectService';
 
 type FormState = {
   name: string;
   description: string;
-  managerId: string;
-  dueDate: string;
 };
 
 const initialState: FormState = {
   name: '',
   description: '',
-  managerId: '',
-  dueDate: '',
 };
 
 export default function CreateProjectPage() {
+  const { user } = useAuth();
   const [form, setForm] = useState<FormState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  const isValid = useMemo(() => {
-    return form.name.trim().length >= 3 && Boolean(form.managerId);
-  }, [form.managerId, form.name]);
+  // Только менеджеры, директора, админы и разработчики могут создавать проекты
+  const canCreate = user && ['manager', 'developer', 'director', 'admin'].includes(user.role);
+
+  const isValid = form.name.trim().length >= 3;
 
   const handleChange = (field: keyof FormState) => (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
+    setError(null);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!isValid) return;
+    if (!isValid || !user) return;
+    
     setIsSubmitting(true);
-    alert('ProjectService ещё не подключён, поэтому запрос не отправляется.');
-    setIsSubmitting(false);
+    setError(null);
+    
+    try {
+      const newProject = await createProject({
+        name: form.name.trim(),
+        description: form.description.trim() || undefined,
+        manager_id: user.id, // Автоматически используем текущего пользователя как менеджера
+      });
+      // Редирект на страницу созданного проекта
+      navigate(`/projects/${newProject.id}`);
+    } catch (err) {
+      console.error('Failed to create project:', err);
+      setError('Не удалось создать проект. Попробуйте ещё раз.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  // Если нет прав - показываем сообщение
+  if (!canCreate) {
+    return (
+      <div className="relative min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-white text-gray-900">
+        <div className="relative z-10 mx-auto max-w-2xl px-6 py-10">
+          <section className="rounded-[32px] border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
+            <div className="text-center py-12">
+              <Shield className="h-16 w-16 text-amber-400 mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Доступ ограничен</h1>
+              <p className="text-gray-500 mb-6">
+                Только менеджеры, директора и администраторы могут создавать проекты
+              </p>
+              <Link
+                to="/projects"
+                className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-medium text-white hover:bg-emerald-600"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                К проектам
+              </Link>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-white text-gray-900">
@@ -54,147 +96,106 @@ export default function CreateProjectPage() {
         <div className="absolute -right-24 top-36 h-[360px] w-[360px] rounded-full bg-lime-100/60 blur-3xl" />
       </div>
 
-      <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10 lg:flex-row">
-        <section className="flex-1 rounded-[32px] border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
+      <div className="relative z-10 mx-auto max-w-2xl px-6 py-10">
+        <section className="rounded-[32px] border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
           <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">Менеджмент</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">Проекты</p>
               <h1 className="mt-3 text-3xl font-semibold">Создать проект</h1>
               <p className="mt-2 text-sm text-gray-500">
-                Заполняем поля gRPC запроса `CreateProjectRequest`: название, manager_id и дедлайн (по желанию).
+                Укажите название и описание проекта
               </p>
             </div>
             <Link
-              to="/"
+              to="/projects"
               className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600"
             >
               <ArrowLeft className="h-4 w-4" />
-              К дашборду
+              К проектам
             </Link>
           </header>
 
-          <form className="mt-8 space-y-8" onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-gray-400">Общее</h2>
-              <div className="space-y-4">
-                <label className="text-sm font-medium text-gray-600">
-                  Название проекта
-                  <div className="relative">
-                    <Target className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                      value={form.name}
-                      onChange={handleChange('name')}
-                      placeholder="Например, Project Nimbus"
-                      className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
-                    />
-                  </div>
-                </label>
-                <label className="text-sm font-medium text-gray-600">
-                  Краткое описание
-                  <div className="relative">
-                    <FileText className="absolute left-4 top-4 h-4 w-4 text-gray-400" />
-                    <textarea
-                      value={form.description}
-                      onChange={handleChange('description')}
-                      placeholder="Цель, ожидаемый результат, метрики успеха"
-                      className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
-                      rows={4}
-                    />
-                  </div>
-                </label>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+            {error && (
+              <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
               </div>
-            </div>
+            )}
 
-            <div className="space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-gray-400">Ответственные</h2>
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="text-sm font-medium text-gray-600">
-                  Менеджер (employee_id)
-                  <div className="relative">
-                    <UserCircle className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                      value={form.managerId}
-                      onChange={handleChange('managerId')}
-                      placeholder="Введите ID менеджера"
-                      className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
-                    />
-                    <p className="mt-2 px-1 text-xs text-gray-400">Пока вводим ID вручную — EmployeeService предоставит список.</p>
-                  </div>
-                </label>
-                <label className="text-sm font-medium text-gray-600">
-                  Дата завершения
-                  <div className="relative">
-                    <Calendar className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="date"
-                      value={form.dueDate}
-                      onChange={handleChange('dueDate')}
-                      className="mt-1 w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
-                    />
-                  </div>
-                </label>
+            <label className="block text-sm font-medium text-gray-600">
+              Название проекта *
+              <div className="relative mt-1">
+                <Target className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={form.name}
+                  onChange={handleChange('name')}
+                  placeholder="Введите название проекта"
+                  className="w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
+                  required
+                  minLength={3}
+                />
               </div>
-            </div>
+              <p className="mt-1 text-xs text-gray-400">Минимум 3 символа</p>
+            </label>
 
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gray-50/80 px-4 py-4 text-sm text-gray-500">
-              <div className="flex items-center gap-2">
-                После интеграции данные полетят в ProjectService → CreateProject.
+            <label className="block text-sm font-medium text-gray-600">
+              Описание
+              <div className="relative mt-1">
+                <FileText className="absolute left-4 top-4 h-4 w-4 text-gray-400" />
+                <textarea
+                  value={form.description}
+                  onChange={handleChange('description')}
+                  placeholder="Опишите цели и задачи проекта"
+                  className="w-full rounded-2xl border border-gray-200 bg-white/80 px-12 py-3 text-sm focus:border-emerald-400 focus:outline-none"
+                  rows={4}
+                />
               </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setForm(initialState)}
-                  className="rounded-full border border-gray-200 px-4 py-2 font-medium text-gray-600"
-                >
-                  Сбросить
-                </button>
-                <button
-                  type="submit"
-                  disabled={!isValid || isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-lime-400 to-emerald-400 px-6 py-2 font-semibold text-gray-900 shadow-[0_15px_40px_rgba(132,204,22,0.35)] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
-                  Создать проект
-                </button>
-              </div>
+            </label>
+
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setForm(initialState)}
+                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                Сбросить
+              </button>
+              <button
+                type="submit"
+                disabled={!isValid || isSubmitting}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-lime-400 to-emerald-400 px-6 py-2.5 text-sm font-semibold text-gray-900 shadow-[0_15px_40px_rgba(132,204,22,0.35)] hover:shadow-[0_15px_40px_rgba(132,204,22,0.45)] disabled:cursor-not-allowed disabled:opacity-60 transition-shadow"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
+                Создать проект
+              </button>
             </div>
           </form>
         </section>
 
-        <aside className="w-full rounded-[32px] border border-gray-100 bg-white/90 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.05)] lg:w-96">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">Предпросмотр</p>
-          <h2 className="mt-3 text-xl font-semibold text-gray-900">Обложка проекта</h2>
-          <div className="mt-6 rounded-[28px] border border-emerald-50 bg-gradient-to-br from-white to-emerald-50/50 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-lg font-semibold text-gray-900">{form.name || 'Название проекта'}</p>
-                <p className="text-sm text-gray-500">manager_id: {form.managerId || '—'}</p>
+        {/* Preview */}
+        {form.name && (
+          <div className="mt-6 rounded-[32px] border border-gray-100 bg-white/90 p-6 shadow-[0_20px_60px_rgba(6,95,70,0.05)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-gray-400">Предпросмотр</p>
+            <div className="mt-4 rounded-2xl border border-emerald-50 bg-gradient-to-br from-white to-emerald-50/50 p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-emerald-400 to-lime-400 flex items-center justify-center text-white font-semibold">
+                  {form.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">{form.name}</p>
+                  <p className="text-sm text-gray-500">{form.description || 'Без описания'}</p>
+                  <p className="text-xs text-emerald-600 mt-1">
+                    Менеджер: {user?.full_name || 'Вы'}
+                  </p>
+                </div>
               </div>
             </div>
-            <p className="mt-4 text-sm text-gray-600">{form.description || 'Описание появится здесь.'}</p>
-            <dl className="mt-6 space-y-3 text-sm text-gray-600">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-gray-500">
-                  <Calendar className="h-4 w-4 text-emerald-500" />
-                  Due date
-                </span>
-                <span className="font-semibold text-gray-800">{form.dueDate || '—'}</span>
-              </div>
-            </dl>
           </div>
-
-          <div className="mt-8 space-y-4 rounded-[28px] border border-gray-100 bg-white p-6 text-sm text-gray-600">
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-gray-400">Права</p>
-            <p className="flex items-start gap-3">
-              <UserCheck className="mt-0.5 h-4 w-4 text-emerald-500" />
-              Создавать проекты могут только менеджеры и директора. Остальным кнопка будет задизейблена.
-            </p>
-            <p className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-500" />
-              Validation/permissions подключим при интеграции с login-service и project-service.
-            </p>
-          </div>
-        </aside>
+        )}
       </div>
     </div>
   );

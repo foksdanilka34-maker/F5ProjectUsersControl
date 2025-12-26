@@ -4,16 +4,42 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	pb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/business"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/gateway/websocket"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+// WebSocket event types
+type WSEvent struct {
+	Type    string      `json:"type"`
+	Payload interface{} `json:"payload"`
+}
 
 type TaskHTTPHandler struct {
 	client pb.BusinessServiceClient
+	wsHub  *websocket.Hub
 }
 
-func NewTaskHTTPHandler(client pb.BusinessServiceClient) *TaskHTTPHandler {
-	return &TaskHTTPHandler{client: client}
+func NewTaskHTTPHandler(client pb.BusinessServiceClient, wsHub *websocket.Hub) *TaskHTTPHandler {
+	return &TaskHTTPHandler{client: client, wsHub: wsHub}
+}
+
+// broadcastTaskEvent отправляет событие через WebSocket всем подключённым клиентам
+func (h *TaskHTTPHandler) broadcastTaskEvent(eventType string, payload interface{}) {
+	if h.wsHub == nil {
+		return
+	}
+	h.wsHub.BroadcastJSON(WSEvent{
+		Type:    eventType,
+		Payload: payload,
+	})
+}
+
+// broadcastTaskEventFromProto - хелпер для отправки события с pb.Task
+func (h *TaskHTTPHandler) broadcastTaskFromProto(eventType string, task *pb.Task) {
+	h.broadcastTaskEvent(eventType, taskToMap(task))
 }
 
 func (h *TaskHTTPHandler) RegisterRoutes(mux *http.ServeMux) {
@@ -28,11 +54,12 @@ func (h *TaskHTTPHandler) RegisterRoutes(mux *http.ServeMux) {
 
 func (h *TaskHTTPHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		ProjectID   int64  `json:"project_id"`
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		AssigneeID  *int64 `json:"assignee_id"`
-		Priority    *int   `json:"priority"`
+		ProjectID   int64   `json:"project_id"`
+		Title       string  `json:"title"`
+		Description string  `json:"description"`
+		AssigneeID  *int64  `json:"assignee_id"`
+		Priority    *int    `json:"priority"`
+		DueDate     *string `json:"due_date"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Println("task create decode error:", err)
@@ -59,6 +86,11 @@ func (h *TaskHTTPHandler) Create(w http.ResponseWriter, r *http.Request) {
 		priority := pb.TaskPriority(*req.Priority)
 		pbReq.Priority = &priority
 	}
+	if req.DueDate != nil && *req.DueDate != "" {
+		if t, err := time.Parse("2006-01-02", *req.DueDate); err == nil {
+			pbReq.DueDate = timestamppb.New(t)
+		}
+	}
 
 	task, err := h.client.CreateTask(r.Context(), pbReq)
 	if err != nil {
@@ -66,6 +98,9 @@ func (h *TaskHTTPHandler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
+
+	// Отправляем событие через WebSocket
+	h.broadcastTaskFromProto("task:created", task)
 
 	writeJSON(w, http.StatusCreated, taskToMap(task))
 }
@@ -150,6 +185,7 @@ func (h *TaskHTTPHandler) Update(w http.ResponseWriter, r *http.Request) {
 		Status      *string `json:"status"`
 		Priority    *int    `json:"priority"`
 		AssigneeID  *int64  `json:"assignee_id"`
+		DueDate     *string `json:"due_date"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
@@ -172,6 +208,11 @@ func (h *TaskHTTPHandler) Update(w http.ResponseWriter, r *http.Request) {
 		priority := pb.TaskPriority(*req.Priority)
 		pbReq.Priority = &priority
 	}
+	if req.DueDate != nil && *req.DueDate != "" {
+		if t, err := time.Parse("2006-01-02", *req.DueDate); err == nil {
+			pbReq.DueDate = timestamppb.New(t)
+		}
+	}
 
 	task, err := h.client.UpdateTask(r.Context(), pbReq)
 	if err != nil {
@@ -179,6 +220,9 @@ func (h *TaskHTTPHandler) Update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
+
+	// Отправляем событие через WebSocket
+	h.broadcastTaskFromProto("task:updated", task)
 
 	writeJSON(w, http.StatusOK, taskToMap(task))
 }
@@ -197,6 +241,9 @@ func (h *TaskHTTPHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
+
+	// Отправляем событие через WebSocket
+	h.broadcastTaskEvent("task:deleted", map[string]int64{"id": id})
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "task deleted"})
 }
@@ -234,6 +281,9 @@ func (h *TaskHTTPHandler) Move(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Отправляем событие через WebSocket
+	h.broadcastTaskFromProto("task:moved", task)
+
 	writeJSON(w, http.StatusOK, taskToMap(task))
 }
 
@@ -261,6 +311,9 @@ func (h *TaskHTTPHandler) Assign(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
+
+	// Отправляем событие через WebSocket
+	h.broadcastTaskFromProto("task:assigned", task)
 
 	writeJSON(w, http.StatusOK, taskToMap(task))
 }

@@ -1,11 +1,4 @@
-export type ApiResponse<T> = {
-  success: boolean;
-  message?: string;
-  data: T;
-  error?: string;
-  meta?: PaginationMeta;
-};
-
+// Response types - backend returns raw objects, not wrapped in ApiResponse
 export type PaginatedMeta = {
   page_size: number;
   page_number: number;
@@ -15,10 +8,10 @@ export type PaginatedMeta = {
 export type PaginationMeta = PaginatedMeta;
 
 export type ProfileDTO = {
-  id: string;
+  id: number;
   first_name: string;
   last_name: string;
-  position_id: string;
+  position_id: number;
   email: string;
   avatar_url?: string;
   hire_date: string;
@@ -32,35 +25,52 @@ export type ProfileDTO = {
 };
 
 export type DepartmentDTO = {
-  id: string;
+  id: number;
   name: string;
 };
 
 export type SkillDTO = {
-  id: string;
+  id: number;
   name: string;
 };
 
 export type PositionDTO = {
-  id: string;
+  id: number;
   name: string;
 };
 
-export type ListProfilesResponse = ApiResponse<{ profiles: ProfileDTO[]; total_count: number; } | ProfileDTO[]>;
-export type ListDepartmentsResponse = ApiResponse<{ departments: DepartmentDTO[] }>;
-export type ListPositionsResponse = ApiResponse<{ positions: PositionDTO[] }>;
-export type ListSkillsResponse = ApiResponse<{ skills: SkillDTO[] }>;
+// Backend returns these directly, not wrapped
+export type ListProfilesResponse = {
+  profiles: ProfileDTO[];
+  total_count: number;
+};
+
+export type ListDepartmentsResponse = {
+  departments: DepartmentDTO[];
+};
+
+export type ListPositionsResponse = {
+  positions: PositionDTO[];
+};
+
+export type ListSkillsResponse = {
+  skills: SkillDTO[];
+};
 
 export type CreateProfileRequest = {
   first_name: string;
   last_name: string;
-  position_id: string;
+  position_id: number;
   email: string;
-  department_id?: string;
+  department_id?: number;
   hire_date: string;
   login: string;
   password: string;
   role: string;
 };
 
-export type CreateProfileResponse = ApiResponse<ProfileDTO>;
+export type CreateProfileResponse = ProfileDTO;
+
+export type UpdateProfileRequest = Partial<CreateProfileRequest> & {
+  avatar_url?: string | null;
+};

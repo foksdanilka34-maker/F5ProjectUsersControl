@@ -28,7 +28,7 @@ services:
       POSTGRES_PASSWORD: business
       POSTGRES_DB: business
     ports:
-      - "5433:5432"
+      - "5435:5432"
     volumes:
       - business_data:/var/lib/postgresql/data
     healthcheck:

@@ -6,9 +6,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/gateway/docs"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/gateway/handlers"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/gateway/middleware"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/gateway/service"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/gateway/websocket"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -20,6 +22,10 @@ func main() {
 	identityAddr := getEnv("IDENTITY_SERVICE_ADDR", "localhost:50051")
 	businessAddr := getEnv("BUSINESS_SERVICE_ADDR", "localhost:50052")
 	jwtSecret := getEnv("JWT_SECRET", "your-secret-key")
+
+	// WebSocket Hub
+	wsHub := websocket.NewHub()
+	go wsHub.Run()
 
 	// gRPC connections
 	identityConn, err := grpc.NewClient(identityAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -41,7 +47,7 @@ func main() {
 	authHandler := handlers.NewAuthHTTPHandler(clients.Identity)
 	profileHandler := handlers.NewProfileHTTPHandler(clients.Identity)
 	projectHandler := handlers.NewProjectHTTPHandler(clients.Business)
-	taskHandler := handlers.NewTaskHTTPHandler(clients.Business)
+	taskHandler := handlers.NewTaskHTTPHandler(clients.Business, wsHub)
 	analyticsHandler := handlers.NewAnalyticsHTTPHandler(clients.Business)
 
 	// Routes
@@ -64,6 +70,15 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
+	// Swagger
+	mux.Handle("/swagger/", docs.SwaggerHandler())
+	mux.Handle("/swagger", docs.SwaggerHandler())
+
+	// WebSocket endpoint
+	mux.HandleFunc("GET /ws", func(w http.ResponseWriter, r *http.Request) {
+		websocket.HandleWebSocket(wsHub, w, r)
+	})
+
 	// Wrap with middleware
 	handler := middleware.Chain(
 		mux,
@@ -80,12 +95,20 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
 	})
+	publicMux.Handle("/swagger/", docs.SwaggerHandler())
+	publicMux.Handle("/swagger", docs.SwaggerHandler())
+	// WebSocket (public - авторизация через параметр токена)
+	publicMux.HandleFunc("GET /ws", func(w http.ResponseWriter, r *http.Request) {
+		websocket.HandleWebSocket(wsHub, w, r)
+	})
 
 	// Финальный router с разделением public/protected
 	finalHandler := &routerWithPublic{
 		publicPaths: []string{
 			"/api/v1/auth/",
 			"/health",
+			"/swagger",
+			"/ws",
 		},
 		publicHandler:    middleware.Chain(publicMux, middleware.CORS, middleware.RequestID),
 		protectedHandler: handler,

@@ -85,31 +85,31 @@ func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
 	return s.repo.DeleteSession(ctx, refreshToken)
 }
 
-func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ipAddress string) (string, string, error) {
+func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ipAddress string) (string, string, int64, error) {
 	session, err := s.repo.GetSessionByToken(ctx, refreshToken)
 	if err != nil {
-		return "", "", ErrInvalidToken
+		return "", "", 0, ErrInvalidToken
 	}
 
 	if time.Now().After(session.ExpiresAt) {
 		_ = s.repo.DeleteSession(ctx, refreshToken)
-		return "", "", ErrTokenExpired
+		return "", "", 0, ErrTokenExpired
 	}
 
 	cred, err := s.repo.GetCredentialsByUserID(ctx, session.UserID)
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 
 	if !cred.IsActive {
-		return "", "", ErrUserInactive
+		return "", "", 0, ErrUserInactive
 	}
 
 	_ = s.repo.DeleteSession(ctx, refreshToken)
 
 	newAccessToken, newRefreshToken, err := s.authenticator.GenerateTokens(cred.UserID, cred.Role)
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 
 	newSession := &repo.RefreshSession{
@@ -122,10 +122,10 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken, userAgent, ipAd
 	}
 
 	if err := s.repo.CreateSession(ctx, newSession); err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 
-	return newAccessToken, newRefreshToken, nil
+	return newAccessToken, newRefreshToken, cred.UserID, nil
 }
 
 func (s *AuthService) CreateCredentials(ctx context.Context, tx pgx.Tx, login, password, role string) (int64, error) {

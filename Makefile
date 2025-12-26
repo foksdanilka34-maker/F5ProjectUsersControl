@@ -1,6 +1,5 @@
 .PHONY: proto build build-all run clean kill stop fmt
 
-# ============= Build =============
 build-all:
 	cd backend && go build -o ../build/identity_service ./cmd/identity && \
 	go build -o ../build/business_service ./cmd/business && \
@@ -19,7 +18,6 @@ build-logs:
 build-gateway:
 	cd backend && go build -o ../build/gateway ./cmd/gateway
 
-# ============= Proto =============
 proto-identity:
 	protoc --proto_path=backend/api \
 		--go_out=paths=source_relative:backend/gen/go \
@@ -34,7 +32,6 @@ proto-business:
 
 proto: proto-identity proto-business
 
-# ============= Run =============
 run-identity:
 	cd backend && go run ./cmd/identity/main.go
 
@@ -47,7 +44,6 @@ run-logs:
 run-gateway:
 	cd backend && go run ./cmd/gateway/main.go
 
-# ============= Docker =============
 docker-up:
 	cd backend && docker-compose up -d
 
@@ -57,7 +53,6 @@ docker-down:
 docker-logs:
 	cd backend && docker-compose logs -f
 
-# ============= Utils =============
 fmt:
 	cd backend && go fmt ./...
 

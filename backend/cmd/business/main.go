@@ -16,7 +16,7 @@ import (
 func main() {
 	// Config
 	dbHost := getEnv("DB_HOST", "localhost")
-	dbPort := getEnv("DB_PORT", "5433")
+	dbPort := getEnv("DB_PORT", "5435")
 	dbUser := getEnv("DB_USER", "business")
 	dbPassword := getEnv("DB_PASSWORD", "business")
 	dbName := getEnv("DB_NAME", "business")

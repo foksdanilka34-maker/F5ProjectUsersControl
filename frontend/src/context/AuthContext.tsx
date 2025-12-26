@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { apiClient } from '../lib/apiClient';
-import { login as loginRequest, logout as logoutRequest, refreshSession as refreshRequest } from '../services/authService';
+import { login as loginRequest, logout as logoutRequest, refreshSession as refreshRequest, type UserInfo } from '../services/authService';
 import { AuthContext, type AuthContextValue } from './auth-context';
 
 const ACCESS_TOKEN_STORAGE_KEY = 'f5_access_token';
@@ -12,9 +12,19 @@ const readStoredToken = () => {
   return window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
 };
 
+export function useAuth(): AuthContextValue {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, updateAccessToken] = useState<string | null>(() => readStoredToken());
+  const [user, setUser] = useState<UserInfo | null>(null);
   const [refreshPending, setRefreshPendingState] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const hydrated = typeof window !== 'undefined';
   const refreshAttemptedRef = useRef(false);
 
@@ -27,14 +37,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [accessToken, hydrated]);
 
+  // Refresh handler for apiClient (called on 401)
+  const handleRefresh = useCallback(async (): Promise<string | null> => {
+    try {
+      const response = await refreshRequest();
+      return response.access_token;
+    } catch {
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     apiClient.configure({
       getAccessToken: () => accessToken,
+      setAccessToken: (token) => updateAccessToken(token),
       onUnauthorized: () => {
         updateAccessToken(null);
+        setUser(null);
       },
+      onRefresh: handleRefresh,
     });
-  }, [accessToken]);
+  }, [accessToken, handleRefresh]);
 
   const setAccessToken = useCallback((token: string | null) => {
     updateAccessToken(token);
@@ -42,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearSession = useCallback(() => {
     updateAccessToken(null);
+    setUser(null);
     setRefreshPendingState(false);
   }, []);
 
@@ -55,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const response = await loginRequest(payload);
         updateAccessToken(response.access_token);
+        setUser(response.user);
       } finally {
         setRefreshPendingState(false);
       }
@@ -67,6 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await refreshRequest();
       updateAccessToken(response.access_token);
+      // Обновляем информацию о пользователе из refresh ответа
+      if (response.user) {
+        setUser(response.user);
+      }
     } catch (error) {
       clearSession();
       throw error;
@@ -83,27 +112,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearSession]);
 
+  // Try to refresh on mount only if we have a stored token
   useEffect(() => {
-    if (!hydrated || accessToken || refreshAttemptedRef.current) {
+    if (!hydrated || refreshAttemptedRef.current) {
       return;
     }
     refreshAttemptedRef.current = true;
-    refreshSession().catch(() => {
-      // Ignore initial refresh failures; user will log in manually
-    });
-  }, [hydrated, accessToken, refreshSession]);
+    
+    // Only try refresh if we have a stored token (means user was logged in before)
+    const storedToken = readStoredToken();
+    if (storedToken) {
+      refreshSession()
+        .catch(() => {
+          // Refresh failed, clear the invalid stored token
+          clearSession();
+        })
+        .finally(() => {
+          setInitialized(true);
+        });
+    } else {
+      // No stored token, mark as initialized immediately
+      setInitialized(true);
+    }
+  }, [hydrated, refreshSession, clearSession]);
 
   const value = useMemo<AuthContextValue>(() => ({
     accessToken,
+    user,
     isAuthenticated: Boolean(accessToken),
     refreshPending,
+    initialized,
     setAccessToken,
     setRefreshPending,
     clearSession,
     loginWithCredentials,
     refreshSession,
     logout,
-  }), [accessToken, clearSession, logout, loginWithCredentials, refreshPending, refreshSession, setAccessToken, setRefreshPending]);
+  }), [accessToken, user, initialized, clearSession, logout, loginWithCredentials, refreshPending, refreshSession, setAccessToken, setRefreshPending]);
 
   if (!hydrated) {
     return null;

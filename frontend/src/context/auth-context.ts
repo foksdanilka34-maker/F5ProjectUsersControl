@@ -1,9 +1,12 @@
 import { createContext } from 'react';
+import type { UserInfo } from '../services/authService';
 
 export type AuthContextValue = {
   accessToken: string | null;
+  user: UserInfo | null;
   isAuthenticated: boolean;
   refreshPending: boolean;
+  initialized: boolean;
   setAccessToken: (token: string | null) => void;
   setRefreshPending: (pending: boolean) => void;
   clearSession: () => void;

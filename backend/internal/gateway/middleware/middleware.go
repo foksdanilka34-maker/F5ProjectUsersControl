@@ -28,7 +28,7 @@ const (
 )
 
 type Claims struct {
-	UserID string `json:"user_id"`
+	UserID int64  `json:"user_id"`
 	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
@@ -36,7 +36,22 @@ type Claims struct {
 // CORS возвращает middleware для обработки CORS
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		// Allow specific origins for credentials support
+		allowedOrigins := map[string]bool{
+			"http://localhost:5173": true, // Vite dev server
+			"http://localhost:3000": true, // Alternative dev server
+			"http://127.0.0.1:5173": true,
+			"http://127.0.0.1:3000": true,
+		}
+
+		if allowedOrigins[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		} else if origin == "" {
+			// Allow same-origin requests
+			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		}
+
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")

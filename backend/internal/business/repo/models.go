@@ -95,8 +95,10 @@ type AnalyticsSummary struct {
 	ActiveProjects    int32
 	TotalTasks        int32
 	CompletedTasks    int32
+	CompletedOnTime   int32 // Завершено вовремя (completed_at <= due_date)
+	CompletedLate     int32 // Завершено с опозданием (completed_at > due_date)
 	InProgressTasks   int32
-	OverdueTasks      int32
+	OverdueTasks      int32 // Текущие просроченные (не завершены и due_date < now)
 	TotalEmployees    int32
 	ActiveEmployees   int32
 	AvgTasksPerMember float32

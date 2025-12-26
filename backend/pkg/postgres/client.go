@@ -17,8 +17,8 @@ type Config struct {
 }
 
 func Connect(ctx context.Context, cfg *Config) (*pgxpool.Pool, error) {
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.Database)
 
 	poolConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {

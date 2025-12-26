@@ -31,6 +31,13 @@ func (r *ProjectRepo) Create(ctx context.Context, p *Project) (int64, error) {
 	return id, err
 }
 
+func (r *ProjectRepo) ExistsByName(ctx context.Context, name string) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM projects WHERE LOWER(name) = LOWER($1))`
+	err := r.db.QueryRow(ctx, query, name).Scan(&exists)
+	return exists, err
+}
+
 func (r *ProjectRepo) GetByID(ctx context.Context, id int64) (*Project, error) {
 	query := `
 		SELECT p.id, p.name, p.description, p.status, p.start_date, p.end_date, p.owner_id, p.created_at, p.updated_at,
@@ -53,9 +60,13 @@ func (r *ProjectRepo) GetByID(ctx context.Context, id int64) (*Project, error) {
 	return &p, nil
 }
 
-func (r *ProjectRepo) List(ctx context.Context, pageSize, offset int, status string, ownerID int64) ([]*Project, int, error) {
+func (r *ProjectRepo) List(ctx context.Context, pageSize, offset int, status string, ownerID int64, memberID int64) ([]*Project, int, error) {
 	// Count query
-	countBuilder := psql.Select("COUNT(*)").From("projects p")
+	countBuilder := psql.Select("COUNT(DISTINCT p.id)").From("projects p")
+	if memberID > 0 {
+		countBuilder = countBuilder.LeftJoin("project_members pm ON pm.project_id = p.id").
+			Where(sq.Or{sq.Eq{"p.owner_id": memberID}, sq.Eq{"pm.user_id": memberID}})
+	}
 	if status != "" {
 		countBuilder = countBuilder.Where(sq.Eq{"p.status": status})
 	}
@@ -75,7 +86,7 @@ func (r *ProjectRepo) List(ctx context.Context, pageSize, offset int, status str
 
 	// Select query
 	selectBuilder := psql.Select(
-		"p.id", "p.name", "p.description", "p.status", "p.start_date", "p.end_date",
+		"DISTINCT p.id", "p.name", "p.description", "p.status", "p.start_date", "p.end_date",
 		"p.owner_id", "p.created_at", "p.updated_at",
 		"(SELECT COUNT(*) FROM tasks WHERE project_id = p.id) as task_count",
 		"(SELECT COUNT(*) FROM project_members WHERE project_id = p.id) as member_count",
@@ -84,6 +95,10 @@ func (r *ProjectRepo) List(ctx context.Context, pageSize, offset int, status str
 		Limit(uint64(pageSize)).
 		Offset(uint64(offset))
 
+	if memberID > 0 {
+		selectBuilder = selectBuilder.LeftJoin("project_members pm ON pm.project_id = p.id").
+			Where(sq.Or{sq.Eq{"p.owner_id": memberID}, sq.Eq{"pm.user_id": memberID}})
+	}
 	if status != "" {
 		selectBuilder = selectBuilder.Where(sq.Eq{"p.status": status})
 	}

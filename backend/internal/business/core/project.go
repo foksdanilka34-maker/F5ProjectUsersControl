@@ -11,10 +11,11 @@ import (
 type ProjectRepository interface {
 	Create(ctx context.Context, p *repo.Project) (int64, error)
 	GetByID(ctx context.Context, id int64) (*repo.Project, error)
-	List(ctx context.Context, pageSize, offset int, status string, ownerID int64) ([]*repo.Project, int, error)
+	List(ctx context.Context, pageSize, offset int, status string, ownerID int64, memberID int64) ([]*repo.Project, int, error)
 	Update(ctx context.Context, id int64, name, description, status *string, startDate, endDate *time.Time) error
 	Delete(ctx context.Context, id int64) error
 	GetUserProjects(ctx context.Context, userID int64) ([]*repo.Project, error)
+	ExistsByName(ctx context.Context, name string) (bool, error)
 
 	AddMember(ctx context.Context, projectID, userID int64, role string) error
 	RemoveMember(ctx context.Context, projectID, userID int64) error
@@ -41,6 +42,15 @@ type CreateProjectRequest struct {
 }
 
 func (s *ProjectService) CreateProject(ctx context.Context, req *CreateProjectRequest) (*repo.Project, error) {
+	// Проверка уникальности имени
+	exists, err := s.repo.ExistsByName(ctx, req.Name)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, ErrProjectNameExists
+	}
+
 	project := &repo.Project{
 		Name:        req.Name,
 		Description: req.Description,
@@ -84,6 +94,7 @@ type ListProjectsFilter struct {
 	PageNumber int
 	Status     string
 	OwnerID    int64
+	MemberID   int64
 }
 
 func (s *ProjectService) ListProjects(ctx context.Context, filter *ListProjectsFilter) ([]*repo.Project, int, error) {
@@ -97,7 +108,7 @@ func (s *ProjectService) ListProjects(ctx context.Context, filter *ListProjectsF
 	}
 	offset := (pageNumber - 1) * pageSize
 
-	return s.repo.List(ctx, pageSize, offset, filter.Status, filter.OwnerID)
+	return s.repo.List(ctx, pageSize, offset, filter.Status, filter.OwnerID, filter.MemberID)
 }
 
 func (s *ProjectService) GetUserProjects(ctx context.Context, userID int64) ([]*repo.Project, error) {

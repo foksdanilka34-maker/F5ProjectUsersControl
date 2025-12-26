@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.31.1
-// source: identity/identity.proto
+// source: api/identity/identity.proto
 
 package identity
 
@@ -42,7 +42,6 @@ const (
 	IdentityService_DeletePosition_FullMethodName          = "/identity.IdentityService/DeletePosition"
 	IdentityService_CreateSkill_FullMethodName             = "/identity.IdentityService/CreateSkill"
 	IdentityService_ListSkills_FullMethodName              = "/identity.IdentityService/ListSkills"
-	IdentityService_DeleteSkill_FullMethodName             = "/identity.IdentityService/DeleteSkill"
 	IdentityService_AddSkillToEmployee_FullMethodName      = "/identity.IdentityService/AddSkillToEmployee"
 	IdentityService_RemoveSkillFromEmployee_FullMethodName = "/identity.IdentityService/RemoveSkillFromEmployee"
 )
@@ -78,7 +77,6 @@ type IdentityServiceClient interface {
 	// Skill
 	CreateSkill(ctx context.Context, in *CreateSkillRequest, opts ...grpc.CallOption) (*Skill, error)
 	ListSkills(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListSkillsResponse, error)
-	DeleteSkill(ctx context.Context, in *DeleteSkillRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	AddSkillToEmployee(ctx context.Context, in *AddSkillToEmployeeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	RemoveSkillFromEmployee(ctx context.Context, in *RemoveSkillFromEmployeeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
@@ -311,16 +309,6 @@ func (c *identityServiceClient) ListSkills(ctx context.Context, in *emptypb.Empt
 	return out, nil
 }
 
-func (c *identityServiceClient) DeleteSkill(ctx context.Context, in *DeleteSkillRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, IdentityService_DeleteSkill_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *identityServiceClient) AddSkillToEmployee(ctx context.Context, in *AddSkillToEmployeeRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -372,7 +360,6 @@ type IdentityServiceServer interface {
 	// Skill
 	CreateSkill(context.Context, *CreateSkillRequest) (*Skill, error)
 	ListSkills(context.Context, *emptypb.Empty) (*ListSkillsResponse, error)
-	DeleteSkill(context.Context, *DeleteSkillRequest) (*emptypb.Empty, error)
 	AddSkillToEmployee(context.Context, *AddSkillToEmployeeRequest) (*emptypb.Empty, error)
 	RemoveSkillFromEmployee(context.Context, *RemoveSkillFromEmployeeRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedIdentityServiceServer()
@@ -450,9 +437,6 @@ func (UnimplementedIdentityServiceServer) CreateSkill(context.Context, *CreateSk
 }
 func (UnimplementedIdentityServiceServer) ListSkills(context.Context, *emptypb.Empty) (*ListSkillsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSkills not implemented")
-}
-func (UnimplementedIdentityServiceServer) DeleteSkill(context.Context, *DeleteSkillRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteSkill not implemented")
 }
 func (UnimplementedIdentityServiceServer) AddSkillToEmployee(context.Context, *AddSkillToEmployeeRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddSkillToEmployee not implemented")
@@ -877,24 +861,6 @@ func _IdentityService_ListSkills_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IdentityService_DeleteSkill_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteSkillRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IdentityServiceServer).DeleteSkill(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IdentityService_DeleteSkill_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IdentityServiceServer).DeleteSkill(ctx, req.(*DeleteSkillRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _IdentityService_AddSkillToEmployee_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AddSkillToEmployeeRequest)
 	if err := dec(in); err != nil {
@@ -1027,10 +993,6 @@ var IdentityService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _IdentityService_ListSkills_Handler,
 		},
 		{
-			MethodName: "DeleteSkill",
-			Handler:    _IdentityService_DeleteSkill_Handler,
-		},
-		{
 			MethodName: "AddSkillToEmployee",
 			Handler:    _IdentityService_AddSkillToEmployee_Handler,
 		},
@@ -1040,5 +1002,5 @@ var IdentityService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "identity/identity.proto",
+	Metadata: "api/identity/identity.proto",
 }

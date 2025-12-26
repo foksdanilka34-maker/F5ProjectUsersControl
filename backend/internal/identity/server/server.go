@@ -64,7 +64,7 @@ func (s *IdentityServer) Login(ctx context.Context, req *identity.LoginRequest) 
 		ipAddress = req.IpAddress
 	}
 
-	userID, accessToken, _, err := s.authService.Login(ctx, req.Login, req.Password, userAgent, ipAddress)
+	userID, accessToken, refreshToken, err := s.authService.Login(ctx, req.Login, req.Password, userAgent, ipAddress)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "invalid credentials: %v", err)
 	}
@@ -76,7 +76,8 @@ func (s *IdentityServer) Login(ctx context.Context, req *identity.LoginRequest) 
 	}
 
 	return &identity.LoginResponse{
-		AccessToken: accessToken,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 		User: &identity.UserInfo{
 			Id:        profile.ID,
 			Login:     profile.Login,
@@ -136,12 +137,28 @@ func (s *IdentityServer) Refresh(ctx context.Context, req *emptypb.Empty) (*iden
 		return nil, status.Error(codes.Unauthenticated, "missing authorization")
 	}
 
-	newAccessToken, _, err := s.authService.Refresh(ctx, auth[0], userAgent, ipAddress)
+	newAccessToken, newRefreshToken, userID, err := s.authService.Refresh(ctx, auth[0], userAgent, ipAddress)
 	if err != nil {
 		return nil, status.Errorf(codes.Unauthenticated, "refresh failed: %v", err)
 	}
 
-	return &identity.RefreshResponse{AccessToken: newAccessToken}, nil
+	// Get user profile info
+	profile, err := s.profileService.GetProfile(ctx, userID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get user profile: %v", err)
+	}
+
+	return &identity.RefreshResponse{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+		User: &identity.UserInfo{
+			Id:        profile.ID,
+			Login:     profile.Login,
+			FullName:  profile.FirstName + " " + profile.LastName,
+			Role:      profile.Role,
+			AvatarUrl: profile.AvatarURL,
+		},
+	}, nil
 }
 
 // ChangePassword - смена пароля
@@ -351,6 +368,14 @@ func (s *IdentityServer) ListSkills(ctx context.Context, req *emptypb.Empty) (*i
 		protoSkills[i] = &identity.Skill{Id: sk.ID, Name: sk.Name}
 	}
 	return &identity.ListSkillsResponse{Skills: protoSkills}, nil
+}
+
+// DeleteSkill - удаление навыка
+func (s *IdentityServer) DeleteSkill(ctx context.Context, req *identity.DeleteSkillRequest) (*emptypb.Empty, error) {
+	if err := s.profileService.DeleteSkill(ctx, req.Id); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to delete skill: %v", err)
+	}
+	return &emptypb.Empty{}, nil
 }
 
 // AddSkillToEmployee - добавление навыка сотруднику

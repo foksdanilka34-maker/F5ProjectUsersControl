@@ -9,6 +9,7 @@ export type RequestOptions = {
   signal?: AbortSignal;
   timeoutMs?: number;
   skipAuth?: boolean;
+  skipRetry?: boolean; // Skip 401 retry to avoid infinite loops
 };
 
 export class ApiError<T = unknown> extends Error {
@@ -24,32 +25,48 @@ export class ApiError<T = unknown> extends Error {
 }
 
 type TokenProvider = () => string | null;
+type TokenSetter = (token: string | null) => void;
 type UnauthorizedHandler = () => void;
+type RefreshHandler = () => Promise<string | null>;
 
 type ClientConfig = {
   baseUrl?: string;
   getAccessToken?: TokenProvider;
+  setAccessToken?: TokenSetter;
   onUnauthorized?: UnauthorizedHandler;
+  onRefresh?: RefreshHandler;
 };
 
 export class ApiClient {
   private baseUrl: string;
   private getAccessToken?: TokenProvider;
+  private setAccessToken?: TokenSetter;
   private onUnauthorized?: UnauthorizedHandler;
+  private onRefresh?: RefreshHandler;
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor(config: ClientConfig = {}) {
     this.baseUrl = config.baseUrl ?? API_BASE_URL;
     this.getAccessToken = config.getAccessToken;
+    this.setAccessToken = config.setAccessToken;
     this.onUnauthorized = config.onUnauthorized;
+    this.onRefresh = config.onRefresh;
   }
 
   configure(config: ClientConfig) {
     if (config.baseUrl) this.baseUrl = config.baseUrl;
     if (config.getAccessToken) this.getAccessToken = config.getAccessToken;
+    if (config.setAccessToken) this.setAccessToken = config.setAccessToken;
     if (config.onUnauthorized) this.onUnauthorized = config.onUnauthorized;
+    if (config.onRefresh) this.onRefresh = config.onRefresh;
   }
 
   async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+    const response = await this.executeRequest<T>(path, options);
+    return response;
+  }
+
+  private async executeRequest<T>(path: string, options: RequestOptions): Promise<T> {
     const url = this.composeUrl(path);
     const headers = new Headers(options.headers);
 
@@ -73,13 +90,25 @@ export class ApiClient {
         method: options.method ?? 'GET',
         headers,
         body,
-        credentials: 'include',
+        credentials: 'include', // Important for cookies
         signal: options.signal ?? controller.signal,
       });
 
       const payload = await this.parsePayload(response);
+
       if (!response.ok) {
-        if (response.status === 401 && this.onUnauthorized) {
+        // Handle 401 with auto-refresh
+        if (response.status === 401 && !options.skipRetry && this.onRefresh) {
+          const newToken = await this.handleTokenRefresh();
+          if (newToken) {
+            // Retry the original request with new token
+            return this.executeRequest<T>(path, { ...options, skipRetry: true });
+          }
+          // Refresh failed, trigger unauthorized handler
+          if (this.onUnauthorized) {
+            this.onUnauthorized();
+          }
+        } else if (response.status === 401 && this.onUnauthorized) {
           this.onUnauthorized();
         }
         throw new ApiError('Request failed', response.status, payload);
@@ -88,6 +117,33 @@ export class ApiClient {
     } finally {
       window.clearTimeout(timeout);
     }
+  }
+
+  private async handleTokenRefresh(): Promise<string | null> {
+    // Deduplicate concurrent refresh requests
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    if (!this.onRefresh) {
+      return null;
+    }
+
+    this.refreshPromise = this.onRefresh()
+      .then((token) => {
+        if (token && this.setAccessToken) {
+          this.setAccessToken(token);
+        }
+        return token;
+      })
+      .catch(() => {
+        return null;
+      })
+      .finally(() => {
+        this.refreshPromise = null;
+      });
+
+    return this.refreshPromise;
   }
 
   private composeUrl(path: string) {

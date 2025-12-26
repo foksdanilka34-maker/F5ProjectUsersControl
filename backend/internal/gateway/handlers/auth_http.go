@@ -11,6 +11,11 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
+const (
+	refreshTokenCookieName = "refresh_token"
+	refreshTokenMaxAge     = 7 * 24 * 60 * 60 // 7 days in seconds
+)
+
 type AuthHTTPHandler struct {
 	client pb.IdentityServiceClient
 }
@@ -63,6 +68,17 @@ func (h *AuthHTTPHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set refresh token as HttpOnly cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     refreshTokenCookieName,
+		Value:    resp.RefreshToken,
+		Path:     "/api/v1/auth",
+		MaxAge:   refreshTokenMaxAge,
+		HttpOnly: true,
+		Secure:   false, // Set to true in production with HTTPS
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"access_token": resp.AccessToken,
 		"user": map[string]interface{}{
@@ -76,23 +92,39 @@ func (h *AuthHTTPHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHTTPHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	ctx := metadata.NewOutgoingContext(r.Context(), metadata.Pairs(
-		"authorization", r.Header.Get("Authorization"),
-	))
+	// Clear the refresh token cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     refreshTokenCookieName,
+		Value:    "",
+		Path:     "/api/v1/auth",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   false, // Set to true in production with HTTPS
+		SameSite: http.SameSiteLaxMode,
+	})
 
-	_, err := h.client.Logout(ctx, &emptypb.Empty{})
-	if err != nil {
-		log.Println("auth logout error:", err)
-		http.Error(w, `{"error":"logout failed"}`, http.StatusInternalServerError)
-		return
+	// Get refresh token from cookie to invalidate session
+	cookie, _ := r.Cookie(refreshTokenCookieName)
+	if cookie != nil && cookie.Value != "" {
+		ctx := metadata.NewOutgoingContext(r.Context(), metadata.Pairs(
+			"authorization", cookie.Value,
+		))
+		_, _ = h.client.Logout(ctx, &emptypb.Empty{})
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "logged out successfully"})
 }
 
 func (h *AuthHTTPHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	// Read refresh token from HttpOnly cookie
+	cookie, err := r.Cookie(refreshTokenCookieName)
+	if err != nil || cookie.Value == "" {
+		http.Error(w, `{"error":"refresh token not found"}`, http.StatusUnauthorized)
+		return
+	}
+
 	ctx := metadata.NewOutgoingContext(r.Context(), metadata.Pairs(
-		"authorization", r.Header.Get("Authorization"),
+		"authorization", cookie.Value,
 		"user-agent", r.Header.Get("User-Agent"),
 		"x-forwarded-for", getClientIP(r),
 	))
@@ -100,11 +132,45 @@ func (h *AuthHTTPHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.client.Refresh(ctx, &emptypb.Empty{})
 	if err != nil {
 		log.Println("auth refresh error:", err)
+		// Clear invalid cookie
+		http.SetCookie(w, &http.Cookie{
+			Name:     refreshTokenCookieName,
+			Value:    "",
+			Path:     "/api/v1/auth",
+			MaxAge:   -1,
+			HttpOnly: true,
+			Secure:   false,
+			SameSite: http.SameSiteLaxMode,
+		})
 		http.Error(w, `{"error":"refresh failed"}`, http.StatusUnauthorized)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"access_token": resp.AccessToken})
+	// Set new refresh token cookie (token rotation)
+	http.SetCookie(w, &http.Cookie{
+		Name:     refreshTokenCookieName,
+		Value:    resp.RefreshToken,
+		Path:     "/api/v1/auth",
+		MaxAge:   refreshTokenMaxAge,
+		HttpOnly: true,
+		Secure:   false, // Set to true in production with HTTPS
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	// Return access_token and user info
+	result := map[string]interface{}{
+		"access_token": resp.AccessToken,
+	}
+	if resp.User != nil {
+		result["user"] = map[string]interface{}{
+			"id":         resp.User.Id,
+			"login":      resp.User.Login,
+			"full_name":  resp.User.FullName,
+			"role":       resp.User.Role,
+			"avatar_url": resp.User.AvatarUrl,
+		}
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *AuthHTTPHandler) GetMe(w http.ResponseWriter, r *http.Request) {

@@ -39,6 +39,7 @@ service IdentityService {
     // Skill
     rpc CreateSkill(CreateSkillRequest) returns (Skill);
     rpc ListSkills(google.protobuf.Empty) returns (ListSkillsResponse);
+    rpc DeleteSkill(DeleteSkillRequest) returns (google.protobuf.Empty);
     rpc AddSkillToEmployee(AddSkillToEmployeeRequest) returns (google.protobuf.Empty);
     rpc RemoveSkillFromEmployee(RemoveSkillFromEmployeeRequest) returns (google.protobuf.Empty);
 }
@@ -54,6 +55,7 @@ message LoginRequest {
 message LoginResponse {
     string access_token = 1;
     UserInfo user = 2;
+    string refresh_token = 3;
 }
 
 message UserInfo {
@@ -66,6 +68,8 @@ message UserInfo {
 
 message RefreshResponse {
     string access_token = 1;
+    string refresh_token = 2;
+    UserInfo user = 3;
 }
 
 message ChangePasswordRequest {
@@ -196,6 +200,10 @@ message Skill {
 
 message CreateSkillRequest {
     string name = 1;
+}
+
+message DeleteSkillRequest {
+    int64 id = 1;
 }
 
 message ListSkillsResponse {

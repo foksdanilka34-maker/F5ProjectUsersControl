@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.31.1
-// source: identity/identity.proto
+// source: api/identity/identity.proto
 
 package identity
 
@@ -36,7 +36,7 @@ type LoginRequest struct {
 
 func (x *LoginRequest) Reset() {
 	*x = LoginRequest{}
-	mi := &file_identity_identity_proto_msgTypes[0]
+	mi := &file_api_identity_identity_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -48,7 +48,7 @@ func (x *LoginRequest) String() string {
 func (*LoginRequest) ProtoMessage() {}
 
 func (x *LoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[0]
+	mi := &file_api_identity_identity_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -61,7 +61,7 @@ func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
 func (*LoginRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{0}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *LoginRequest) GetLogin() string {
@@ -103,7 +103,7 @@ type LoginResponse struct {
 
 func (x *LoginResponse) Reset() {
 	*x = LoginResponse{}
-	mi := &file_identity_identity_proto_msgTypes[1]
+	mi := &file_api_identity_identity_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -115,7 +115,7 @@ func (x *LoginResponse) String() string {
 func (*LoginResponse) ProtoMessage() {}
 
 func (x *LoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[1]
+	mi := &file_api_identity_identity_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -128,7 +128,7 @@ func (x *LoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginResponse.ProtoReflect.Descriptor instead.
 func (*LoginResponse) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{1}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *LoginResponse) GetAccessToken() string {
@@ -165,7 +165,7 @@ type UserInfo struct {
 
 func (x *UserInfo) Reset() {
 	*x = UserInfo{}
-	mi := &file_identity_identity_proto_msgTypes[2]
+	mi := &file_api_identity_identity_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -177,7 +177,7 @@ func (x *UserInfo) String() string {
 func (*UserInfo) ProtoMessage() {}
 
 func (x *UserInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[2]
+	mi := &file_api_identity_identity_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -190,7 +190,7 @@ func (x *UserInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserInfo.ProtoReflect.Descriptor instead.
 func (*UserInfo) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{2}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *UserInfo) GetId() int64 {
@@ -232,14 +232,13 @@ type RefreshResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
 	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
-	User          *UserInfo              `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RefreshResponse) Reset() {
 	*x = RefreshResponse{}
-	mi := &file_identity_identity_proto_msgTypes[3]
+	mi := &file_api_identity_identity_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -251,7 +250,7 @@ func (x *RefreshResponse) String() string {
 func (*RefreshResponse) ProtoMessage() {}
 
 func (x *RefreshResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[3]
+	mi := &file_api_identity_identity_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -264,7 +263,7 @@ func (x *RefreshResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshResponse.ProtoReflect.Descriptor instead.
 func (*RefreshResponse) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{3}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RefreshResponse) GetAccessToken() string {
@@ -281,13 +280,6 @@ func (x *RefreshResponse) GetRefreshToken() string {
 	return ""
 }
 
-func (x *RefreshResponse) GetUser() *UserInfo {
-	if x != nil {
-		return x.User
-	}
-	return nil
-}
-
 type ChangePasswordRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -298,7 +290,7 @@ type ChangePasswordRequest struct {
 
 func (x *ChangePasswordRequest) Reset() {
 	*x = ChangePasswordRequest{}
-	mi := &file_identity_identity_proto_msgTypes[4]
+	mi := &file_api_identity_identity_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -310,7 +302,7 @@ func (x *ChangePasswordRequest) String() string {
 func (*ChangePasswordRequest) ProtoMessage() {}
 
 func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[4]
+	mi := &file_api_identity_identity_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,7 +315,7 @@ func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
 func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{4}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ChangePasswordRequest) GetUserId() int64 {
@@ -350,7 +342,7 @@ type ChangeUserStatusRequest struct {
 
 func (x *ChangeUserStatusRequest) Reset() {
 	*x = ChangeUserStatusRequest{}
-	mi := &file_identity_identity_proto_msgTypes[5]
+	mi := &file_api_identity_identity_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -362,7 +354,7 @@ func (x *ChangeUserStatusRequest) String() string {
 func (*ChangeUserStatusRequest) ProtoMessage() {}
 
 func (x *ChangeUserStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[5]
+	mi := &file_api_identity_identity_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -375,7 +367,7 @@ func (x *ChangeUserStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangeUserStatusRequest.ProtoReflect.Descriptor instead.
 func (*ChangeUserStatusRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{5}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ChangeUserStatusRequest) GetUserId() int64 {
@@ -415,7 +407,7 @@ type Profile struct {
 
 func (x *Profile) Reset() {
 	*x = Profile{}
-	mi := &file_identity_identity_proto_msgTypes[6]
+	mi := &file_api_identity_identity_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -427,7 +419,7 @@ func (x *Profile) String() string {
 func (*Profile) ProtoMessage() {}
 
 func (x *Profile) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[6]
+	mi := &file_api_identity_identity_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -440,7 +432,7 @@ func (x *Profile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Profile.ProtoReflect.Descriptor instead.
 func (*Profile) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{6}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Profile) GetId() int64 {
@@ -558,7 +550,7 @@ type CreateProfileRequest struct {
 
 func (x *CreateProfileRequest) Reset() {
 	*x = CreateProfileRequest{}
-	mi := &file_identity_identity_proto_msgTypes[7]
+	mi := &file_api_identity_identity_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -570,7 +562,7 @@ func (x *CreateProfileRequest) String() string {
 func (*CreateProfileRequest) ProtoMessage() {}
 
 func (x *CreateProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[7]
+	mi := &file_api_identity_identity_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -583,7 +575,7 @@ func (x *CreateProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProfileRequest.ProtoReflect.Descriptor instead.
 func (*CreateProfileRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{7}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateProfileRequest) GetFirstName() string {
@@ -658,7 +650,7 @@ type GetProfileRequest struct {
 
 func (x *GetProfileRequest) Reset() {
 	*x = GetProfileRequest{}
-	mi := &file_identity_identity_proto_msgTypes[8]
+	mi := &file_api_identity_identity_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -670,7 +662,7 @@ func (x *GetProfileRequest) String() string {
 func (*GetProfileRequest) ProtoMessage() {}
 
 func (x *GetProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[8]
+	mi := &file_api_identity_identity_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -683,7 +675,7 @@ func (x *GetProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProfileRequest.ProtoReflect.Descriptor instead.
 func (*GetProfileRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{8}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetProfileRequest) GetUserId() int64 {
@@ -705,7 +697,7 @@ type ListProfilesRequest struct {
 
 func (x *ListProfilesRequest) Reset() {
 	*x = ListProfilesRequest{}
-	mi := &file_identity_identity_proto_msgTypes[9]
+	mi := &file_api_identity_identity_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -717,7 +709,7 @@ func (x *ListProfilesRequest) String() string {
 func (*ListProfilesRequest) ProtoMessage() {}
 
 func (x *ListProfilesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[9]
+	mi := &file_api_identity_identity_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -730,7 +722,7 @@ func (x *ListProfilesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProfilesRequest.ProtoReflect.Descriptor instead.
 func (*ListProfilesRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{9}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListProfilesRequest) GetPageSize() int32 {
@@ -771,7 +763,7 @@ type ListProfilesResponse struct {
 
 func (x *ListProfilesResponse) Reset() {
 	*x = ListProfilesResponse{}
-	mi := &file_identity_identity_proto_msgTypes[10]
+	mi := &file_api_identity_identity_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -783,7 +775,7 @@ func (x *ListProfilesResponse) String() string {
 func (*ListProfilesResponse) ProtoMessage() {}
 
 func (x *ListProfilesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[10]
+	mi := &file_api_identity_identity_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -796,7 +788,7 @@ func (x *ListProfilesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProfilesResponse.ProtoReflect.Descriptor instead.
 func (*ListProfilesResponse) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{10}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListProfilesResponse) GetProfiles() []*Profile {
@@ -828,7 +820,7 @@ type UpdateProfileRequest struct {
 
 func (x *UpdateProfileRequest) Reset() {
 	*x = UpdateProfileRequest{}
-	mi := &file_identity_identity_proto_msgTypes[11]
+	mi := &file_api_identity_identity_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -840,7 +832,7 @@ func (x *UpdateProfileRequest) String() string {
 func (*UpdateProfileRequest) ProtoMessage() {}
 
 func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[11]
+	mi := &file_api_identity_identity_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -853,7 +845,7 @@ func (x *UpdateProfileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProfileRequest.ProtoReflect.Descriptor instead.
 func (*UpdateProfileRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{11}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateProfileRequest) GetUserId() int64 {
@@ -916,7 +908,7 @@ type Department struct {
 
 func (x *Department) Reset() {
 	*x = Department{}
-	mi := &file_identity_identity_proto_msgTypes[12]
+	mi := &file_api_identity_identity_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -928,7 +920,7 @@ func (x *Department) String() string {
 func (*Department) ProtoMessage() {}
 
 func (x *Department) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[12]
+	mi := &file_api_identity_identity_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -941,7 +933,7 @@ func (x *Department) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Department.ProtoReflect.Descriptor instead.
 func (*Department) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{12}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Department) GetId() int64 {
@@ -967,7 +959,7 @@ type CreateDepartmentRequest struct {
 
 func (x *CreateDepartmentRequest) Reset() {
 	*x = CreateDepartmentRequest{}
-	mi := &file_identity_identity_proto_msgTypes[13]
+	mi := &file_api_identity_identity_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -979,7 +971,7 @@ func (x *CreateDepartmentRequest) String() string {
 func (*CreateDepartmentRequest) ProtoMessage() {}
 
 func (x *CreateDepartmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[13]
+	mi := &file_api_identity_identity_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -992,7 +984,7 @@ func (x *CreateDepartmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDepartmentRequest.ProtoReflect.Descriptor instead.
 func (*CreateDepartmentRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{13}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CreateDepartmentRequest) GetName() string {
@@ -1011,7 +1003,7 @@ type GetDepartmentRequest struct {
 
 func (x *GetDepartmentRequest) Reset() {
 	*x = GetDepartmentRequest{}
-	mi := &file_identity_identity_proto_msgTypes[14]
+	mi := &file_api_identity_identity_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1023,7 +1015,7 @@ func (x *GetDepartmentRequest) String() string {
 func (*GetDepartmentRequest) ProtoMessage() {}
 
 func (x *GetDepartmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[14]
+	mi := &file_api_identity_identity_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1036,7 +1028,7 @@ func (x *GetDepartmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDepartmentRequest.ProtoReflect.Descriptor instead.
 func (*GetDepartmentRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{14}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetDepartmentRequest) GetId() int64 {
@@ -1055,7 +1047,7 @@ type ListDepartmentsResponse struct {
 
 func (x *ListDepartmentsResponse) Reset() {
 	*x = ListDepartmentsResponse{}
-	mi := &file_identity_identity_proto_msgTypes[15]
+	mi := &file_api_identity_identity_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1067,7 +1059,7 @@ func (x *ListDepartmentsResponse) String() string {
 func (*ListDepartmentsResponse) ProtoMessage() {}
 
 func (x *ListDepartmentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[15]
+	mi := &file_api_identity_identity_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1080,7 +1072,7 @@ func (x *ListDepartmentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDepartmentsResponse.ProtoReflect.Descriptor instead.
 func (*ListDepartmentsResponse) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{15}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ListDepartmentsResponse) GetDepartments() []*Department {
@@ -1100,7 +1092,7 @@ type UpdateDepartmentRequest struct {
 
 func (x *UpdateDepartmentRequest) Reset() {
 	*x = UpdateDepartmentRequest{}
-	mi := &file_identity_identity_proto_msgTypes[16]
+	mi := &file_api_identity_identity_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1112,7 +1104,7 @@ func (x *UpdateDepartmentRequest) String() string {
 func (*UpdateDepartmentRequest) ProtoMessage() {}
 
 func (x *UpdateDepartmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[16]
+	mi := &file_api_identity_identity_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1125,7 +1117,7 @@ func (x *UpdateDepartmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDepartmentRequest.ProtoReflect.Descriptor instead.
 func (*UpdateDepartmentRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{16}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *UpdateDepartmentRequest) GetId() int64 {
@@ -1151,7 +1143,7 @@ type DeleteDepartmentRequest struct {
 
 func (x *DeleteDepartmentRequest) Reset() {
 	*x = DeleteDepartmentRequest{}
-	mi := &file_identity_identity_proto_msgTypes[17]
+	mi := &file_api_identity_identity_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1163,7 +1155,7 @@ func (x *DeleteDepartmentRequest) String() string {
 func (*DeleteDepartmentRequest) ProtoMessage() {}
 
 func (x *DeleteDepartmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[17]
+	mi := &file_api_identity_identity_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1176,7 +1168,7 @@ func (x *DeleteDepartmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDepartmentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteDepartmentRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{17}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DeleteDepartmentRequest) GetId() int64 {
@@ -1197,7 +1189,7 @@ type Position struct {
 
 func (x *Position) Reset() {
 	*x = Position{}
-	mi := &file_identity_identity_proto_msgTypes[18]
+	mi := &file_api_identity_identity_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1209,7 +1201,7 @@ func (x *Position) String() string {
 func (*Position) ProtoMessage() {}
 
 func (x *Position) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[18]
+	mi := &file_api_identity_identity_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1222,7 +1214,7 @@ func (x *Position) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Position.ProtoReflect.Descriptor instead.
 func (*Position) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{18}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *Position) GetId() int64 {
@@ -1248,7 +1240,7 @@ type CreatePositionRequest struct {
 
 func (x *CreatePositionRequest) Reset() {
 	*x = CreatePositionRequest{}
-	mi := &file_identity_identity_proto_msgTypes[19]
+	mi := &file_api_identity_identity_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1260,7 +1252,7 @@ func (x *CreatePositionRequest) String() string {
 func (*CreatePositionRequest) ProtoMessage() {}
 
 func (x *CreatePositionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[19]
+	mi := &file_api_identity_identity_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1273,7 +1265,7 @@ func (x *CreatePositionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePositionRequest.ProtoReflect.Descriptor instead.
 func (*CreatePositionRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{19}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CreatePositionRequest) GetName() string {
@@ -1292,7 +1284,7 @@ type GetPositionRequest struct {
 
 func (x *GetPositionRequest) Reset() {
 	*x = GetPositionRequest{}
-	mi := &file_identity_identity_proto_msgTypes[20]
+	mi := &file_api_identity_identity_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1304,7 +1296,7 @@ func (x *GetPositionRequest) String() string {
 func (*GetPositionRequest) ProtoMessage() {}
 
 func (x *GetPositionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[20]
+	mi := &file_api_identity_identity_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1317,7 +1309,7 @@ func (x *GetPositionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPositionRequest.ProtoReflect.Descriptor instead.
 func (*GetPositionRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{20}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetPositionRequest) GetId() int64 {
@@ -1336,7 +1328,7 @@ type ListPositionsResponse struct {
 
 func (x *ListPositionsResponse) Reset() {
 	*x = ListPositionsResponse{}
-	mi := &file_identity_identity_proto_msgTypes[21]
+	mi := &file_api_identity_identity_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1348,7 +1340,7 @@ func (x *ListPositionsResponse) String() string {
 func (*ListPositionsResponse) ProtoMessage() {}
 
 func (x *ListPositionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[21]
+	mi := &file_api_identity_identity_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1361,7 +1353,7 @@ func (x *ListPositionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPositionsResponse.ProtoReflect.Descriptor instead.
 func (*ListPositionsResponse) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{21}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListPositionsResponse) GetPositions() []*Position {
@@ -1381,7 +1373,7 @@ type UpdatePositionRequest struct {
 
 func (x *UpdatePositionRequest) Reset() {
 	*x = UpdatePositionRequest{}
-	mi := &file_identity_identity_proto_msgTypes[22]
+	mi := &file_api_identity_identity_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1393,7 +1385,7 @@ func (x *UpdatePositionRequest) String() string {
 func (*UpdatePositionRequest) ProtoMessage() {}
 
 func (x *UpdatePositionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[22]
+	mi := &file_api_identity_identity_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1406,7 +1398,7 @@ func (x *UpdatePositionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePositionRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePositionRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{22}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *UpdatePositionRequest) GetId() int64 {
@@ -1432,7 +1424,7 @@ type DeletePositionRequest struct {
 
 func (x *DeletePositionRequest) Reset() {
 	*x = DeletePositionRequest{}
-	mi := &file_identity_identity_proto_msgTypes[23]
+	mi := &file_api_identity_identity_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1444,7 +1436,7 @@ func (x *DeletePositionRequest) String() string {
 func (*DeletePositionRequest) ProtoMessage() {}
 
 func (x *DeletePositionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[23]
+	mi := &file_api_identity_identity_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1457,7 +1449,7 @@ func (x *DeletePositionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePositionRequest.ProtoReflect.Descriptor instead.
 func (*DeletePositionRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{23}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *DeletePositionRequest) GetId() int64 {
@@ -1478,7 +1470,7 @@ type Skill struct {
 
 func (x *Skill) Reset() {
 	*x = Skill{}
-	mi := &file_identity_identity_proto_msgTypes[24]
+	mi := &file_api_identity_identity_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1490,7 +1482,7 @@ func (x *Skill) String() string {
 func (*Skill) ProtoMessage() {}
 
 func (x *Skill) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[24]
+	mi := &file_api_identity_identity_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1503,7 +1495,7 @@ func (x *Skill) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Skill.ProtoReflect.Descriptor instead.
 func (*Skill) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{24}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *Skill) GetId() int64 {
@@ -1529,7 +1521,7 @@ type CreateSkillRequest struct {
 
 func (x *CreateSkillRequest) Reset() {
 	*x = CreateSkillRequest{}
-	mi := &file_identity_identity_proto_msgTypes[25]
+	mi := &file_api_identity_identity_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1541,7 +1533,7 @@ func (x *CreateSkillRequest) String() string {
 func (*CreateSkillRequest) ProtoMessage() {}
 
 func (x *CreateSkillRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[25]
+	mi := &file_api_identity_identity_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1554,7 +1546,7 @@ func (x *CreateSkillRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSkillRequest.ProtoReflect.Descriptor instead.
 func (*CreateSkillRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{25}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CreateSkillRequest) GetName() string {
@@ -1562,50 +1554,6 @@ func (x *CreateSkillRequest) GetName() string {
 		return x.Name
 	}
 	return ""
-}
-
-type DeleteSkillRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteSkillRequest) Reset() {
-	*x = DeleteSkillRequest{}
-	mi := &file_identity_identity_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteSkillRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteSkillRequest) ProtoMessage() {}
-
-func (x *DeleteSkillRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteSkillRequest.ProtoReflect.Descriptor instead.
-func (*DeleteSkillRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *DeleteSkillRequest) GetId() int64 {
-	if x != nil {
-		return x.Id
-	}
-	return 0
 }
 
 type ListSkillsResponse struct {
@@ -1617,7 +1565,7 @@ type ListSkillsResponse struct {
 
 func (x *ListSkillsResponse) Reset() {
 	*x = ListSkillsResponse{}
-	mi := &file_identity_identity_proto_msgTypes[27]
+	mi := &file_api_identity_identity_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1629,7 +1577,7 @@ func (x *ListSkillsResponse) String() string {
 func (*ListSkillsResponse) ProtoMessage() {}
 
 func (x *ListSkillsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[27]
+	mi := &file_api_identity_identity_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1642,7 +1590,7 @@ func (x *ListSkillsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSkillsResponse.ProtoReflect.Descriptor instead.
 func (*ListSkillsResponse) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{27}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListSkillsResponse) GetSkills() []*Skill {
@@ -1662,7 +1610,7 @@ type AddSkillToEmployeeRequest struct {
 
 func (x *AddSkillToEmployeeRequest) Reset() {
 	*x = AddSkillToEmployeeRequest{}
-	mi := &file_identity_identity_proto_msgTypes[28]
+	mi := &file_api_identity_identity_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1674,7 +1622,7 @@ func (x *AddSkillToEmployeeRequest) String() string {
 func (*AddSkillToEmployeeRequest) ProtoMessage() {}
 
 func (x *AddSkillToEmployeeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[28]
+	mi := &file_api_identity_identity_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1687,7 +1635,7 @@ func (x *AddSkillToEmployeeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddSkillToEmployeeRequest.ProtoReflect.Descriptor instead.
 func (*AddSkillToEmployeeRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{28}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *AddSkillToEmployeeRequest) GetEmployeeId() int64 {
@@ -1714,7 +1662,7 @@ type RemoveSkillFromEmployeeRequest struct {
 
 func (x *RemoveSkillFromEmployeeRequest) Reset() {
 	*x = RemoveSkillFromEmployeeRequest{}
-	mi := &file_identity_identity_proto_msgTypes[29]
+	mi := &file_api_identity_identity_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1726,7 +1674,7 @@ func (x *RemoveSkillFromEmployeeRequest) String() string {
 func (*RemoveSkillFromEmployeeRequest) ProtoMessage() {}
 
 func (x *RemoveSkillFromEmployeeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_identity_proto_msgTypes[29]
+	mi := &file_api_identity_identity_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1739,7 +1687,7 @@ func (x *RemoveSkillFromEmployeeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveSkillFromEmployeeRequest.ProtoReflect.Descriptor instead.
 func (*RemoveSkillFromEmployeeRequest) Descriptor() ([]byte, []int) {
-	return file_identity_identity_proto_rawDescGZIP(), []int{29}
+	return file_api_identity_identity_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *RemoveSkillFromEmployeeRequest) GetEmployeeId() int64 {
@@ -1756,11 +1704,11 @@ func (x *RemoveSkillFromEmployeeRequest) GetSkillId() int64 {
 	return 0
 }
 
-var File_identity_identity_proto protoreflect.FileDescriptor
+var File_api_identity_identity_proto protoreflect.FileDescriptor
 
-const file_identity_identity_proto_rawDesc = "" +
+const file_api_identity_identity_proto_rawDesc = "" +
 	"\n" +
-	"\x17identity/identity.proto\x12\bidentity\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"~\n" +
+	"\x1bapi/identity/identity.proto\x12\bidentity\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"~\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05login\x18\x01 \x01(\tR\x05login\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x1d\n" +
@@ -1778,11 +1726,10 @@ const file_identity_identity_proto_rawDesc = "" +
 	"\tfull_name\x18\x03 \x01(\tR\bfullName\x12\x12\n" +
 	"\x04role\x18\x04 \x01(\tR\x04role\x12\x1d\n" +
 	"\n" +
-	"avatar_url\x18\x05 \x01(\tR\tavatarUrl\"\x81\x01\n" +
+	"avatar_url\x18\x05 \x01(\tR\tavatarUrl\"Y\n" +
 	"\x0fRefreshResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
-	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12&\n" +
-	"\x04user\x18\x03 \x01(\v2\x12.identity.UserInfoR\x04user\"S\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"S\n" +
 	"\x15ChangePasswordRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"O\n" +
@@ -1889,9 +1836,7 @@ const file_identity_identity_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"(\n" +
 	"\x12CreateSkillRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"$\n" +
-	"\x12DeleteSkillRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\"=\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"=\n" +
 	"\x12ListSkillsResponse\x12'\n" +
 	"\x06skills\x18\x01 \x03(\v2\x0f.identity.SkillR\x06skills\"W\n" +
 	"\x19AddSkillToEmployeeRequest\x12\x1f\n" +
@@ -1901,7 +1846,7 @@ const file_identity_identity_proto_rawDesc = "" +
 	"\x1eRemoveSkillFromEmployeeRequest\x12\x1f\n" +
 	"\vemployee_id\x18\x01 \x01(\x03R\n" +
 	"employeeId\x12\x19\n" +
-	"\bskill_id\x18\x02 \x01(\x03R\askillId2\x80\x0e\n" +
+	"\bskill_id\x18\x02 \x01(\x03R\askillId2\xbb\r\n" +
 	"\x0fIdentityService\x128\n" +
 	"\x05Login\x12\x16.identity.LoginRequest\x1a\x17.identity.LoginResponse\x128\n" +
 	"\x06Logout\x12\x16.google.protobuf.Empty\x1a\x16.google.protobuf.Empty\x12<\n" +
@@ -1926,25 +1871,24 @@ const file_identity_identity_proto_rawDesc = "" +
 	"\x0eDeletePosition\x12\x1f.identity.DeletePositionRequest\x1a\x16.google.protobuf.Empty\x12<\n" +
 	"\vCreateSkill\x12\x1c.identity.CreateSkillRequest\x1a\x0f.identity.Skill\x12B\n" +
 	"\n" +
-	"ListSkills\x12\x16.google.protobuf.Empty\x1a\x1c.identity.ListSkillsResponse\x12C\n" +
-	"\vDeleteSkill\x12\x1c.identity.DeleteSkillRequest\x1a\x16.google.protobuf.Empty\x12Q\n" +
+	"ListSkills\x12\x16.google.protobuf.Empty\x1a\x1c.identity.ListSkillsResponse\x12Q\n" +
 	"\x12AddSkillToEmployee\x12#.identity.AddSkillToEmployeeRequest\x1a\x16.google.protobuf.Empty\x12[\n" +
 	"\x17RemoveSkillFromEmployee\x12(.identity.RemoveSkillFromEmployeeRequest\x1a\x16.google.protobuf.EmptyBFZDgithub.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/identityb\x06proto3"
 
 var (
-	file_identity_identity_proto_rawDescOnce sync.Once
-	file_identity_identity_proto_rawDescData []byte
+	file_api_identity_identity_proto_rawDescOnce sync.Once
+	file_api_identity_identity_proto_rawDescData []byte
 )
 
-func file_identity_identity_proto_rawDescGZIP() []byte {
-	file_identity_identity_proto_rawDescOnce.Do(func() {
-		file_identity_identity_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_identity_identity_proto_rawDesc), len(file_identity_identity_proto_rawDesc)))
+func file_api_identity_identity_proto_rawDescGZIP() []byte {
+	file_api_identity_identity_proto_rawDescOnce.Do(func() {
+		file_api_identity_identity_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_identity_identity_proto_rawDesc), len(file_api_identity_identity_proto_rawDesc)))
 	})
-	return file_identity_identity_proto_rawDescData
+	return file_api_identity_identity_proto_rawDescData
 }
 
-var file_identity_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
-var file_identity_identity_proto_goTypes = []any{
+var file_api_identity_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_api_identity_identity_proto_goTypes = []any{
 	(*LoginRequest)(nil),                   // 0: identity.LoginRequest
 	(*LoginResponse)(nil),                  // 1: identity.LoginResponse
 	(*UserInfo)(nil),                       // 2: identity.UserInfo
@@ -1971,105 +1915,101 @@ var file_identity_identity_proto_goTypes = []any{
 	(*DeletePositionRequest)(nil),          // 23: identity.DeletePositionRequest
 	(*Skill)(nil),                          // 24: identity.Skill
 	(*CreateSkillRequest)(nil),             // 25: identity.CreateSkillRequest
-	(*DeleteSkillRequest)(nil),             // 26: identity.DeleteSkillRequest
-	(*ListSkillsResponse)(nil),             // 27: identity.ListSkillsResponse
-	(*AddSkillToEmployeeRequest)(nil),      // 28: identity.AddSkillToEmployeeRequest
-	(*RemoveSkillFromEmployeeRequest)(nil), // 29: identity.RemoveSkillFromEmployeeRequest
-	(*timestamppb.Timestamp)(nil),          // 30: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),                  // 31: google.protobuf.Empty
+	(*ListSkillsResponse)(nil),             // 26: identity.ListSkillsResponse
+	(*AddSkillToEmployeeRequest)(nil),      // 27: identity.AddSkillToEmployeeRequest
+	(*RemoveSkillFromEmployeeRequest)(nil), // 28: identity.RemoveSkillFromEmployeeRequest
+	(*timestamppb.Timestamp)(nil),          // 29: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),                  // 30: google.protobuf.Empty
 }
-var file_identity_identity_proto_depIdxs = []int32{
+var file_api_identity_identity_proto_depIdxs = []int32{
 	2,  // 0: identity.LoginResponse.user:type_name -> identity.UserInfo
-	2,  // 1: identity.RefreshResponse.user:type_name -> identity.UserInfo
-	30, // 2: identity.Profile.hire_date:type_name -> google.protobuf.Timestamp
-	12, // 3: identity.Profile.department:type_name -> identity.Department
-	24, // 4: identity.Profile.skills:type_name -> identity.Skill
-	30, // 5: identity.Profile.created_at:type_name -> google.protobuf.Timestamp
-	30, // 6: identity.Profile.updated_at:type_name -> google.protobuf.Timestamp
-	30, // 7: identity.CreateProfileRequest.hire_date:type_name -> google.protobuf.Timestamp
-	6,  // 8: identity.ListProfilesResponse.profiles:type_name -> identity.Profile
-	12, // 9: identity.ListDepartmentsResponse.departments:type_name -> identity.Department
-	18, // 10: identity.ListPositionsResponse.positions:type_name -> identity.Position
-	24, // 11: identity.ListSkillsResponse.skills:type_name -> identity.Skill
-	0,  // 12: identity.IdentityService.Login:input_type -> identity.LoginRequest
-	31, // 13: identity.IdentityService.Logout:input_type -> google.protobuf.Empty
-	31, // 14: identity.IdentityService.Refresh:input_type -> google.protobuf.Empty
-	31, // 15: identity.IdentityService.GetMe:input_type -> google.protobuf.Empty
-	4,  // 16: identity.IdentityService.ChangePassword:input_type -> identity.ChangePasswordRequest
-	7,  // 17: identity.IdentityService.CreateProfile:input_type -> identity.CreateProfileRequest
-	8,  // 18: identity.IdentityService.GetProfile:input_type -> identity.GetProfileRequest
-	9,  // 19: identity.IdentityService.ListProfiles:input_type -> identity.ListProfilesRequest
-	11, // 20: identity.IdentityService.UpdateProfile:input_type -> identity.UpdateProfileRequest
-	5,  // 21: identity.IdentityService.ChangeUserStatus:input_type -> identity.ChangeUserStatusRequest
-	13, // 22: identity.IdentityService.CreateDepartment:input_type -> identity.CreateDepartmentRequest
-	14, // 23: identity.IdentityService.GetDepartment:input_type -> identity.GetDepartmentRequest
-	31, // 24: identity.IdentityService.ListDepartments:input_type -> google.protobuf.Empty
-	16, // 25: identity.IdentityService.UpdateDepartment:input_type -> identity.UpdateDepartmentRequest
-	17, // 26: identity.IdentityService.DeleteDepartment:input_type -> identity.DeleteDepartmentRequest
-	19, // 27: identity.IdentityService.CreatePosition:input_type -> identity.CreatePositionRequest
-	20, // 28: identity.IdentityService.GetPosition:input_type -> identity.GetPositionRequest
-	31, // 29: identity.IdentityService.ListPositions:input_type -> google.protobuf.Empty
-	22, // 30: identity.IdentityService.UpdatePosition:input_type -> identity.UpdatePositionRequest
-	23, // 31: identity.IdentityService.DeletePosition:input_type -> identity.DeletePositionRequest
-	25, // 32: identity.IdentityService.CreateSkill:input_type -> identity.CreateSkillRequest
-	31, // 33: identity.IdentityService.ListSkills:input_type -> google.protobuf.Empty
-	26, // 34: identity.IdentityService.DeleteSkill:input_type -> identity.DeleteSkillRequest
-	28, // 35: identity.IdentityService.AddSkillToEmployee:input_type -> identity.AddSkillToEmployeeRequest
-	29, // 36: identity.IdentityService.RemoveSkillFromEmployee:input_type -> identity.RemoveSkillFromEmployeeRequest
-	1,  // 37: identity.IdentityService.Login:output_type -> identity.LoginResponse
-	31, // 38: identity.IdentityService.Logout:output_type -> google.protobuf.Empty
-	3,  // 39: identity.IdentityService.Refresh:output_type -> identity.RefreshResponse
-	2,  // 40: identity.IdentityService.GetMe:output_type -> identity.UserInfo
-	31, // 41: identity.IdentityService.ChangePassword:output_type -> google.protobuf.Empty
-	6,  // 42: identity.IdentityService.CreateProfile:output_type -> identity.Profile
-	6,  // 43: identity.IdentityService.GetProfile:output_type -> identity.Profile
-	10, // 44: identity.IdentityService.ListProfiles:output_type -> identity.ListProfilesResponse
-	6,  // 45: identity.IdentityService.UpdateProfile:output_type -> identity.Profile
-	31, // 46: identity.IdentityService.ChangeUserStatus:output_type -> google.protobuf.Empty
-	12, // 47: identity.IdentityService.CreateDepartment:output_type -> identity.Department
-	12, // 48: identity.IdentityService.GetDepartment:output_type -> identity.Department
-	15, // 49: identity.IdentityService.ListDepartments:output_type -> identity.ListDepartmentsResponse
-	12, // 50: identity.IdentityService.UpdateDepartment:output_type -> identity.Department
-	31, // 51: identity.IdentityService.DeleteDepartment:output_type -> google.protobuf.Empty
-	18, // 52: identity.IdentityService.CreatePosition:output_type -> identity.Position
-	18, // 53: identity.IdentityService.GetPosition:output_type -> identity.Position
-	21, // 54: identity.IdentityService.ListPositions:output_type -> identity.ListPositionsResponse
-	18, // 55: identity.IdentityService.UpdatePosition:output_type -> identity.Position
-	31, // 56: identity.IdentityService.DeletePosition:output_type -> google.protobuf.Empty
-	24, // 57: identity.IdentityService.CreateSkill:output_type -> identity.Skill
-	27, // 58: identity.IdentityService.ListSkills:output_type -> identity.ListSkillsResponse
-	31, // 59: identity.IdentityService.DeleteSkill:output_type -> google.protobuf.Empty
-	31, // 60: identity.IdentityService.AddSkillToEmployee:output_type -> google.protobuf.Empty
-	31, // 61: identity.IdentityService.RemoveSkillFromEmployee:output_type -> google.protobuf.Empty
-	37, // [37:62] is the sub-list for method output_type
-	12, // [12:37] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	29, // 1: identity.Profile.hire_date:type_name -> google.protobuf.Timestamp
+	12, // 2: identity.Profile.department:type_name -> identity.Department
+	24, // 3: identity.Profile.skills:type_name -> identity.Skill
+	29, // 4: identity.Profile.created_at:type_name -> google.protobuf.Timestamp
+	29, // 5: identity.Profile.updated_at:type_name -> google.protobuf.Timestamp
+	29, // 6: identity.CreateProfileRequest.hire_date:type_name -> google.protobuf.Timestamp
+	6,  // 7: identity.ListProfilesResponse.profiles:type_name -> identity.Profile
+	12, // 8: identity.ListDepartmentsResponse.departments:type_name -> identity.Department
+	18, // 9: identity.ListPositionsResponse.positions:type_name -> identity.Position
+	24, // 10: identity.ListSkillsResponse.skills:type_name -> identity.Skill
+	0,  // 11: identity.IdentityService.Login:input_type -> identity.LoginRequest
+	30, // 12: identity.IdentityService.Logout:input_type -> google.protobuf.Empty
+	30, // 13: identity.IdentityService.Refresh:input_type -> google.protobuf.Empty
+	30, // 14: identity.IdentityService.GetMe:input_type -> google.protobuf.Empty
+	4,  // 15: identity.IdentityService.ChangePassword:input_type -> identity.ChangePasswordRequest
+	7,  // 16: identity.IdentityService.CreateProfile:input_type -> identity.CreateProfileRequest
+	8,  // 17: identity.IdentityService.GetProfile:input_type -> identity.GetProfileRequest
+	9,  // 18: identity.IdentityService.ListProfiles:input_type -> identity.ListProfilesRequest
+	11, // 19: identity.IdentityService.UpdateProfile:input_type -> identity.UpdateProfileRequest
+	5,  // 20: identity.IdentityService.ChangeUserStatus:input_type -> identity.ChangeUserStatusRequest
+	13, // 21: identity.IdentityService.CreateDepartment:input_type -> identity.CreateDepartmentRequest
+	14, // 22: identity.IdentityService.GetDepartment:input_type -> identity.GetDepartmentRequest
+	30, // 23: identity.IdentityService.ListDepartments:input_type -> google.protobuf.Empty
+	16, // 24: identity.IdentityService.UpdateDepartment:input_type -> identity.UpdateDepartmentRequest
+	17, // 25: identity.IdentityService.DeleteDepartment:input_type -> identity.DeleteDepartmentRequest
+	19, // 26: identity.IdentityService.CreatePosition:input_type -> identity.CreatePositionRequest
+	20, // 27: identity.IdentityService.GetPosition:input_type -> identity.GetPositionRequest
+	30, // 28: identity.IdentityService.ListPositions:input_type -> google.protobuf.Empty
+	22, // 29: identity.IdentityService.UpdatePosition:input_type -> identity.UpdatePositionRequest
+	23, // 30: identity.IdentityService.DeletePosition:input_type -> identity.DeletePositionRequest
+	25, // 31: identity.IdentityService.CreateSkill:input_type -> identity.CreateSkillRequest
+	30, // 32: identity.IdentityService.ListSkills:input_type -> google.protobuf.Empty
+	27, // 33: identity.IdentityService.AddSkillToEmployee:input_type -> identity.AddSkillToEmployeeRequest
+	28, // 34: identity.IdentityService.RemoveSkillFromEmployee:input_type -> identity.RemoveSkillFromEmployeeRequest
+	1,  // 35: identity.IdentityService.Login:output_type -> identity.LoginResponse
+	30, // 36: identity.IdentityService.Logout:output_type -> google.protobuf.Empty
+	3,  // 37: identity.IdentityService.Refresh:output_type -> identity.RefreshResponse
+	2,  // 38: identity.IdentityService.GetMe:output_type -> identity.UserInfo
+	30, // 39: identity.IdentityService.ChangePassword:output_type -> google.protobuf.Empty
+	6,  // 40: identity.IdentityService.CreateProfile:output_type -> identity.Profile
+	6,  // 41: identity.IdentityService.GetProfile:output_type -> identity.Profile
+	10, // 42: identity.IdentityService.ListProfiles:output_type -> identity.ListProfilesResponse
+	6,  // 43: identity.IdentityService.UpdateProfile:output_type -> identity.Profile
+	30, // 44: identity.IdentityService.ChangeUserStatus:output_type -> google.protobuf.Empty
+	12, // 45: identity.IdentityService.CreateDepartment:output_type -> identity.Department
+	12, // 46: identity.IdentityService.GetDepartment:output_type -> identity.Department
+	15, // 47: identity.IdentityService.ListDepartments:output_type -> identity.ListDepartmentsResponse
+	12, // 48: identity.IdentityService.UpdateDepartment:output_type -> identity.Department
+	30, // 49: identity.IdentityService.DeleteDepartment:output_type -> google.protobuf.Empty
+	18, // 50: identity.IdentityService.CreatePosition:output_type -> identity.Position
+	18, // 51: identity.IdentityService.GetPosition:output_type -> identity.Position
+	21, // 52: identity.IdentityService.ListPositions:output_type -> identity.ListPositionsResponse
+	18, // 53: identity.IdentityService.UpdatePosition:output_type -> identity.Position
+	30, // 54: identity.IdentityService.DeletePosition:output_type -> google.protobuf.Empty
+	24, // 55: identity.IdentityService.CreateSkill:output_type -> identity.Skill
+	26, // 56: identity.IdentityService.ListSkills:output_type -> identity.ListSkillsResponse
+	30, // 57: identity.IdentityService.AddSkillToEmployee:output_type -> google.protobuf.Empty
+	30, // 58: identity.IdentityService.RemoveSkillFromEmployee:output_type -> google.protobuf.Empty
+	35, // [35:59] is the sub-list for method output_type
+	11, // [11:35] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
-func init() { file_identity_identity_proto_init() }
-func file_identity_identity_proto_init() {
-	if File_identity_identity_proto != nil {
+func init() { file_api_identity_identity_proto_init() }
+func file_api_identity_identity_proto_init() {
+	if File_api_identity_identity_proto != nil {
 		return
 	}
-	file_identity_identity_proto_msgTypes[7].OneofWrappers = []any{}
-	file_identity_identity_proto_msgTypes[11].OneofWrappers = []any{}
+	file_api_identity_identity_proto_msgTypes[7].OneofWrappers = []any{}
+	file_api_identity_identity_proto_msgTypes[11].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_identity_identity_proto_rawDesc), len(file_identity_identity_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_identity_identity_proto_rawDesc), len(file_api_identity_identity_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   30,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_identity_identity_proto_goTypes,
-		DependencyIndexes: file_identity_identity_proto_depIdxs,
-		MessageInfos:      file_identity_identity_proto_msgTypes,
+		GoTypes:           file_api_identity_identity_proto_goTypes,
+		DependencyIndexes: file_api_identity_identity_proto_depIdxs,
+		MessageInfos:      file_api_identity_identity_proto_msgTypes,
 	}.Build()
-	File_identity_identity_proto = out.File
-	file_identity_identity_proto_goTypes = nil
-	file_identity_identity_proto_depIdxs = nil
+	File_api_identity_identity_proto = out.File
+	file_api_identity_identity_proto_goTypes = nil
+	file_api_identity_identity_proto_depIdxs = nil
 }

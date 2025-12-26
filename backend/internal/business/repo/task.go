@@ -137,6 +137,13 @@ func (r *TaskRepo) Update(ctx context.Context, id int64, title, description, sta
 	}
 	if status != nil {
 		builder = builder.Set("status", *status)
+		// Устанавливаем completed_at когда задача завершена
+		if *status == "done" {
+			builder = builder.Set("completed_at", time.Now())
+		} else {
+			// Сбрасываем completed_at если задача возвращена в работу
+			builder = builder.Set("completed_at", nil)
+		}
 	}
 	if priority != nil {
 		builder = builder.Set("priority", *priority)

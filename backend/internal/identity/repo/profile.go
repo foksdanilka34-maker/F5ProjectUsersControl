@@ -268,6 +268,11 @@ func (r *ProfileRepo) ListSkills(ctx context.Context) ([]Skill, error) {
 	return skills, nil
 }
 
+func (r *ProfileRepo) DeleteSkill(ctx context.Context, id int64) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM identity.skills WHERE id = $1`, id)
+	return err
+}
+
 func (r *ProfileRepo) GetProfileSkills(ctx context.Context, profileID int64) ([]Skill, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT s.id, s.name 

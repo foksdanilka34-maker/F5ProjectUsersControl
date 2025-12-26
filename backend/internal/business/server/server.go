@@ -85,6 +85,9 @@ func (s *BusinessServer) ListProjects(ctx context.Context, req *business.ListPro
 	if req.ManagerId != nil {
 		filter.OwnerID = *req.ManagerId
 	}
+	if req.MemberId != nil {
+		filter.MemberID = *req.MemberId
+	}
 	if req.Status != nil {
 		filter.Status = protoStatusToString(*req.Status)
 	}
@@ -306,25 +309,67 @@ func (s *BusinessServer) ListProjectMembers(ctx context.Context, req *business.L
 // === ANALYTICS ===
 
 func (s *BusinessServer) GetEmployeeMetrics(ctx context.Context, req *business.GetEmployeeMetricsRequest) (*business.EmployeeMetricsResponse, error) {
+	log.Printf("GetEmployeeMetrics called for employee_id: %d", req.EmployeeId)
+	
 	analytics, err := s.analyticsService.GetEmployeeAnalytics(ctx, req.EmployeeId)
 	if err != nil {
+		log.Printf("GetEmployeeAnalytics error: %v", err)
 		return nil, status.Errorf(codes.Internal, "failed to get employee metrics: %v", err)
 	}
 
+	log.Printf("Analytics for user %d: assigned=%d, completed=%d, on_time=%d, late=%d, weighted_on_time=%.1f, weighted_total=%.1f",
+		analytics.UserID, analytics.AssignedTasks, analytics.CompletedTasks, analytics.CompletedOnTime, analytics.CompletedLate,
+		analytics.WeightedOnTime, analytics.WeightedTotal)
+
+	// Процент выполненных задач от общего числа назначенных
 	var completionRate float64
 	if analytics.AssignedTasks > 0 {
 		completionRate = float64(analytics.CompletedTasks) / float64(analytics.AssignedTasks) * 100
 	}
+
+	// Простой процент вовремя (без учёта веса) для отображения
+	var onTimeRate float64
+	if analytics.CompletedTasks > 0 {
+		onTimeRate = float64(analytics.CompletedOnTime) / float64(analytics.CompletedTasks) * 100
+	} else {
+		onTimeRate = 100 // Без завершённых задач считаем что пока всё в срок
+	}
+
+	// ВЗВЕШЕННАЯ эффективность с учётом приоритета задач
+	// Формула: (WeightedOnTime / WeightedTotal) * (CompletedTasks / AssignedTasks) * 100
+	// Веса: critical=4, high=3, medium=2, low=1
+	// Пример: 1 critical просрочена (вес 4), 1 low вовремя (вес 1)
+	// Обычная формула: 50% вовремя
+	// Взвешенная: 1/5 = 20% вовремя → если всё выполнено, эффективность = 20%
+	var weightedOnTimeRate float64
+	if analytics.WeightedTotal > 0 {
+		weightedOnTimeRate = analytics.WeightedOnTime / analytics.WeightedTotal * 100
+	} else {
+		weightedOnTimeRate = 100 // Без завершённых задач считаем 100%
+	}
+
+	// Итоговая эффективность = completionRate * weightedOnTimeRate / 100
+	var efficiency float64
+	if analytics.AssignedTasks > 0 {
+		efficiency = completionRate * weightedOnTimeRate / 100
+	} else {
+		efficiency = 100 // Без задач считаем 100%
+	}
+
+	log.Printf("Calculated rates: completion=%.2f%%, on_time=%.2f%%, weighted_on_time=%.2f%%, efficiency=%.2f%%",
+		completionRate, onTimeRate, weightedOnTimeRate, efficiency)
 
 	return &business.EmployeeMetricsResponse{
 		Metrics: &business.EmployeeMetrics{
 			EmployeeId:      analytics.UserID,
 			AssignedTasks:   analytics.AssignedTasks,
 			CompletedTasks:  analytics.CompletedTasks,
+			CompletedOnTime: analytics.CompletedOnTime,
+			CompletedLate:   analytics.CompletedLate,
 			InProgressTasks: analytics.InProgressTasks,
 			OverdueTasks:    analytics.OverdueTasks,
-			CompletionRate:  completionRate,
-			OnTimeRate:      100 - float64(analytics.OverdueTasks)/float64(max(analytics.CompletedTasks, 1))*100,
+			CompletionRate:  efficiency,        // Взвешенная эффективность
+			OnTimeRate:      weightedOnTimeRate, // Взвешенный % вовремя
 		},
 	}, nil
 }
@@ -354,6 +399,15 @@ func (s *BusinessServer) GetProjectMetrics(ctx context.Context, req *business.Ge
 		progressPercent = float64(analytics.CompletedTasks) / float64(analytics.TotalTasks) * 100
 	}
 
+	// Процент задач выполненных вовремя (из завершённых)
+	// Формула: CompletedOnTime / CompletedTasks * 100
+	var onTimeRate float64
+	if analytics.CompletedTasks > 0 {
+		onTimeRate = float64(analytics.CompletedOnTime) / float64(analytics.CompletedTasks) * 100
+	} else {
+		onTimeRate = 100 // Если завершённых задач нет, считаем что все в срок
+	}
+
 	healthStatus := business.HealthStatus_HEALTH_STATUS_HEALTHY
 	if analytics.OverdueTasks > int32(analytics.TotalTasks/2) {
 		healthStatus = business.HealthStatus_HEALTH_STATUS_CRITICAL
@@ -367,11 +421,13 @@ func (s *BusinessServer) GetProjectMetrics(ctx context.Context, req *business.Ge
 			ManagerId:       0,
 			TotalTasks:      analytics.TotalTasks,
 			CompletedTasks:  analytics.CompletedTasks,
+			CompletedOnTime: analytics.CompletedOnTime,
+			CompletedLate:   analytics.CompletedLate,
 			InProgressTasks: analytics.InProgressTasks,
 			OverdueTasks:    analytics.OverdueTasks,
 			TeamSize:        analytics.MemberCount,
 			ProgressPercent: progressPercent,
-			OnTimeRate:      100 - float64(analytics.OverdueTasks)/float64(max(int32(1), analytics.CompletedTasks))*100,
+			OnTimeRate:      onTimeRate,
 			HealthStatus:    healthStatus,
 		},
 		CalculatedAt: timestamppb.Now(),
@@ -405,9 +461,27 @@ func (s *BusinessServer) GetDashboardStats(ctx context.Context, req *business.Ge
 		return nil, status.Errorf(codes.Internal, "failed to get dashboard stats: %v", err)
 	}
 
+	// Процент выполненных задач от общего числа
 	var avgCompletionRate float64
 	if summary.TotalTasks > 0 {
 		avgCompletionRate = float64(summary.CompletedTasks) / float64(summary.TotalTasks) * 100
+	}
+
+	// Процент задач выполненных вовремя (из завершённых)
+	var avgOnTimeRate float64
+	if summary.CompletedTasks > 0 {
+		avgOnTimeRate = float64(summary.CompletedOnTime) / float64(summary.CompletedTasks) * 100
+	} else {
+		avgOnTimeRate = 100 // Если завершённых задач нет, считаем что все в срок
+	}
+
+	// Комбинированная эффективность: completionRate * onTimeRate / 100
+	// Выполнено 100%, вовремя 50% → эффективность 50%
+	var avgEfficiency float64
+	if summary.TotalTasks > 0 {
+		avgEfficiency = avgCompletionRate * avgOnTimeRate / 100
+	} else {
+		avgEfficiency = 100 // Без задач считаем 100%
 	}
 
 	return &business.DashboardStatsResponse{
@@ -418,8 +492,10 @@ func (s *BusinessServer) GetDashboardStats(ctx context.Context, req *business.Ge
 		TotalTasks:          summary.TotalTasks,
 		CompletedTasks:      summary.CompletedTasks,
 		OverdueTasks:        summary.OverdueTasks,
-		AvgCompletionRate:   avgCompletionRate,
-		AvgOnTimeRate:       100 - float64(summary.OverdueTasks)/float64(max(int32(1), summary.CompletedTasks))*100,
+		CompletedOnTime:     summary.CompletedOnTime,
+		CompletedLate:       summary.CompletedLate,
+		AvgCompletionRate:   avgEfficiency, // Теперь это комбинированная эффективность
+		AvgOnTimeRate:       avgOnTimeRate,
 		TopEmployees:        []*business.TopEmployee{},
 		ProblematicProjects: []*business.ProblematicProject{},
 		CalculatedAt:        timestamppb.Now(),

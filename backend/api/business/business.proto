@@ -109,6 +109,7 @@ message ListProjectsRequest {
     int32 page_number = 2;
     optional int64 manager_id = 3;
     optional ProjectStatus status = 4;
+    optional int64 member_id = 5; // Filter projects where user is a member
 }
 
 message ListProjectsResponse {
@@ -227,9 +228,11 @@ message EmployeeMetrics {
     int32 assigned_tasks = 2;
     int32 completed_tasks = 3;
     int32 in_progress_tasks = 4;
-    int32 overdue_tasks = 5;
+    int32 overdue_tasks = 5;           // Текущие просроченные (не завершены)
+    int32 completed_on_time = 8;       // Завершено вовремя
+    int32 completed_late = 9;          // Завершено с опозданием
     double completion_rate = 6;
-    double on_time_rate = 7;
+    double on_time_rate = 7;           // CompletedOnTime / CompletedTasks * 100
 }
 
 message GetEmployeeMetricsRequest {
@@ -262,10 +265,12 @@ message ProjectMetrics {
     int32 total_tasks = 3;
     int32 completed_tasks = 4;
     int32 in_progress_tasks = 5;
-    int32 overdue_tasks = 6;
+    int32 overdue_tasks = 6;           // Текущие просроченные (не завершены)
+    int32 completed_on_time = 11;      // Завершено вовремя
+    int32 completed_late = 12;         // Завершено с опозданием
     int32 team_size = 7;
     double progress_percent = 8;
-    double on_time_rate = 9;
+    double on_time_rate = 9;           // CompletedOnTime / CompletedTasks * 100
     HealthStatus health_status = 10;
 }
 
@@ -337,9 +342,11 @@ message DashboardStatsResponse {
     int32 active_projects = 4;
     int32 total_tasks = 5;
     int32 completed_tasks = 6;
-    int32 overdue_tasks = 7;
+    int32 overdue_tasks = 7;           // Текущие просроченные (не завершены и дедлайн прошёл)
+    int32 completed_on_time = 13;      // Завершено вовремя
+    int32 completed_late = 14;         // Завершено с опозданием
     double avg_completion_rate = 8;
-    double avg_on_time_rate = 9;
+    double avg_on_time_rate = 9;       // CompletedOnTime / CompletedTasks * 100
     repeated TopEmployee top_employees = 10;
     repeated ProblematicProject problematic_projects = 11;
     google.protobuf.Timestamp calculated_at = 12;

@@ -84,12 +84,11 @@ export default function CreateEmployeePage() {
 
     try {
       const payload = buildCreatePayload(form);
-      const response = await createProfile(payload);
-      const profile = response.data;
-      const message = response.message ?? 'Профиль создан';
+      // Backend returns ProfileDTO directly
+      const profile = await createProfile(payload);
 
       setSubmitSuccess(
-        profile ? `${message}: ${profile.first_name} ${profile.last_name} (${profile.position_id})` : message,
+        `Профиль создан: ${profile.first_name} ${profile.last_name}`,
       );
       setForm(initialState);
       setShowPassword(false);
@@ -413,13 +412,13 @@ function buildCreatePayload(form: FormState): CreateProfileRequest {
   return {
     first_name: form.firstName.trim(),
     last_name: form.lastName.trim(),
-    position_id: form.positionId.trim(),
+    position_id: Number(form.positionId),
     email: form.email.trim(),
     hire_date: hireDateIso,
     login: form.login.trim(),
     password: form.password,
     role: form.role,
-    ...(trimmedDepartment ? { department_id: trimmedDepartment } : {}),
+    ...(trimmedDepartment ? { department_id: Number(trimmedDepartment) } : {}),
   };
 }
 

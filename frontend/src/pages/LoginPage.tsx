@@ -1,52 +1,33 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { Eye, EyeOff, Loader2, Lock, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { ApiError } from '../lib/apiClient';
 
-export default function LoginForm() {
+export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
-  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const navigate = useNavigate();
-  const { loginWithCredentials, isAuthenticated, refreshPending } = useAuth();
+  const { loginWithCredentials } = useAuth();
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/', { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
-
-  const handleSubmit = async (event?: FormEvent<HTMLFormElement>) => {
-    event?.preventDefault();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setFormError(null);
-    setSuccessMessage(null);
 
     if (!login || !password) {
-      setFormError('Введите логин и пароль.');
+      setFormError('Введите логин и пароль');
       return;
     }
 
     setIsSubmitting(true);
     try {
       await loginWithCredentials({ login, password });
-      setSuccessMessage('Авторизация успешна, перенаправляем на дашборд...');
-      navigate('/', { replace: true });
+      // PublicRoute will automatically redirect to / after isAuthenticated becomes true
     } catch (error) {
-      if (error instanceof ApiError) {
-        const payloadMessage =
-          error.payload && typeof error.payload === 'object' && 'message' in error.payload
-            ? String((error.payload as Record<string, unknown>).message)
-            : undefined;
-        setFormError(`Ошибка ${error.status}: ${payloadMessage ?? 'не удалось выполнить вход'}`);
-      } else if (error instanceof Error) {
-        setFormError(error.message);
+      if (error instanceof Error) {
+        setFormError('Неверный логин или пароль');
       } else {
-        setFormError('Не удалось выполнить вход. Попробуйте ещё раз.');
+        setFormError('Не удалось выполнить вход');
       }
     } finally {
       setIsSubmitting(false);
@@ -54,72 +35,56 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 flex items-center justify-center p-4">
-      {/* Animated background gradient orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-1/3 -right-20 w-96 h-96 bg-green-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-1000"></div>
-        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-lime-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse delay-500"></div>
+    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-white flex items-center justify-center p-4">
+      {/* Background decorations */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-24 top-12 h-80 w-80 rounded-full bg-emerald-200/40 blur-3xl" />
+        <div className="absolute -right-16 top-36 h-64 w-64 rounded-full bg-lime-200/40 blur-3xl" />
+        <div className="absolute left-1/3 bottom-0 h-96 w-96 rounded-full bg-emerald-100/30 blur-3xl" />
       </div>
 
-      <div className="w-full max-w-md relative">
-        {/* Logo/Brand */}
+      <div className="w-full max-w-md relative z-10">
+        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-2">
-            <div className="text-white text-3xl font-bold tracking-tight">КОМАНДА</div>
-            <div className="bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900 px-4 py-2 rounded-lg font-bold text-xl">
+          <div className="inline-flex items-center gap-2 mb-3">
+            <span className="text-2xl font-semibold tracking-tight text-emerald-600">КОМАНДА</span>
+            <span className="rounded-xl bg-gradient-to-r from-lime-400 to-emerald-400 px-3 py-1.5 text-lg font-bold text-gray-900">
               F5
-            </div>
+            </span>
           </div>
-          <p className="text-gray-400 text-sm mt-3">Войдите в личный кабинет</p>
+          <p className="text-gray-500 text-sm">Войдите в систему</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-gray-700/50 relative overflow-hidden">
-          {/* Card gradient accent */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full blur-3xl"></div>
-          
-          <form className="space-y-6 relative" onSubmit={handleSubmit}>
-            <h2 className="text-2xl font-bold text-white mb-6">Вход в систему</h2>
+        <div className="rounded-3xl border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
+          <form className="space-y-6" onSubmit={handleSubmit}>
             {formError && (
-              <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100 flex items-start gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                <span>{formError}</span>
-              </div>
-            )}
-            {successMessage && (
-              <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100 flex items-start gap-2">
-                <CheckCircle2 className="h-5 w-5" />
-                <span>{successMessage}</span>
+              <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {formError}
               </div>
             )}
 
             {/* Login Field */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
                 Логин
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
-                  onFocus={() => setFocusedField('login')}
-                  onBlur={() => setFocusedField(null)}
-                  className={`w-full pl-12 pr-4 py-3.5 bg-gray-900/50 border rounded-xl text-white placeholder-gray-500 transition-all duration-300 focus:outline-none ${
-                    focusedField === 'login'
-                      ? 'border-emerald-400 shadow-lg shadow-emerald-500/20'
-                      : 'border-gray-600 hover:border-gray-500'
-                  }`}
-                  placeholder="Введите ваш логин"
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:border-emerald-400"
+                  placeholder="Введите логин"
+                  autoComplete="username"
                 />
               </div>
             </div>
 
             {/* Password Field */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
                 Пароль
               </label>
               <div className="relative">
@@ -128,19 +93,14 @@ export default function LoginForm() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setFocusedField('password')}
-                  onBlur={() => setFocusedField(null)}
-                  className={`w-full pl-12 pr-12 py-3.5 bg-gray-900/50 border rounded-xl text-white placeholder-gray-500 transition-all duration-300 focus:outline-none ${
-                    focusedField === 'password'
-                      ? 'border-emerald-400 shadow-lg shadow-emerald-500/20'
-                      : 'border-gray-600 hover:border-gray-500'
-                  }`}
-                  placeholder="••••••••"
+                  className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-2xl text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:border-emerald-400"
+                  placeholder="Введите пароль"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-400 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-emerald-500 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -150,30 +110,24 @@ export default function LoginForm() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting || refreshPending || !login || !password}
-              className={`w-full rounded-xl py-4 px-6 font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
-                isSubmitting || refreshPending
-                  ? 'bg-gray-600 text-gray-200 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900 hover:from-lime-500 hover:to-emerald-500'
-              }`}
+              disabled={isSubmitting || !login || !password}
+              className="w-full rounded-2xl py-3.5 px-6 font-semibold transition-all bg-gradient-to-r from-lime-400 to-emerald-400 text-gray-900 hover:shadow-[0_15px_40px_rgba(132,204,22,0.35)] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {isSubmitting || refreshPending ? (
+              {isSubmitting ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" /> Выполняем вход...
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Вход...
                 </>
               ) : (
                 'Войти'
               )}
             </button>
-            <p className="text-xs text-gray-400 text-center">
-              POST /api/v1/auth/login отдаёт access_token, refresh реализован через HttpOnly cookie (POST /auth/refresh).
-            </p>
           </form>
         </div>
 
-        {/* Footer Text */}
-        <p className="text-center text-gray-500 text-xs mt-6">
-          © 2025 Команда F5. Все права защищены.
+        {/* Footer */}
+        <p className="text-center text-gray-400 text-xs mt-6">
+          © 2025 Команда F5
         </p>
       </div>
     </div>

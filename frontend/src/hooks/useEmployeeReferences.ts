@@ -27,10 +27,10 @@ export function useEmployeeReferences() {
     const fetchDepartments = async () => {
       setDepartments((prev) => ({ ...prev, loading: true, error: null }));
       try {
+        // Backend returns { departments: [] } directly
         const response = await listDepartments();
-        const items = response.data?.departments ?? [];
         if (!aborted) {
-          setDepartments({ items, loading: false, error: null });
+          setDepartments({ items: response.departments ?? [], loading: false, error: null });
         }
       } catch (error) {
         if (!aborted) {
@@ -42,10 +42,10 @@ export function useEmployeeReferences() {
     const fetchPositions = async () => {
       setPositions((prev) => ({ ...prev, loading: true, error: null }));
       try {
+        // Backend returns { positions: [] } directly
         const response = await listPositions();
-        const items = response.data?.positions ?? [];
         if (!aborted) {
-          setPositions({ items, loading: false, error: null });
+          setPositions({ items: response.positions ?? [], loading: false, error: null });
         }
       } catch (error) {
         if (!aborted) {

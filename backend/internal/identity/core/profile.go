@@ -32,6 +32,7 @@ type ProfileRepository interface {
 	// Skills
 	CreateSkill(ctx context.Context, name string) (int64, error)
 	ListSkills(ctx context.Context) ([]repo.Skill, error)
+	DeleteSkill(ctx context.Context, id int64) error
 	AddSkillToProfile(ctx context.Context, profileID, skillID int64) error
 	RemoveSkillFromProfile(ctx context.Context, profileID, skillID int64) error
 
@@ -251,6 +252,10 @@ func (s *ProfileService) CreateSkill(ctx context.Context, name string) (*repo.Sk
 
 func (s *ProfileService) ListSkills(ctx context.Context) ([]repo.Skill, error) {
 	return s.repo.ListSkills(ctx)
+}
+
+func (s *ProfileService) DeleteSkill(ctx context.Context, id int64) error {
+	return s.repo.DeleteSkill(ctx, id)
 }
 
 func (s *ProfileService) AddSkillToProfile(ctx context.Context, profileID, skillID int64) error {

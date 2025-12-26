@@ -1,67 +1,370 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle,
   ArrowLeft,
-  BadgeCheck,
   Building2,
-  CheckCircle2,
-  Edit,
+  ChevronLeft,
+  ChevronRight,
+  Edit2,
   Layers3,
-  ListChecks,
+  Loader2,
+  Plus,
+  Save,
   Search,
-  Settings2,
-  ShieldCheck,
-  UserCog,
+  Star,
+  TrendingUp,
+  User,
   UserPlus,
-  Users,
+  X,
 } from 'lucide-react';
+import Avatar from '../components/Avatar';
 
-import { useEmployeesData } from '../hooks/useEmployeesData';
+import {
+  listProfiles,
+  listDepartments,
+  listPositions,
+  listSkills,
+  createProfile,
+  updateProfile,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+  createPosition,
+  updatePosition,
+  deletePosition,
+  createSkill,
+  deleteSkill,
+} from '../services/employeeService';
+import { getEmployeeMetrics, type EmployeeMetrics } from '../services/analyticsService';
+import type { ProfileDTO, DepartmentDTO, PositionDTO, SkillDTO, CreateProfileRequest } from '../services/types';
+import { Trash2 } from 'lucide-react';
 
-const tabs = ['Профили', 'Оргструктура', 'Навыки'];
+const PAGE_SIZE = 10;
+
+const tabs = ['Профили', 'Оргструктура', 'Навыки'] as const;
+type TabType = typeof tabs[number];
+
 const statusStyles: Record<string, string> = {
-  Активен: 'bg-emerald-50 text-emerald-700',
-  'В отпуске': 'bg-amber-50 text-amber-700',
-  Заблокирован: 'bg-rose-50 text-rose-700',
+  active: 'bg-emerald-50 text-emerald-700',
+  blocked: 'bg-rose-50 text-rose-700',
+};
+
+const roles = [
+  { label: 'Администратор', value: 'admin' },
+  { label: 'Директор', value: 'director' },
+  { label: 'Менеджер', value: 'manager' },
+  { label: 'Сотрудник', value: 'employee' },
+];
+
+type FormState = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  departmentId: string;
+  positionId: string;
+  hireDate: string;
+  login: string;
+  password: string;
+  role: string;
+};
+
+const emptyForm: FormState = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  departmentId: '',
+  positionId: '',
+  hireDate: new Date().toISOString().split('T')[0],
+  login: '',
+  password: '',
+  role: 'employee',
 };
 
 export default function EmployeesHubPage() {
-  const [activeTab, setActiveTab] = useState('Профили');
+  const [activeTab, setActiveTab] = useState<TabType>('Профили');
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Data states
+  const [profiles, setProfiles] = useState<ProfileDTO[]>([]);
+  const [departments, setDepartments] = useState<DepartmentDTO[]>([]);
+  const [positions, setPositions] = useState<PositionDTO[]>([]);
+  const [skills, setSkills] = useState<SkillDTO[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [employeeMetrics, setEmployeeMetrics] = useState<Record<number, EmployeeMetrics>>({});
+  
+  // Form states
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<FormState>(emptyForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const { profiles: profilesState, departments: departmentsState, positions: positionsState, skills: skillsState, stats: profileStats } = useEmployeesData();
+  // Department/Position/Skill form states
+  const [editingDept, setEditingDept] = useState<{ id: number; name: string } | null>(null);
+  const [newDeptName, setNewDeptName] = useState('');
+  const [editingPos, setEditingPos] = useState<{ id: number; name: string } | null>(null);
+  const [newPosName, setNewPosName] = useState('');
+  const [newSkillName, setNewSkillName] = useState('');
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [profilesRes, depsRes, posRes, skillsRes] = await Promise.all([
+        listProfiles({ pageSize: PAGE_SIZE, pageNumber: currentPage }),
+        listDepartments(),
+        listPositions(),
+        listSkills(),
+      ]);
+      setProfiles(profilesRes.profiles || []);
+      setTotalCount(profilesRes.total_count || 0);
+      setDepartments(depsRes.departments || []);
+      setPositions(posRes.positions || []);
+      setSkills(skillsRes.skills || []);
+      
+      // Load employee metrics for each profile
+      const metricsMap: Record<number, EmployeeMetrics> = {};
+      const loadedProfiles = profilesRes.profiles || [];
+      await Promise.all(
+        loadedProfiles.map(async (profile) => {
+          try {
+            const metrics = await getEmployeeMetrics(profile.id);
+            console.log(`Metrics for profile ${profile.id}:`, metrics);
+            metricsMap[profile.id] = metrics;
+          } catch (err) {
+            console.error(`Failed to load metrics for profile ${profile.id}:`, err);
+          }
+        })
+      );
+      console.log('All metrics loaded:', metricsMap);
+      setEmployeeMetrics(metricsMap);
+    } catch (err) {
+      console.error('Failed to load data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const filteredProfiles = useMemo(() => {
-    const dataset = profilesState.items;
-    if (!searchTerm.trim()) {
-      return dataset;
-    }
+    if (!searchTerm.trim()) return profiles;
     const normalized = searchTerm.toLowerCase();
-    return dataset.filter((profile) => {
-      return (
-        `${profile.first_name} ${profile.last_name}`.toLowerCase().includes(normalized) ||
-        profile.position_id.toLowerCase().includes(normalized) ||
-        profile.department?.name?.toLowerCase().includes(normalized)
-      );
+    return profiles.filter((profile) =>
+      `${profile.first_name} ${profile.last_name}`.toLowerCase().includes(normalized) ||
+      profile.email?.toLowerCase().includes(normalized)
+    );
+  }, [profiles, searchTerm]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  const handleFormChange = (field: keyof FormState) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    setForm(prev => ({ ...prev, [field]: e.target.value }));
+    setError(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      if (editingId) {
+        // Update existing profile
+        await updateProfile(editingId, {
+          first_name: form.firstName.trim(),
+          last_name: form.lastName.trim(),
+          email: form.email.trim(),
+          position_id: Number(form.positionId),
+          department_id: form.departmentId ? Number(form.departmentId) : undefined,
+        });
+        setSuccess('Профиль успешно обновлён');
+      } else {
+        // Create new profile
+        const payload: CreateProfileRequest = {
+          first_name: form.firstName.trim(),
+          last_name: form.lastName.trim(),
+          email: form.email.trim(),
+          position_id: Number(form.positionId),
+          hire_date: new Date(form.hireDate).toISOString(),
+          login: form.login.trim(),
+          password: form.password,
+          role: form.role,
+          ...(form.departmentId ? { department_id: Number(form.departmentId) } : {}),
+        };
+        await createProfile(payload);
+        setSuccess(`Сотрудник ${form.firstName} ${form.lastName} создан`);
+      }
+      setForm(emptyForm);
+      setShowForm(false);
+      setEditingId(null);
+      loadData();
+    } catch (err) {
+      console.error('Submit error:', err);
+      setError('Не удалось сохранить. Проверьте данные.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Department handlers
+  const handleCreateDepartment = async () => {
+    if (!newDeptName.trim()) return;
+    setSubmitting(true);
+    try {
+      await createDepartment(newDeptName.trim());
+      setNewDeptName('');
+      setSuccess('Отдел создан');
+      loadData();
+    } catch {
+      setError('Не удалось создать отдел');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateDepartment = async () => {
+    if (!editingDept || !editingDept.name.trim()) return;
+    setSubmitting(true);
+    try {
+      await updateDepartment(editingDept.id, editingDept.name.trim());
+      setEditingDept(null);
+      setSuccess('Отдел обновлён');
+      loadData();
+    } catch {
+      setError('Не удалось обновить отдел');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteDepartment = async (id: number) => {
+    if (!confirm('Удалить отдел?')) return;
+    try {
+      await deleteDepartment(id);
+      setSuccess('Отдел удалён');
+      loadData();
+    } catch {
+      setError('Не удалось удалить отдел');
+    }
+  };
+
+  // Position handlers
+  const handleCreatePosition = async () => {
+    if (!newPosName.trim()) return;
+    setSubmitting(true);
+    try {
+      await createPosition(newPosName.trim());
+      setNewPosName('');
+      setSuccess('Должность создана');
+      loadData();
+    } catch {
+      setError('Не удалось создать должность');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdatePosition = async () => {
+    if (!editingPos || !editingPos.name.trim()) return;
+    setSubmitting(true);
+    try {
+      await updatePosition(editingPos.id, editingPos.name.trim());
+      setEditingPos(null);
+      setSuccess('Должность обновлена');
+      loadData();
+    } catch {
+      setError('Не удалось обновить должность');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeletePosition = async (id: number) => {
+    if (!confirm('Удалить должность?')) return;
+    try {
+      await deletePosition(id);
+      setSuccess('Должность удалена');
+      loadData();
+    } catch {
+      setError('Не удалось удалить должность');
+    }
+  };
+
+  // Skill handler
+  const handleCreateSkill = async () => {
+    if (!newSkillName.trim()) return;
+    setSubmitting(true);
+    try {
+      await createSkill(newSkillName.trim());
+      setNewSkillName('');
+      setSuccess('Навык создан');
+      loadData();
+    } catch {
+      setError('Не удалось создать навык');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteSkill = async (skillId: number, skillName: string) => {
+    if (!confirm(`Удалить навык "${skillName}"?`)) return;
+    setSubmitting(true);
+    try {
+      await deleteSkill(skillId);
+      setSuccess('Навык удалён');
+      loadData();
+    } catch {
+      setError('Не удалось удалить навык');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getPositionName = (positionId: number) => 
+    positions.find(p => p.id === positionId)?.name || '—';
+
+  const openCreateForm = () => {
+    setForm(emptyForm);
+    setEditingId(null);
+    setShowForm(true);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const openEditForm = (profile: ProfileDTO) => {
+    setForm({
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      email: profile.email,
+      departmentId: profile.department?.id?.toString() || '',
+      positionId: profile.position_id.toString(),
+      hireDate: profile.hire_date.split('T')[0],
+      login: profile.login,
+      password: '',
+      role: profile.role,
     });
-  }, [profilesState.items, searchTerm]);
+    setEditingId(profile.id);
+    setShowForm(true);
+    setError(null);
+    setSuccess(null);
+  };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-white via-emerald-50/40 to-white text-gray-900">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-24 top-10 h-[420px] w-[420px] rounded-full bg-emerald-100/60 blur-3xl" />
-        <div className="absolute -right-16 top-52 h-[360px] w-[360px] rounded-full bg-lime-100/60 blur-3xl" />
-      </div>
-
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-10">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-6">
+    <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-white text-gray-900">
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        {/* Header */}
+        <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">Сотрудники</p>
-            <h1 className="mt-3 text-3xl font-semibold text-gray-900">Центр управления командами</h1>
-            <p className="mt-2 text-sm text-gray-500">
-              Все операции employee-service: профили, отделы, должности, навыки и статусы — в одном интерфейсе.
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">Управление</p>
+            <h1 className="text-2xl font-bold text-gray-900">Сотрудники</h1>
           </div>
           <Link
             to="/"
@@ -72,14 +375,29 @@ export default function EmployeesHubPage() {
           </Link>
         </header>
 
-        <div className="mt-8 flex flex-wrap gap-3">
+        {/* Success/Error messages */}
+        {success && (
+          <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
+            {success}
+          </div>
+        )}
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-2 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div className="flex flex-wrap gap-2 mb-6">
           {tabs.map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`rounded-full px-5 py-2 text-sm font-semibold transition-all ${
-                activeTab === tab ? 'bg-gray-900 text-white' : 'border border-gray-200 bg-white text-gray-600 hover:text-emerald-600'
+              className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                activeTab === tab
+                  ? 'bg-gray-900 text-white'
+                  : 'border border-gray-200 bg-white text-gray-600 hover:text-emerald-600'
               }`}
             >
               {tab}
@@ -87,144 +405,127 @@ export default function EmployeesHubPage() {
           ))}
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {profileStats.map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-3xl border border-gray-100 bg-white/90 px-4 py-5 text-sm shadow-[0_15px_35px_rgba(6,95,70,0.08)]"
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">{stat.label}</p>
-              <p className="mt-2 text-2xl font-semibold text-gray-900">{stat.value}</p>
-            </div>
-          ))}
-        </div>
-
-        <section className="mt-8 grid gap-6 lg:grid-cols-[2fr,1fr]">
-          <div className="space-y-6">
-            <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_25px_80px_rgba(6,95,70,0.08)]">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Быстрые действия</p>
-                  <h2 className="mt-2 text-xl font-semibold">Что вы хотите сделать?</h2>
-                </div>
-                <label className="relative flex items-center">
-                  <Search className="absolute left-3 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    placeholder="Команда, логин, навык..."
-                    className="w-64 rounded-full border border-gray-200 bg-white px-9 py-2 text-sm text-gray-600 focus:border-emerald-400 focus:outline-none"
-                  />
-                  {searchTerm && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-3 text-xs font-semibold text-emerald-600"
-                    >
-                      Очистить
-                    </button>
-                  )}
-                </label>
-              </div>
-              <div className="mt-5 grid gap-4 md:grid-cols-3">
-                <Link
-                  to="/admin/employees/new"
-                  className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-4 text-sm font-semibold text-emerald-800 shadow-[0_15px_40px_rgba(16,185,129,0.25)]"
-                >
-                  <UserPlus className="mb-2 h-5 w-5" />
-                  Добавить профиль
-                  <p className="mt-1 text-xs font-normal text-emerald-700">CreateProfileRequest</p>
-                </Link>
-                <button
-                  type="button"
-                  disabled
-                  className="rounded-3xl border border-gray-100 bg-gray-50/80 p-4 text-sm font-semibold text-gray-400"
-                  title="Редактирование появится после подключения employee-service"
-                >
-                  <UserCog className="mb-2 h-5 w-5 text-emerald-500" />
-                  Редактировать данные
-                  <p className="mt-1 text-xs font-normal text-gray-400">UpdateProfileRequest (скоро)</p>
-                </button>
-                <button
-                  type="button"
-                  disabled
-                  className="rounded-3xl border border-gray-100 bg-gray-50/80 p-4 text-sm font-semibold text-gray-400"
-                  title="Изменение статусов включим после интеграции"
-                >
-                  <ShieldCheck className="mb-2 h-5 w-5 text-emerald-500" />
-                  Управление статусами
-                  <p className="mt-1 text-xs font-normal text-gray-400">ChangeUserStatusProfile (скоро)</p>
-                </button>
-              </div>
-              <p className="mt-3 text-xs text-gray-400">Заблокированные действия станут активными, когда подключим соответствующие endpoint&apos;ы.</p>
-            </div>
-
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2">
             {activeTab === 'Профили' && (
-              <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Сотрудники</p>
-                    <h2 className="mt-2 text-xl font-semibold">Список профилей</h2>
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                {/* Search & Actions */}
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <div className="relative flex-1 min-w-[200px] max-w-sm">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Поиск по имени или email..."
+                      className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                    />
                   </div>
-                  <div className="flex gap-2 text-xs text-gray-500">
-                    <span>department_id</span>
-                    <span className="text-gray-300">·</span>
-                    <span>position_id</span>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={openCreateForm}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Добавить
+                  </button>
                 </div>
-                <div className="mt-5 overflow-hidden rounded-[28px] border border-gray-100">
-                  {profilesState.loading ? (
-                    <div className="flex flex-col items-center justify-center bg-white/80 px-6 py-12 text-center text-sm text-gray-500">
-                      <Settings2 className="mb-3 h-6 w-6 animate-spin text-emerald-500" />
-                      Загружаем профили...
+
+                {/* Table */}
+                <div className="overflow-hidden rounded-xl border border-gray-100">
+                  {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
                     </div>
                   ) : filteredProfiles.length ? (
-                    <table className="w-full text-left text-sm text-gray-600">
-                      <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-400">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                         <tr>
-                          <th className="px-6 py-4">Сотрудник</th>
-                          <th className="px-6 py-4">Роль</th>
-                          <th className="px-6 py-4">Отдел</th>
-                          <th className="px-6 py-4">Статус</th>
-                          <th className="px-6 py-4">Действия</th>
+                          <th className="px-4 py-3">Сотрудник</th>
+                          <th className="px-4 py-3 hidden sm:table-cell">Должность</th>
+                          <th className="px-4 py-3 hidden md:table-cell">Отдел</th>
+                          <th className="px-4 py-3">Эффективность</th>
+                          <th className="px-4 py-3">Статус</th>
+                          <th className="px-4 py-3 w-24">Действия</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-gray-100">
                         {filteredProfiles.map((profile) => (
-                          <tr key={profile.id} className="border-t border-gray-100 bg-white/80">
-                            <td className="px-6 py-4 font-semibold text-gray-900">
-                              {profile.first_name} {profile.last_name}
-                              <p className="text-xs text-gray-400">{profile.email}</p>
+                          <tr key={profile.id} className="hover:bg-gray-50/50">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <Avatar
+                                  src={profile.avatar_url}
+                                  name={`${profile.first_name} ${profile.last_name}`}
+                                  size="sm"
+                                />
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    {profile.first_name} {profile.last_name}
+                                  </p>
+                                  <p className="text-xs text-gray-400">{profile.email}</p>
+                                </div>
+                              </div>
                             </td>
-                            <td className="px-6 py-4">{profile.position_id}</td>
-                            <td className="px-6 py-4">{profile.department?.name ?? '—'}</td>
-                            <td className="px-6 py-4">
-                              <span
-                                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                                  profile.is_active ? statusStyles['Активен'] : statusStyles['Заблокирован']
-                                }`}
-                              >
+                            <td className="px-4 py-3 hidden sm:table-cell text-gray-600">
+                              {getPositionName(profile.position_id)}
+                            </td>
+                            <td className="px-4 py-3 hidden md:table-cell text-gray-600">
+                              {profile.department?.name || '—'}
+                            </td>
+                            <td className="px-4 py-3">
+                              {employeeMetrics[profile.id] ? (
+                                <div className="flex items-center gap-2">
+                                  <TrendingUp className={`h-4 w-4 ${
+                                    (employeeMetrics[profile.id].completion_rate || 0) >= 70 
+                                      ? 'text-emerald-500' 
+                                      : (employeeMetrics[profile.id].completion_rate || 0) >= 40 
+                                        ? 'text-amber-500' 
+                                        : 'text-rose-500'
+                                  }`} />
+                                  <div className="flex flex-col">
+                                    <span className={`text-sm font-medium ${
+                                      (employeeMetrics[profile.id].completion_rate || 0) >= 70 
+                                        ? 'text-emerald-600' 
+                                        : (employeeMetrics[profile.id].completion_rate || 0) >= 40 
+                                          ? 'text-amber-600' 
+                                          : 'text-rose-600'
+                                    }`}>
+                                      {Math.round(employeeMetrics[profile.id].completion_rate || 0)}%
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                      {employeeMetrics[profile.id].completed_tasks || 0}/{employeeMetrics[profile.id].assigned_tasks || 0} задач
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                profile.is_active ? statusStyles.active : statusStyles.blocked
+                              }`}>
                                 {profile.is_active ? 'Активен' : 'Заблокирован'}
                               </span>
                             </td>
-                            <td className="px-6 py-4">
-                              <div className="flex gap-2">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1">
+                                <Link
+                                  to={`/profile/${profile.id}`}
+                                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-emerald-600"
+                                  title="Открыть профиль"
+                                >
+                                  <User className="h-4 w-4" />
+                                </Link>
                                 <button
                                   type="button"
-                                  disabled
-                                  className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-400 disabled:cursor-not-allowed"
-                                  title="Редактирование профилей появится после интеграции"
+                                  onClick={() => openEditForm(profile)}
+                                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-emerald-600"
+                                  title="Редактировать"
                                 >
-                                  <Edit className="mr-1 inline h-3.5 w-3.5" /> Редактировать
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled
-                                  className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-400 disabled:cursor-not-allowed"
-                                  title="Управление статусами появится после интеграции"
-                                >
-                                  <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" /> Статус
+                                  <Edit2 className="h-4 w-4" />
                                 </button>
                               </div>
                             </td>
@@ -233,183 +534,465 @@ export default function EmployeesHubPage() {
                       </tbody>
                     </table>
                   ) : (
-                    <div className="flex flex-col items-center justify-center bg-white/80 px-6 py-12 text-center text-sm text-gray-500">
-                      <BadgeCheck className="mb-3 h-6 w-6 text-emerald-500" />
-                      {profilesState.error
-                        ? `Не удалось загрузить профили: ${profilesState.error}`
-                        : searchTerm
-                          ? `Нет совпадений по запросу «${searchTerm}». Перенастройте фильтр.`
-                          : 'Данные от employee-service пока недоступны.'}
+                    <div className="py-12 text-center text-sm text-gray-500">
+                      {searchTerm ? `Нет результатов для «${searchTerm}»` : 'Сотрудников пока нет'}
                     </div>
                   )}
                 </div>
-                <p className="mt-2 text-xs text-gray-400">
-                  Запрос: GET /api/v1/employees/profiles. Пагинацию добавим позже.
-                </p>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 text-sm">
+                    <span className="text-gray-500">
+                      Страница {currentPage} из {totalPages} ({totalCount} записей)
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="rounded-lg border border-gray-200 p-2 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {activeTab === 'Оргструктура' && (
-              <div className="grid gap-6 lg:grid-cols-2">
-                <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Отделы</p>
-                      <h2 className="mt-2 text-xl font-semibold">Управление департаментами</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Departments */}
+                <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-emerald-500" />
+                      <h3 className="font-semibold text-gray-900">Отделы</h3>
                     </div>
+                    <span className="text-xs text-gray-400">{departments.length}</span>
+                  </div>
+
+                  {/* Add new department */}
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={newDeptName}
+                      onChange={(e) => setNewDeptName(e.target.value)}
+                      placeholder="Название отдела"
+                      className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-emerald-400 focus:outline-none"
+                      onKeyDown={(e) => e.key === 'Enter' && handleCreateDepartment()}
+                    />
                     <button
-                      className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400 disabled:cursor-not-allowed"
                       type="button"
-                      disabled
-                      title="CRUD по департаментам появится после интеграции"
+                      onClick={handleCreateDepartment}
+                      disabled={!newDeptName.trim() || submitting}
+                      className="rounded-lg bg-emerald-500 px-3 py-1.5 text-white hover:bg-emerald-600 disabled:opacity-50"
                     >
-                      <Building2 className="mr-1 inline h-3.5 w-3.5" /> Добавить
+                      <Plus className="h-4 w-4" />
                     </button>
                   </div>
-                  {departmentsState.loading ? (
-                    <p className="mt-5 text-sm text-gray-500">Загружаем данные...</p>
-                  ) : departmentsState.items.length ? (
-                    <ul className="mt-5 space-y-3 text-sm text-gray-600">
-                      {departmentsState.items.map((dep) => (
-                        <li key={dep.id} className="rounded-3xl border border-gray-100 bg-gray-50/80 px-4 py-3">
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold text-gray-900">{dep.name}</p>
-                            <span className="text-xs text-gray-400">ID: {dep.id}</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-5 rounded-3xl border border-dashed border-gray-200 px-4 py-6 text-sm text-gray-500">
-                      {departmentsState.error ? `Ошибка: ${departmentsState.error}` : 'Список департаментов пуст.'}
-                    </p>
-                  )}
+
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {departments.length ? departments.map((dep) => (
+                      <div key={dep.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm group">
+                        {editingDept?.id === dep.id ? (
+                          <input
+                            type="text"
+                            value={editingDept.name}
+                            onChange={(e) => setEditingDept({ ...editingDept, name: e.target.value })}
+                            className="flex-1 rounded border border-emerald-300 px-2 py-1 text-sm focus:outline-none"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleUpdateDepartment();
+                              if (e.key === 'Escape') setEditingDept(null);
+                            }}
+                          />
+                        ) : (
+                          <span className="font-medium text-gray-700">{dep.name}</span>
+                        )}
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {editingDept?.id === dep.id ? (
+                            <>
+                              <button
+                                onClick={handleUpdateDepartment}
+                                className="p-1 text-emerald-600 hover:bg-emerald-100 rounded"
+                              >
+                                <Save className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setEditingDept(null)}
+                                className="p-1 text-gray-400 hover:bg-gray-200 rounded"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => setEditingDept({ id: dep.id, name: dep.name })}
+                                className="p-1 text-gray-400 hover:bg-gray-200 rounded"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDepartment(dep.id)}
+                                className="p-1 text-red-400 hover:bg-red-100 rounded"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )) : (
+                      <p className="text-sm text-gray-400 py-4 text-center">Отделов пока нет</p>
+                    )}
+                  </div>
                 </div>
-                <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Должности</p>
-                      <h2 className="mt-2 text-xl font-semibold">Каталог позиций</h2>
+
+                {/* Positions */}
+                <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Layers3 className="h-4 w-4 text-emerald-500" />
+                      <h3 className="font-semibold text-gray-900">Должности</h3>
                     </div>
+                    <span className="text-xs text-gray-400">{positions.length}</span>
+                  </div>
+
+                  {/* Add new position */}
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={newPosName}
+                      onChange={(e) => setNewPosName(e.target.value)}
+                      placeholder="Название должности"
+                      className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-emerald-400 focus:outline-none"
+                      onKeyDown={(e) => e.key === 'Enter' && handleCreatePosition()}
+                    />
                     <button
-                      className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400 disabled:cursor-not-allowed"
                       type="button"
-                      disabled
-                      title="CRUD по должностям появится после интеграции"
+                      onClick={handleCreatePosition}
+                      disabled={!newPosName.trim() || submitting}
+                      className="rounded-lg bg-emerald-500 px-3 py-1.5 text-white hover:bg-emerald-600 disabled:opacity-50"
                     >
-                      <Layers3 className="mr-1 inline h-3.5 w-3.5" /> Добавить
+                      <Plus className="h-4 w-4" />
                     </button>
                   </div>
-                  {positionsState.loading ? (
-                    <p className="mt-5 text-sm text-gray-500">Загружаем позиции...</p>
-                  ) : positionsState.items.length ? (
-                    <ul className="mt-5 space-y-3 text-sm text-gray-600">
-                      {positionsState.items.map((position) => (
-                        <li key={position.id} className="rounded-3xl border border-gray-100 bg-gray-50/80 px-4 py-3">
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold text-gray-900">{position.name}</p>
-                            <span className="text-xs text-gray-400">ID: {position.id}</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-5 rounded-3xl border border-dashed border-gray-200 px-4 py-6 text-sm text-gray-500">
-                      {positionsState.error ? `Ошибка: ${positionsState.error}` : 'Каталог должностей пуст.'}
-                    </p>
-                  )}
+
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {positions.length ? positions.map((pos) => (
+                      <div key={pos.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm group">
+                        {editingPos?.id === pos.id ? (
+                          <input
+                            type="text"
+                            value={editingPos.name}
+                            onChange={(e) => setEditingPos({ ...editingPos, name: e.target.value })}
+                            className="flex-1 rounded border border-emerald-300 px-2 py-1 text-sm focus:outline-none"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleUpdatePosition();
+                              if (e.key === 'Escape') setEditingPos(null);
+                            }}
+                          />
+                        ) : (
+                          <span className="font-medium text-gray-700">{pos.name}</span>
+                        )}
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {editingPos?.id === pos.id ? (
+                            <>
+                              <button
+                                onClick={handleUpdatePosition}
+                                className="p-1 text-emerald-600 hover:bg-emerald-100 rounded"
+                              >
+                                <Save className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setEditingPos(null)}
+                                className="p-1 text-gray-400 hover:bg-gray-200 rounded"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => setEditingPos({ id: pos.id, name: pos.name })}
+                                className="p-1 text-gray-400 hover:bg-gray-200 rounded"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeletePosition(pos.id)}
+                                className="p-1 text-red-400 hover:bg-red-100 rounded"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )) : (
+                      <p className="text-sm text-gray-400 py-4 text-center">Должностей пока нет</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
             {activeTab === 'Навыки' && (
-              <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Навыки</p>
-                    <h2 className="mt-2 text-xl font-semibold">Библиотека и назначение</h2>
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-4 w-4 text-emerald-500" />
+                    <h3 className="font-semibold text-gray-900">Библиотека навыков</h3>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400 disabled:cursor-not-allowed"
-                      type="button"
-                      disabled
-                      title="CRUD по навыкам появится после интеграции"
-                    >
-                      <ListChecks className="mr-1 inline h-3.5 w-3.5" /> Добавить навык
-                    </button>
-                    <button
-                      className="rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400 disabled:cursor-not-allowed"
-                      type="button"
-                      disabled
-                      title="Назначение навыков подключим позже"
-                    >
-                      <BadgeCheck className="mr-1 inline h-3.5 w-3.5" /> Назначить
-                    </button>
-                  </div>
+                  <span className="text-xs text-gray-400">{skills.length} навыков</span>
                 </div>
-                {skillsState.loading ? (
-                  <p className="mt-5 text-sm text-gray-500">Загружаем навыки...</p>
-                ) : skillsState.items.length ? (
-                  <div className="mt-5 grid gap-4 md:grid-cols-2">
-                    {skillsState.items.map((skill) => (
-                      <div key={skill.id} className="rounded-3xl border border-gray-100 bg-gray-50/80 p-4">
-                        <p className="text-sm font-semibold text-gray-900">{skill.name}</p>
-                        <p className="text-xs text-gray-500">ID: {skill.id}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-5 rounded-3xl border border-dashed border-gray-200 px-4 py-6 text-sm text-gray-500">
-                    {skillsState.error ? `Ошибка: ${skillsState.error}` : 'Навыков пока нет.'}
-                  </p>
-                )}
+
+                {/* Add new skill */}
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    value={newSkillName}
+                    onChange={(e) => setNewSkillName(e.target.value)}
+                    placeholder="Название навыка"
+                    className="flex-1 max-w-xs rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-emerald-400 focus:outline-none"
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreateSkill()}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCreateSkill}
+                    disabled={!newSkillName.trim() || submitting}
+                    className="rounded-lg bg-emerald-500 px-3 py-1.5 text-white hover:bg-emerald-600 disabled:opacity-50"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2 max-h-[300px] overflow-y-auto">
+                  {skills.length ? skills.map((skill) => (
+                    <span key={skill.id} className="group inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
+                      {skill.name}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSkill(skill.id, skill.name)}
+                        disabled={submitting}
+                        className="ml-1 rounded-full p-0.5 text-emerald-400 hover:bg-emerald-100 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Удалить навык"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )) : (
+                    <p className="text-sm text-gray-400 py-4 w-full text-center">Навыков пока нет</p>
+                  )}
+                </div>
               </div>
             )}
           </div>
 
-          <aside className="space-y-6">
-            <div className="rounded-[32px] border border-gray-100 bg-white/95 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">API</p>
-              <h3 className="mt-3 text-lg font-semibold text-gray-900">EmployeeService маршруты</h3>
-              <ul className="mt-4 space-y-3 text-sm text-gray-600">
-                <li className="flex items-start gap-3">
-                  <Users className="mt-0.5 h-4 w-4 text-emerald-500" /> Create/List/Update Profile
-                </li>
-                <li className="flex items-start gap-3">
-                  <Settings2 className="mt-0.5 h-4 w-4 text-emerald-500" /> Departments & Positions CRUD
-                </li>
-                <li className="flex items-start gap-3">
-                  <ListChecks className="mt-0.5 h-4 w-4 text-emerald-500" /> Skills registry + assignments
-                </li>
-                <li className="flex items-start gap-3">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-500" /> Аккаунт статус / блокировки
-                </li>
-              </ul>
-              <p className="mt-4 rounded-2xl bg-emerald-50/80 px-4 py-3 text-xs text-emerald-700">
-                Позже подключим gRPC/REST и состояния. Сейчас это референс дизайна.
-              </p>
-            </div>
+          {/* Sidebar - Create/Edit Form */}
+          <div className="lg:col-span-1">
+            {showForm ? (
+              <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sticky top-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900">
+                    {editingId ? 'Редактировать' : 'Новый сотрудник'}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
 
-            <div className="rounded-[32px] border border-gray-100 bg-white/90 p-6 shadow-[0_20px_70px_rgba(6,95,70,0.08)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-gray-400">Процессы</p>
-              <ul className="mt-4 space-y-3 text-sm text-gray-600">
-                <li className="flex items-start gap-3">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-500" />
-                  Роли и доступы из login-service (role field)
-                </li>
-                <li className="flex items-start gap-3">
-                  <UserCog className="mt-0.5 h-4 w-4 text-emerald-500" />
-                  Аккаунт активен/заморожен через ChangeUserStatusProfile
-                </li>
-                <li className="flex items-start gap-3">
-                  <Settings2 className="mt-0.5 h-4 w-4 text-emerald-500" />
-                  Departments/Positions синхронизируются с оргструктурой
-                </li>
-              </ul>
+                <form onSubmit={handleSubmit} className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Имя *</label>
+                      <input
+                        value={form.firstName}
+                        onChange={handleFormChange('firstName')}
+                        placeholder="Иван"
+                        required
+                        className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Фамилия *</label>
+                      <input
+                        value={form.lastName}
+                        onChange={handleFormChange('lastName')}
+                        placeholder="Петров"
+                        required
+                        className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Email *</label>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={handleFormChange('email')}
+                      placeholder="email@company.ru"
+                      required
+                      className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Отдел</label>
+                      <select
+                        value={form.departmentId}
+                        onChange={handleFormChange('departmentId')}
+                        className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                      >
+                        <option value="">Не выбран</option>
+                        {departments.map((d) => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Должность *</label>
+                      <select
+                        value={form.positionId}
+                        onChange={handleFormChange('positionId')}
+                        required
+                        className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                      >
+                        <option value="">Выберите</option>
+                        {positions.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Дата приёма *</label>
+                    <input
+                      type="date"
+                      value={form.hireDate}
+                      onChange={handleFormChange('hireDate')}
+                      required
+                      className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <hr className="border-gray-100" />
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Логин *</label>
+                      <input
+                        value={form.login}
+                        onChange={handleFormChange('login')}
+                        placeholder="ivanov"
+                        required
+                        className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Роль *</label>
+                      <select
+                        value={form.role}
+                        onChange={handleFormChange('role')}
+                        required
+                        className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                      >
+                        {roles.map((r) => (
+                          <option key={r.value} value={r.value}>{r.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">
+                      Пароль {editingId ? '(оставьте пустым, чтобы не менять)' : '*'}
+                    </label>
+                    <input
+                      type="password"
+                      value={form.password}
+                      onChange={handleFormChange('password')}
+                      placeholder="••••••••"
+                      required={!editingId}
+                      minLength={6}
+                      className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-60"
+                  >
+                    {submitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    {editingId ? 'Сохранить изменения' : 'Создать сотрудника'}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-6 text-center">
+                <User className="mx-auto h-8 w-8 text-gray-300" />
+                <p className="mt-2 text-sm text-gray-500">
+                  Нажмите «Добавить», чтобы создать нового сотрудника
+                </p>
+                <button
+                  type="button"
+                  onClick={openCreateForm}
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
+                >
+                  <Plus className="h-4 w-4" />
+                  Добавить сотрудника
+                </button>
+              </div>
+            )}
+
+            {/* Quick Stats */}
+            <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Статистика</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Всего сотрудников</span>
+                  <span className="font-semibold text-gray-900">{totalCount}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Отделов</span>
+                  <span className="font-semibold text-gray-900">{departments.length}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Должностей</span>
+                  <span className="font-semibold text-gray-900">{positions.length}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Навыков</span>
+                  <span className="font-semibold text-gray-900">{skills.length}</span>
+                </div>
+              </div>
             </div>
-          </aside>
-        </section>
+          </div>
+        </div>
       </div>
     </div>
   );

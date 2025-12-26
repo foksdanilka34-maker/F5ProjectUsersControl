@@ -46,6 +46,7 @@ func (h *ProfileHTTPHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Skills
 	mux.HandleFunc("POST /api/v1/skills", h.CreateSkill)
 	mux.HandleFunc("GET /api/v1/skills", h.ListSkills)
+	mux.HandleFunc("DELETE /api/v1/skills/{id}", h.DeleteSkill)
 }
 
 func (h *ProfileHTTPHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -421,6 +422,24 @@ func (h *ProfileHTTPHandler) ListSkills(w http.ResponseWriter, r *http.Request) 
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{"skills": skills})
+}
+
+func (h *ProfileHTTPHandler) DeleteSkill(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := parseID(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid id"}`, http.StatusBadRequest)
+		return
+	}
+
+	_, err = h.client.DeleteSkill(r.Context(), &pb.DeleteSkillRequest{Id: id})
+	if err != nil {
+		log.Println("skill delete error:", err)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *ProfileHTTPHandler) AddSkillToProfile(w http.ResponseWriter, r *http.Request) {
