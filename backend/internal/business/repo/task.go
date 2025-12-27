@@ -60,10 +60,10 @@ func (r *TaskRepo) List(ctx context.Context, pageSize, offset int, projectID, as
 		countBuilder = countBuilder.Where(sq.Eq{"t.assignee_id": assigneeID})
 	}
 	if status != "" {
-		countBuilder = countBuilder.Where(sq.Eq{"t.status": status})
+		countBuilder = countBuilder.Where(sq.Expr("UPPER(t.status) = UPPER(?)", status))
 	}
 	if priority != "" {
-		countBuilder = countBuilder.Where(sq.Eq{"t.priority": priority})
+		countBuilder = countBuilder.Where(sq.Expr("LOWER(t.priority) = LOWER(?)", priority))
 	}
 
 	countQuery, countArgs, err := countBuilder.ToSql()
@@ -94,10 +94,10 @@ func (r *TaskRepo) List(ctx context.Context, pageSize, offset int, projectID, as
 		selectBuilder = selectBuilder.Where(sq.Eq{"t.assignee_id": assigneeID})
 	}
 	if status != "" {
-		selectBuilder = selectBuilder.Where(sq.Eq{"t.status": status})
+		selectBuilder = selectBuilder.Where(sq.Expr("UPPER(t.status) = UPPER(?)", status))
 	}
 	if priority != "" {
-		selectBuilder = selectBuilder.Where(sq.Eq{"t.priority": priority})
+		selectBuilder = selectBuilder.Where(sq.Expr("LOWER(t.priority) = LOWER(?)", priority))
 	}
 
 	query, args, err := selectBuilder.ToSql()
@@ -138,7 +138,7 @@ func (r *TaskRepo) Update(ctx context.Context, id int64, title, description, sta
 	if status != nil {
 		builder = builder.Set("status", *status)
 		// Устанавливаем completed_at когда задача завершена
-		if *status == "done" {
+		if *status == "DONE" {
 			builder = builder.Set("completed_at", time.Now())
 		} else {
 			// Сбрасываем completed_at если задача возвращена в работу
@@ -185,7 +185,7 @@ func (r *TaskRepo) GetUserTasks(ctx context.Context, userID int64, status string
 	`
 	args := []interface{}{userID}
 	if status != "" {
-		query += " AND t.status = $2"
+		query += " AND UPPER(t.status) = UPPER($2)"
 		args = append(args, status)
 	}
 	query += " ORDER BY t.due_date ASC NULLS LAST, t.priority DESC"

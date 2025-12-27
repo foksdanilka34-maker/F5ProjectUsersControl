@@ -29,8 +29,10 @@ func NewTaskHTTPHandler(client pb.BusinessServiceClient, wsHub *websocket.Hub) *
 // broadcastTaskEvent отправляет событие через WebSocket всем подключённым клиентам
 func (h *TaskHTTPHandler) broadcastTaskEvent(eventType string, payload interface{}) {
 	if h.wsHub == nil {
+		log.Println("[WS] Hub is nil, skipping broadcast")
 		return
 	}
+	log.Printf("[WS] Broadcasting event: %s to %d clients", eventType, h.wsHub.ClientCount())
 	h.wsHub.BroadcastJSON(WSEvent{
 		Type:    eventType,
 		Payload: payload,

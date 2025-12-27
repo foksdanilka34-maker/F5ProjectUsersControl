@@ -44,7 +44,7 @@ CREATE TABLE business.tasks (
     assignee_id BIGINT,
     creator_id BIGINT,
     status VARCHAR(50) NOT NULL DEFAULT 'TODO',
-    priority INTEGER NOT NULL DEFAULT 2,
+    priority VARCHAR(50) NOT NULL DEFAULT 'medium',
     order_index INTEGER NOT NULL DEFAULT 0,
     due_date TIMESTAMP WITH TIME ZONE,
     started_at TIMESTAMP WITH TIME ZONE,
@@ -56,15 +56,20 @@ CREATE TABLE business.tasks (
 CREATE INDEX idx_tasks_project_id ON business.tasks(project_id);
 CREATE INDEX idx_tasks_assignee_id ON business.tasks(assignee_id);
 CREATE INDEX idx_tasks_status ON business.tasks(status);
+CREATE INDEX idx_tasks_priority ON business.tasks(priority);
 CREATE INDEX idx_tasks_due_date ON business.tasks(due_date);
 
--- Task status constraint
+-- Task status constraint (always UPPERCASE)
 ALTER TABLE business.tasks ADD CONSTRAINT chk_task_status 
     CHECK (status IN ('TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'));
 
--- Task priority constraint (1=low, 2=medium, 3=high, 4=critical)
+-- Task priority constraint (always lowercase strings)
 ALTER TABLE business.tasks ADD CONSTRAINT chk_task_priority 
-    CHECK (priority BETWEEN 1 AND 4);
+    CHECK (priority IN ('low', 'medium', 'high', 'critical'));
+
+-- Add comments for documentation
+COMMENT ON COLUMN business.tasks.status IS 'Task status: TODO, IN_PROGRESS, IN_REVIEW, DONE (always UPPERCASE)';
+COMMENT ON COLUMN business.tasks.priority IS 'Task priority: low, medium, high, critical (always lowercase)';
 
 -- Project status constraint
 ALTER TABLE business.projects ADD CONSTRAINT chk_project_status 

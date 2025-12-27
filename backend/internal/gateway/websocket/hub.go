@@ -76,9 +76,10 @@ func (h *Hub) Run() {
 func (h *Hub) BroadcastJSON(v interface{}) {
 	data, err := json.Marshal(v)
 	if err != nil {
-		log.Printf("failed to marshal broadcast message: %v", err)
+		log.Printf("[WS Hub] Failed to marshal broadcast message: %v", err)
 		return
 	}
+	log.Printf("[WS Hub] Broadcasting message to %d clients: %s", h.ClientCount(), string(data))
 	h.broadcast <- data
 }
 

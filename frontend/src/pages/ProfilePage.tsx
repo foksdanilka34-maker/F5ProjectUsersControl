@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -78,18 +78,30 @@ export default function ProfilePage() {
 
   // WebSocket подписка для обновления метрик в реальном времени
   const { isConnected, subscribe } = useWebSocket();
+
+  // Функция загрузки метрик
+  const loadMetrics = useCallback(async () => {
+    if (!profileId) return;
+    try {
+      const data = await getEmployeeMetrics(profileId);
+      console.log('[Profile] Metrics reloaded:', data);
+      setMetrics(data);
+    } catch (err) {
+      console.error('[Profile] Failed to reload metrics:', err);
+    }
+  }, [profileId]);
+  
+  // Реф для стабильной функции загрузки метрик
+  const loadMetricsRef = useRef(loadMetrics);
+  loadMetricsRef.current = loadMetrics;
   
   useEffect(() => {
     if (!profileId) return;
 
     // Обработчик событий задач - перезагружаем метрики при любых изменениях
     const reloadMetrics = () => {
-      getEmployeeMetrics(profileId)
-        .then((data) => {
-          console.log('[WS] Metrics updated:', data);
-          setMetrics(data);
-        })
-        .catch(console.error);
+      console.log('[Profile] Task event received, reloading metrics...');
+      loadMetricsRef.current();
     };
 
     // Подписываемся на все события, влияющие на метрики
@@ -106,7 +118,7 @@ export default function ProfilePage() {
       unsubMoved();
       unsubAssigned();
     };
-  }, [profileId, subscribe]);
+  }, [profileId, subscribe]); // Убираем loadMetrics, используем ref
 
   const handleSave = async () => {
     if (!profileId || !profile) return;

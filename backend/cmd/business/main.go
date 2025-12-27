@@ -30,6 +30,7 @@ func main() {
 		User:     dbUser,
 		Password: dbPassword,
 		Database: dbName,
+		Schema:   "business", // Явно указываем схему business
 	})
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)

@@ -1,13 +1,16 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	pb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/identity"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -131,7 +134,10 @@ func (h *AuthHTTPHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.client.Refresh(ctx, &emptypb.Empty{})
 	if err != nil {
-		log.Println("auth refresh error:", err)
+		// Don't log context canceled errors (normal when client disconnects)
+		if r.Context().Err() != context.Canceled && status.Code(err) != codes.Canceled {
+			log.Println("auth refresh error:", err)
+		}
 		// Clear invalid cookie
 		http.SetCookie(w, &http.Cookie{
 			Name:     refreshTokenCookieName,

@@ -310,7 +310,7 @@ func (s *BusinessServer) ListProjectMembers(ctx context.Context, req *business.L
 
 func (s *BusinessServer) GetEmployeeMetrics(ctx context.Context, req *business.GetEmployeeMetricsRequest) (*business.EmployeeMetricsResponse, error) {
 	log.Printf("GetEmployeeMetrics called for employee_id: %d", req.EmployeeId)
-	
+
 	analytics, err := s.analyticsService.GetEmployeeAnalytics(ctx, req.EmployeeId)
 	if err != nil {
 		log.Printf("GetEmployeeAnalytics error: %v", err)
@@ -328,32 +328,31 @@ func (s *BusinessServer) GetEmployeeMetrics(ctx context.Context, req *business.G
 	}
 
 	// Простой процент вовремя (без учёта веса) для отображения
+	// Считаем только среди ЗАВЕРШЁННЫХ задач
 	var onTimeRate float64
 	if analytics.CompletedTasks > 0 {
 		onTimeRate = float64(analytics.CompletedOnTime) / float64(analytics.CompletedTasks) * 100
 	} else {
-		onTimeRate = 100 // Без завершённых задач считаем что пока всё в срок
+		onTimeRate = 0 // Нет завершённых задач - нечего оценивать
 	}
 
 	// ВЗВЕШЕННАЯ эффективность с учётом приоритета задач
-	// Формула: (WeightedOnTime / WeightedTotal) * (CompletedTasks / AssignedTasks) * 100
-	// Веса: critical=4, high=3, medium=2, low=1
-	// Пример: 1 critical просрочена (вес 4), 1 low вовремя (вес 1)
-	// Обычная формула: 50% вовремя
-	// Взвешенная: 1/5 = 20% вовремя → если всё выполнено, эффективность = 20%
+	// Считается ТОЛЬКО по завершённым задачам
+	// Формула: (WeightedOnTime / WeightedTotal) * 100
 	var weightedOnTimeRate float64
 	if analytics.WeightedTotal > 0 {
 		weightedOnTimeRate = analytics.WeightedOnTime / analytics.WeightedTotal * 100
 	} else {
-		weightedOnTimeRate = 100 // Без завершённых задач считаем 100%
+		weightedOnTimeRate = 0 // Нет завершённых задач - эффективность 0
 	}
 
 	// Итоговая эффективность = completionRate * weightedOnTimeRate / 100
+	// Если ничего не выполнено, эффективность = 0
 	var efficiency float64
-	if analytics.AssignedTasks > 0 {
+	if analytics.CompletedTasks > 0 && analytics.AssignedTasks > 0 {
 		efficiency = completionRate * weightedOnTimeRate / 100
 	} else {
-		efficiency = 100 // Без задач считаем 100%
+		efficiency = 0 // Без выполненных задач эффективность 0
 	}
 
 	log.Printf("Calculated rates: completion=%.2f%%, on_time=%.2f%%, weighted_on_time=%.2f%%, efficiency=%.2f%%",
@@ -368,7 +367,7 @@ func (s *BusinessServer) GetEmployeeMetrics(ctx context.Context, req *business.G
 			CompletedLate:   analytics.CompletedLate,
 			InProgressTasks: analytics.InProgressTasks,
 			OverdueTasks:    analytics.OverdueTasks,
-			CompletionRate:  efficiency,        // Взвешенная эффективность
+			CompletionRate:  efficiency,         // Взвешенная эффективность
 			OnTimeRate:      weightedOnTimeRate, // Взвешенный % вовремя
 		},
 	}, nil
@@ -571,27 +570,27 @@ func stringToProtoStatus(s string) business.ProjectStatus {
 func protoTaskStatusToString(s business.TaskStatus) string {
 	switch s {
 	case business.TaskStatus_TODO:
-		return "todo"
+		return "TODO"
 	case business.TaskStatus_IN_PROGRESS:
-		return "in_progress"
+		return "IN_PROGRESS"
 	case business.TaskStatus_REVIEW:
-		return "review"
+		return "IN_REVIEW"
 	case business.TaskStatus_DONE:
-		return "done"
+		return "DONE"
 	default:
-		return "todo"
+		return "TODO"
 	}
 }
 
 func stringToProtoTaskStatus(s string) business.TaskStatus {
 	switch s {
-	case "todo":
+	case "TODO":
 		return business.TaskStatus_TODO
-	case "in_progress":
+	case "IN_PROGRESS":
 		return business.TaskStatus_IN_PROGRESS
-	case "review":
+	case "IN_REVIEW":
 		return business.TaskStatus_REVIEW
-	case "done":
+	case "DONE":
 		return business.TaskStatus_DONE
 	default:
 		return business.TaskStatus_TASK_STATUS_UNSPECIFIED

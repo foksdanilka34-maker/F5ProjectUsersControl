@@ -45,7 +45,9 @@ export default function DashboardPage() {
 
   const loadStats = useCallback(async () => {
     try {
+      console.log('[Dashboard] Loading stats...');
       const data = await getDashboardStats();
+      console.log('[Dashboard] Stats loaded:', data);
       setStats(data);
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -53,6 +55,10 @@ export default function DashboardPage() {
       setLoadingStats(false);
     }
   }, []);
+
+  // Реф для loadStats чтобы избежать пересоздания подписок
+  const loadStatsRef = useRef(loadStats);
+  loadStatsRef.current = loadStats;
 
   useEffect(() => {
     const loadProjects = async () => {
@@ -74,9 +80,10 @@ export default function DashboardPage() {
 
   // WebSocket: обновляем статистику при изменении задач
   useEffect(() => {
+    // Используем стабильную функцию через ref
     const reloadStats = () => {
       console.log('[Dashboard] Task event received, reloading stats...');
-      loadStats();
+      loadStatsRef.current();
     };
 
     const unsubCreated = subscribe('task:created', reloadStats);
@@ -92,7 +99,7 @@ export default function DashboardPage() {
       unsubMoved();
       unsubAssigned();
     };
-  }, [subscribe, loadStats]);
+  }, [subscribe]); // Убираем loadStats из зависимостей, используем ref
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

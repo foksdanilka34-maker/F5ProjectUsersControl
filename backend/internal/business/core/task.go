@@ -53,7 +53,7 @@ func (s *TaskService) CreateTask(ctx context.Context, req *CreateTaskRequest) (*
 		ProjectID:   req.ProjectID,
 		Title:       req.Title,
 		Description: req.Description,
-		Status:      "todo",
+		Status:      "TODO",
 		Priority:    priority,
 		AssigneeID:  req.AssigneeID,
 		CreatorID:   req.CreatorID,

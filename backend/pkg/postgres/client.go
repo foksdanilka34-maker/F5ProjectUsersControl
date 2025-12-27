@@ -14,11 +14,16 @@ type Config struct {
 	User     string
 	Password string
 	Database string
+	Schema   string // Схема для search_path, если не указана - используется имя базы
 }
 
 func Connect(ctx context.Context, cfg *Config) (*pgxpool.Pool, error) {
+	schema := cfg.Schema
+	if schema == "" {
+		schema = cfg.Database
+	}
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s",
-		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.Database)
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database, schema)
 
 	poolConfig, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
@@ -26,10 +31,10 @@ func Connect(ctx context.Context, cfg *Config) (*pgxpool.Pool, error) {
 	}
 
 	// Optimize pool settings
-	poolConfig.MinConns = 2                        // Keep warm connections
-	poolConfig.MaxConns = 10                       // Max connections
-	poolConfig.MaxConnLifetime = 30 * time.Minute  // Connection lifetime
-	poolConfig.MaxConnIdleTime = 5 * time.Minute   // Idle timeout
+	poolConfig.MinConns = 2                       // Keep warm connections
+	poolConfig.MaxConns = 10                      // Max connections
+	poolConfig.MaxConnLifetime = 30 * time.Minute // Connection lifetime
+	poolConfig.MaxConnIdleTime = 5 * time.Minute  // Idle timeout
 	poolConfig.HealthCheckPeriod = 30 * time.Second
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)

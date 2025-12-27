@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -8,6 +9,8 @@ import (
 	"strings"
 
 	pb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/business"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type ProjectHTTPHandler struct {
@@ -125,7 +128,10 @@ func (h *ProjectHTTPHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.client.ListProjects(r.Context(), pbReq)
 	if err != nil {
-		log.Println("project list error:", err)
+		// Don't log context canceled errors (normal when client disconnects)
+		if r.Context().Err() != context.Canceled && status.Code(err) != codes.Canceled {
+			log.Println("project list error:", err)
+		}
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}

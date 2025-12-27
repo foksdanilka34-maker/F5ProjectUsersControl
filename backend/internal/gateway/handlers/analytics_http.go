@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"net/http"
 
 	pb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/business"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type AnalyticsHTTPHandler struct {
@@ -109,7 +112,10 @@ func (h *AnalyticsHTTPHandler) GetEmployeeAnalytics(w http.ResponseWriter, r *ht
 func (h *AnalyticsHTTPHandler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.client.GetDashboardStats(r.Context(), &pb.GetDashboardStatsRequest{})
 	if err != nil {
-		log.Println("dashboard error:", err)
+		// Don't log context canceled errors (normal when client disconnects)
+		if r.Context().Err() != context.Canceled && status.Code(err) != codes.Canceled {
+			log.Println("dashboard error:", err)
+		}
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
 	}
