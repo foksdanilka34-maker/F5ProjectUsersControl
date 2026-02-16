@@ -8,14 +8,12 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
 service BusinessService {
-    // Project
     rpc CreateProject(CreateProjectRequest) returns (Project);
     rpc GetProject(GetProjectRequest) returns (Project);
     rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
     rpc UpdateProject(UpdateProjectRequest) returns (Project);
     rpc DeleteProject(DeleteProjectRequest) returns (google.protobuf.Empty);
 
-    // Task
     rpc CreateTask(CreateTaskRequest) returns (Task);
     rpc GetTask(GetTaskRequest) returns (Task);
     rpc UpdateTask(UpdateTaskRequest) returns (Task);
@@ -24,12 +22,10 @@ service BusinessService {
     rpc AssignTask(AssignTaskRequest) returns (Task);
     rpc ListTasksByProject(ListTasksByProjectRequest) returns (ListTasksByProjectResponse);
 
-    // Members
     rpc AddMemberToProject(AddMemberToProjectRequest) returns (google.protobuf.Empty);
     rpc RemoveMemberFromProject(RemoveMemberFromProjectRequest) returns (google.protobuf.Empty);
     rpc ListProjectMembers(ListProjectMembersRequest) returns (ListProjectMembersResponse);
 
-    // Analytics
     rpc GetEmployeeMetrics(GetEmployeeMetricsRequest) returns (EmployeeMetricsResponse);
     rpc ListEmployeeMetrics(ListEmployeeMetricsRequest) returns (ListEmployeeMetricsResponse);
     rpc GetTopPerformers(GetTopPerformersRequest) returns (ListEmployeeMetricsResponse);
@@ -43,7 +39,6 @@ service BusinessService {
     rpc GetDashboardStats(GetDashboardStatsRequest) returns (DashboardStatsResponse);
 }
 
-// Enums
 enum TaskStatus {
     TASK_STATUS_UNSPECIFIED = 0;
     TODO = 1;

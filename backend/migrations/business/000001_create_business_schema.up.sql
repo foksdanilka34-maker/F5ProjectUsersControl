@@ -16,7 +16,8 @@ CREATE TABLE business.projects (
     description TEXT,
     owner_id BIGINT NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
-    deadline TIMESTAMP WITH TIME ZONE,
+    start_date TIMESTAMP WITH TIME ZONE,
+    end_date TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );

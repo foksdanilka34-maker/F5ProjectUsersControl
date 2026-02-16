@@ -54,7 +54,7 @@ func (s *ProjectService) CreateProject(ctx context.Context, req *CreateProjectRe
 	project := &repo.Project{
 		Name:        req.Name,
 		Description: req.Description,
-		Status:      "active",
+		Status:      "ACTIVE",
 		OwnerID:     req.OwnerID,
 		StartDate:   req.StartDate,
 		EndDate:     req.EndDate,
