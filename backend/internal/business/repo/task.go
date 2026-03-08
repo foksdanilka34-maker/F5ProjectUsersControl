@@ -51,7 +51,7 @@ func (r *TaskRepo) GetByID(ctx context.Context, id int64) (*Task, error) {
 }
 
 func (r *TaskRepo) List(ctx context.Context, pageSize, offset int, projectID, assigneeID int64, status, priority string) ([]*Task, int, error) {
-	// Count query
+
 	countBuilder := psql.Select("COUNT(*)").From("tasks t")
 	if projectID > 0 {
 		countBuilder = countBuilder.Where(sq.Eq{"t.project_id": projectID})
@@ -76,7 +76,6 @@ func (r *TaskRepo) List(ctx context.Context, pageSize, offset int, projectID, as
 		return nil, 0, err
 	}
 
-	// Select query
 	selectBuilder := psql.Select(
 		"t.id", "t.project_id", "t.title", "t.description", "t.status", "t.priority",
 		"t.assignee_id", "t.creator_id", "t.due_date", "t.created_at", "t.updated_at",
@@ -137,11 +136,11 @@ func (r *TaskRepo) Update(ctx context.Context, id int64, title, description, sta
 	}
 	if status != nil {
 		builder = builder.Set("status", *status)
-		// Устанавливаем completed_at когда задача завершена
+
 		if *status == "DONE" {
 			builder = builder.Set("completed_at", time.Now())
 		} else {
-			// Сбрасываем completed_at если задача возвращена в работу
+
 			builder = builder.Set("completed_at", nil)
 		}
 	}
@@ -210,7 +209,6 @@ func (r *TaskRepo) GetUserTasks(ctx context.Context, userID int64, status string
 	return tasks, nil
 }
 
-// Task Comments
 func (r *TaskRepo) CreateComment(ctx context.Context, c *TaskComment) (int64, error) {
 	var id int64
 	query := `INSERT INTO task_comments (task_id, user_id, content, created_at) VALUES ($1, $2, $3, $4) RETURNING id`
@@ -242,7 +240,6 @@ func (r *TaskRepo) DeleteComment(ctx context.Context, id int64) error {
 	return err
 }
 
-// Task History
 func (r *TaskRepo) AddHistory(ctx context.Context, h *TaskHistory) error {
 	query := `INSERT INTO task_history (task_id, user_id, field, old_value, new_value, changed_at) VALUES ($1, $2, $3, $4, $5, $6)`
 	_, err := r.db.Exec(ctx, query, h.TaskID, h.UserID, h.Field, h.OldValue, h.NewValue, h.ChangedAt)
@@ -267,3 +264,5 @@ func (r *TaskRepo) GetHistory(ctx context.Context, taskID int64) ([]*TaskHistory
 	}
 	return history, nil
 }
+
+

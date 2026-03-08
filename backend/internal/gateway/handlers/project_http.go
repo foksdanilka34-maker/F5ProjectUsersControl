@@ -61,7 +61,7 @@ func (h *ProjectHTTPHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("project create error:", err)
 		errMsg := err.Error()
-		// Проверяем на ошибку уникальности
+
 		if strings.Contains(errMsg, "already exists") {
 			http.Error(w, `{"error":"Проект с таким именем уже существует"}`, http.StatusConflict)
 			return
@@ -128,7 +128,7 @@ func (h *ProjectHTTPHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.client.ListProjects(r.Context(), pbReq)
 	if err != nil {
-		// Don't log context canceled errors (normal when client disconnects)
+
 		if r.Context().Err() != context.Canceled && status.Code(err) != codes.Canceled {
 			log.Println("project list error:", err)
 		}
@@ -305,3 +305,5 @@ func projectToMap(p *pb.Project) map[string]interface{} {
 	}
 	return resp
 }
+
+

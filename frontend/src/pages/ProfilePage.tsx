@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  ArrowLeft,
   Award,
   Briefcase,
   Calendar,
@@ -12,10 +11,22 @@ import {
   Save,
   TrendingUp,
   User,
-  Wifi,
-  WifiOff,
   X,
 } from 'lucide-react';
+import {
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Cell,
+} from 'recharts';
 import Avatar from '../components/Avatar';
 
 import { useAuth } from '../context/AuthContext';
@@ -36,7 +47,6 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  // Edit form state
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -76,10 +86,8 @@ export default function ProfilePage() {
     loadData();
   }, [loadData]);
 
-  // WebSocket подписка для обновления метрик в реальном времени
-  const { isConnected, subscribe } = useWebSocket();
+  const { subscribe } = useWebSocket();
 
-  // Функция загрузки метрик
   const loadMetrics = useCallback(async () => {
     if (!profileId) return;
     try {
@@ -90,21 +98,18 @@ export default function ProfilePage() {
       console.error('[Profile] Failed to reload metrics:', err);
     }
   }, [profileId]);
-  
-  // Реф для стабильной функции загрузки метрик
+
   const loadMetricsRef = useRef(loadMetrics);
   loadMetricsRef.current = loadMetrics;
   
   useEffect(() => {
     if (!profileId) return;
 
-    // Обработчик событий задач - перезагружаем метрики при любых изменениях
     const reloadMetrics = () => {
       console.log('[Profile] Task event received, reloading metrics...');
       loadMetricsRef.current();
     };
 
-    // Подписываемся на все события, влияющие на метрики
     const unsubCreated = subscribe('task:created', reloadMetrics);
     const unsubUpdated = subscribe('task:updated', reloadMetrics);
     const unsubDeleted = subscribe('task:deleted', reloadMetrics);
@@ -130,7 +135,7 @@ export default function ProfilePage() {
         last_name: lastName,
         email,
       };
-      // Включаем avatar_url только если он изменился
+
       if (avatarUrl !== (profile.avatar_url || null)) {
         payload.avatar_url = avatarUrl || null;
       }
@@ -169,10 +174,9 @@ export default function ProfilePage() {
     );
   }
 
-  // completion_rate теперь содержит комбинированную эффективность (completionRate * onTimeRate / 100)
   const efficiency = safePercent(metrics?.completion_rate || 0);
   const onTimeRate = safePercent(metrics?.on_time_rate || 0);
-  // Рассчитываем процент выполненных от назначенных для отображения
+
   const taskCompletionPercent = metrics && metrics.assigned_tasks > 0
     ? safePercent((metrics.completed_tasks / metrics.assigned_tasks) * 100)
     : 0;
@@ -180,41 +184,14 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-white text-gray-900">
       <div className="mx-auto max-w-4xl px-4 py-6">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">
-                {isOwnProfile ? 'Мой профиль' : 'Профиль сотрудника'}
-              </p>
-              {/* WebSocket индикатор */}
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                  isConnected
-                    ? 'bg-emerald-50 text-emerald-600'
-                    : 'bg-gray-100 text-gray-500'
-                }`}
-                title={isConnected ? 'Live-обновления включены' : 'Нет соединения'}
-              >
-                {isConnected ? (
-                  <Wifi className="h-3 w-3" />
-                ) : (
-                  <WifiOff className="h-3 w-3" />
-                )}
-                {isConnected ? 'Live' : 'Offline'}
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {profile.first_name} {profile.last_name}
-            </h1>
-          </div>
-          <Link
-            to={isOwnProfile ? '/' : '/admin/employees'}
-            className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Назад
-          </Link>
+        {}
+        <header className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">
+            {isOwnProfile ? 'Мой профиль' : 'Профиль сотрудника'}
+          </p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {profile.first_name} {profile.last_name}
+          </h1>
         </header>
 
         {error && (
@@ -224,7 +201,7 @@ export default function ProfilePage() {
         )}
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Profile Info Card */}
+          {}
           <div className="lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-4">
@@ -341,7 +318,7 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Info Grid */}
+            {}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex items-center gap-3 rounded-xl border border-gray-100 p-4">
                 <div className="rounded-lg bg-blue-50 p-2">
@@ -386,7 +363,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Skills */}
+            {}
             {profile.skills && profile.skills.length > 0 && (
               <div className="mt-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Навыки</h3>
@@ -405,11 +382,11 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Metrics Card */}
+          {}
           <div className="space-y-4">
-            {/* Efficiency */}
+            {/* Radar chart — employee performance */}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-3">
                 <div className="rounded-xl bg-emerald-50 p-2.5">
                   <TrendingUp className="h-5 w-5 text-emerald-600" />
                 </div>
@@ -418,72 +395,158 @@ export default function ProfilePage() {
                   <p className="text-xl font-bold text-gray-900">{efficiency}%</p>
                 </div>
               </div>
-              <div className="space-y-3">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-500">Выполнено задач</span>
-                    <span className="font-medium">{taskCompletionPercent}%</span>
+              {metrics ? (
+                (() => {
+                  const load = metrics.assigned_tasks > 0
+                    ? Math.min(100, Math.round((metrics.in_progress_tasks / metrics.assigned_tasks) * 100))
+                    : 0;
+                  const reliability = metrics.assigned_tasks > 0
+                    ? Math.min(100, Math.round(((metrics.completed_tasks) / metrics.assigned_tasks) * 100))
+                    : 0;
+                  const radarData = [
+                    { axis: 'Продуктивность', value: efficiency },
+                    { axis: 'Пунктуальность', value: onTimeRate },
+                    { axis: 'Загрузка', value: load },
+                    { axis: 'Надёжность', value: reliability },
+                  ];
+                  return (
+                    <div style={{ height: 200 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
+                          <PolarGrid stroke="#e5e7eb" />
+                          <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11, fill: '#6b7280' }} />
+                          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+                          <Radar
+                            dataKey="value"
+                            stroke="#10b981"
+                            fill="#10b981"
+                            fillOpacity={0.25}
+                            strokeWidth={2}
+                          />
+                          <Tooltip
+                            formatter={(value: number) => [`${value}%`]}
+                            contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-500">Выполнено задач</span>
+                      <span className="font-medium">{taskCompletionPercent}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-gray-100">
+                      <div
+                        className="h-2 rounded-full bg-gradient-to-r from-emerald-400 to-lime-400 transition-all"
+                        style={{ width: `${taskCompletionPercent}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 rounded-full bg-gray-100">
-                    <div
-                      className="h-2 rounded-full bg-gradient-to-r from-emerald-400 to-lime-400 transition-all"
-                      style={{ width: `${taskCompletionPercent}%` }}
-                    />
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-500">В срок</span>
+                      <span className="font-medium">{onTimeRate}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-gray-100">
+                      <div
+                        className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 transition-all"
+                        style={{ width: `${onTimeRate}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-500">В срок</span>
-                    <span className="font-medium">{onTimeRate}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-gray-100">
-                    <div
-                      className="h-2 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 transition-all"
-                      style={{ width: `${onTimeRate}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
 
-            {/* Task Stats */}
+            {/* Horizontal stacked bar — task breakdown */}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-medium text-gray-700 mb-4">Статистика задач</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-500" />
-                    <span className="text-sm text-gray-600">Выполнено</span>
+              {metrics ? (
+                (() => {
+                  const barData = [
+                    { name: 'В срок', value: metrics.completed_on_time || 0, color: '#10b981' },
+                    { name: 'С опозданием', value: metrics.completed_late || 0, color: '#f59e0b' },
+                    { name: 'В работе', value: metrics.in_progress_tasks || 0, color: '#3b82f6' },
+                    { name: 'Просрочено', value: metrics.overdue_tasks || 0, color: '#ef4444' },
+                  ];
+                  const total = metrics.assigned_tasks || 0;
+                  return (
+                    <div>
+                      {/* Stacked horizontal bar */}
+                      {total > 0 && (
+                        <div className="mb-4">
+                          <div className="flex h-4 rounded-full overflow-hidden bg-gray-100">
+                            {barData.map((d) =>
+                              d.value > 0 ? (
+                                <div
+                                  key={d.name}
+                                  className="h-full transition-all duration-500"
+                                  style={{
+                                    width: `${(d.value / total) * 100}%`,
+                                    backgroundColor: d.color,
+                                  }}
+                                  title={`${d.name}: ${d.value}`}
+                                />
+                              ) : null,
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mb-4" style={{ height: 160 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={barData} layout="vertical" barCategoryGap={6}>
+                            <XAxis type="number" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                            <YAxis
+                              type="category"
+                              dataKey="name"
+                              tick={{ fontSize: 11, fill: '#6b7280' }}
+                              width={85}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <Tooltip
+                              formatter={(value: number) => [`${value} задач`]}
+                              contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                            />
+                            <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={16}>
+                              {barData.map((d, i) => (
+                                <Cell key={i} fill={d.color} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      <div className="border-t border-gray-100 pt-3 flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Всего назначено</span>
+                        <span className="font-semibold text-gray-900">{total}</span>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                      <span className="text-sm text-gray-600">Выполнено</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">0</span>
                   </div>
-                  <span className="font-semibold text-gray-900">{metrics?.completed_tasks || 0}</span>
-                </div>
-                <div className="flex items-center justify-between pl-6">
-                  <span className="text-xs text-gray-500">• В срок</span>
-                  <span className="text-sm font-medium text-emerald-600">{metrics?.completed_on_time || 0}</span>
-                </div>
-                <div className="flex items-center justify-between pl-6">
-                  <span className="text-xs text-gray-500">• С опозданием</span>
-                  <span className="text-sm font-medium text-amber-600">{metrics?.completed_late || 0}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm text-gray-600">В работе</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm text-gray-600">В работе</span>
+                    </div>
+                    <span className="font-semibold text-gray-900">0</span>
                   </div>
-                  <span className="font-semibold text-gray-900">{metrics?.in_progress_tasks || 0}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-red-500" />
-                    <span className="text-sm text-gray-600">Просрочено</span>
-                  </div>
-                  <span className="font-semibold text-red-600">{metrics?.overdue_tasks || 0}</span>
-                </div>
-                <div className="border-t border-gray-100 pt-3 flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Всего назначено</span>
-                  <span className="font-semibold text-gray-900">{metrics?.assigned_tasks || 0}</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -491,3 +554,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+

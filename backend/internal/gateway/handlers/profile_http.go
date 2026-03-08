@@ -19,31 +19,27 @@ func NewProfileHTTPHandler(client pb.IdentityServiceClient) *ProfileHTTPHandler 
 }
 
 func (h *ProfileHTTPHandler) RegisterRoutes(mux *http.ServeMux) {
-	// Profiles
+
 	mux.HandleFunc("POST /api/v1/profiles", h.Create)
 	mux.HandleFunc("GET /api/v1/profiles", h.List)
 	mux.HandleFunc("GET /api/v1/profiles/{id}", h.Get)
 	mux.HandleFunc("PUT /api/v1/profiles/{id}", h.Update)
 	mux.HandleFunc("DELETE /api/v1/profiles/{id}", h.Delete)
 
-	// Skills для профилей
 	mux.HandleFunc("POST /api/v1/profiles/{id}/skills", h.AddSkillToProfile)
 	mux.HandleFunc("DELETE /api/v1/profiles/{id}/skills/{skillId}", h.RemoveSkillFromProfile)
 
-	// Departments
 	mux.HandleFunc("POST /api/v1/departments", h.CreateDepartment)
 	mux.HandleFunc("GET /api/v1/departments", h.ListDepartments)
 	mux.HandleFunc("GET /api/v1/departments/{id}", h.GetDepartment)
 	mux.HandleFunc("PUT /api/v1/departments/{id}", h.UpdateDepartment)
 	mux.HandleFunc("DELETE /api/v1/departments/{id}", h.DeleteDepartment)
 
-	// Positions
 	mux.HandleFunc("POST /api/v1/positions", h.CreatePosition)
 	mux.HandleFunc("GET /api/v1/positions", h.ListPositions)
 	mux.HandleFunc("PUT /api/v1/positions/{id}", h.UpdatePosition)
 	mux.HandleFunc("DELETE /api/v1/positions/{id}", h.DeletePosition)
 
-	// Skills
 	mux.HandleFunc("POST /api/v1/skills", h.CreateSkill)
 	mux.HandleFunc("GET /api/v1/skills", h.ListSkills)
 	mux.HandleFunc("DELETE /api/v1/skills/{id}", h.DeleteSkill)
@@ -213,7 +209,6 @@ func (h *ProfileHTTPHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"message": "profile deleted"})
 }
 
-// Department handlers
 func (h *ProfileHTTPHandler) CreateDepartment(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name string `json:"name"`
@@ -309,7 +304,6 @@ func (h *ProfileHTTPHandler) DeleteDepartment(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusOK, map[string]string{"message": "department deleted"})
 }
 
-// Position handlers
 func (h *ProfileHTTPHandler) CreatePosition(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name string `json:"name"`
@@ -388,7 +382,6 @@ func (h *ProfileHTTPHandler) DeletePosition(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, map[string]string{"message": "position deleted"})
 }
 
-// Skill handlers
 func (h *ProfileHTTPHandler) CreateSkill(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name string `json:"name"`
@@ -538,3 +531,5 @@ func profileToMap(p *pb.Profile) map[string]interface{} {
 
 	return resp
 }
+
+

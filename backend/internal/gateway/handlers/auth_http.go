@@ -16,7 +16,7 @@ import (
 
 const (
 	refreshTokenCookieName = "refresh_token"
-	refreshTokenMaxAge     = 7 * 24 * 60 * 60 // 7 days in seconds
+	refreshTokenMaxAge     = 7 * 24 * 60 * 60 
 )
 
 type AuthHTTPHandler struct {
@@ -71,7 +71,6 @@ func (h *AuthHTTPHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set refresh token as HttpOnly cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     refreshTokenCookieName,
 		Value:    resp.RefreshToken,
@@ -95,7 +94,7 @@ func (h *AuthHTTPHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHTTPHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	// Clear the refresh token cookie
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     refreshTokenCookieName,
 		Value:    "",
@@ -106,7 +105,6 @@ func (h *AuthHTTPHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	// Get refresh token from cookie to invalidate session
 	cookie, _ := r.Cookie(refreshTokenCookieName)
 	if cookie != nil && cookie.Value != "" {
 		ctx := metadata.NewOutgoingContext(r.Context(), metadata.Pairs(
@@ -119,7 +117,7 @@ func (h *AuthHTTPHandler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHTTPHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
-	// Read refresh token from HttpOnly cookie
+
 	cookie, err := r.Cookie(refreshTokenCookieName)
 	if err != nil || cookie.Value == "" {
 		http.Error(w, `{"error":"refresh token not found"}`, http.StatusUnauthorized)
@@ -134,11 +132,11 @@ func (h *AuthHTTPHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.client.Refresh(ctx, &emptypb.Empty{})
 	if err != nil {
-		// Don't log context canceled errors (normal when client disconnects)
+
 		if r.Context().Err() != context.Canceled && status.Code(err) != codes.Canceled {
 			log.Println("auth refresh error:", err)
 		}
-		// Clear invalid cookie
+
 		http.SetCookie(w, &http.Cookie{
 			Name:     refreshTokenCookieName,
 			Value:    "",
@@ -152,7 +150,6 @@ func (h *AuthHTTPHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set new refresh token cookie (token rotation)
 	http.SetCookie(w, &http.Cookie{
 		Name:     refreshTokenCookieName,
 		Value:    resp.RefreshToken,
@@ -163,7 +160,6 @@ func (h *AuthHTTPHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	// Return access_token and user info
 	result := map[string]interface{}{
 		"access_token": resp.AccessToken,
 	}
@@ -180,7 +176,7 @@ func (h *AuthHTTPHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHTTPHandler) GetMe(w http.ResponseWriter, r *http.Request) {
-	// user_id должен быть в контексте от middleware
+
 	userID, ok := r.Context().Value("user_id").(int64)
 	if !ok || userID == 0 {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
@@ -234,3 +230,5 @@ func (h *AuthHTTPHandler) ChangePassword(w http.ResponseWriter, r *http.Request)
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "password changed successfully"})
 }
+
+

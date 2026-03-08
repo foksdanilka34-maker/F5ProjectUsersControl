@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
   FileText,
   Loader2,
   Target,
@@ -28,7 +27,6 @@ export default function CreateProjectPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Только менеджеры, директора, админы и разработчики могут создавать проекты
   const canCreate = user && ['manager', 'developer', 'director', 'admin'].includes(user.role);
 
   const isValid = form.name.trim().length >= 3;
@@ -53,7 +51,7 @@ export default function CreateProjectPage() {
         description: form.description.trim() || undefined,
         manager_id: user.id, // Автоматически используем текущего пользователя как менеджера
       });
-      // Редирект на страницу созданного проекта
+
       navigate(`/projects/${newProject.id}`);
     } catch (err) {
       console.error('Failed to create project:', err);
@@ -63,12 +61,11 @@ export default function CreateProjectPage() {
     }
   };
 
-  // Если нет прав - показываем сообщение
   if (!canCreate) {
     return (
       <div className="relative min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-white text-gray-900">
         <div className="relative z-10 mx-auto max-w-2xl px-6 py-10">
-          <section className="rounded-[32px] border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
+          <section className="rounded-3xl border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
             <div className="text-center py-12">
               <Shield className="h-16 w-16 text-amber-400 mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Доступ ограничен</h1>
@@ -79,7 +76,6 @@ export default function CreateProjectPage() {
                 to="/projects"
                 className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-medium text-white hover:bg-emerald-600"
               >
-                <ArrowLeft className="h-4 w-4" />
                 К проектам
               </Link>
             </div>
@@ -97,22 +93,13 @@ export default function CreateProjectPage() {
       </div>
 
       <div className="relative z-10 mx-auto max-w-2xl px-6 py-10">
-        <section className="rounded-[32px] border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
-          <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-6">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">Проекты</p>
-              <h1 className="mt-3 text-3xl font-semibold">Создать проект</h1>
-              <p className="mt-2 text-sm text-gray-500">
-                Укажите название и описание проекта
-              </p>
-            </div>
-            <Link
-              to="/projects"
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              К проектам
-            </Link>
+        <section className="rounded-3xl border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
+          <header className="border-b border-gray-100 pb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500">Проекты</p>
+            <h1 className="mt-3 text-3xl font-semibold">Создать проект</h1>
+            <p className="mt-2 text-sm text-gray-500">
+              Укажите название и описание проекта
+            </p>
           </header>
 
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -176,9 +163,9 @@ export default function CreateProjectPage() {
           </form>
         </section>
 
-        {/* Preview */}
+        {}
         {form.name && (
-          <div className="mt-6 rounded-[32px] border border-gray-100 bg-white/90 p-6 shadow-[0_20px_60px_rgba(6,95,70,0.05)]">
+          <div className="mt-6 rounded-3xl border border-gray-100 bg-white/90 p-6 shadow-[0_20px_60px_rgba(6,95,70,0.05)]">
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-gray-400">Предпросмотр</p>
             <div className="mt-4 rounded-2xl border border-emerald-50 bg-gradient-to-br from-white to-emerald-50/50 p-4">
               <div className="flex items-center gap-3">
@@ -200,3 +187,5 @@ export default function CreateProjectPage() {
     </div>
   );
 }
+
+

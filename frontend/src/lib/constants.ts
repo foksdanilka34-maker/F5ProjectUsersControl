@@ -1,4 +1,4 @@
-// Role labels for display
+
 export const roleLabels: Record<string, string> = {
   admin: 'Администратор',
   manager: 'Менеджер',
@@ -11,25 +11,24 @@ export const roleLabels: Record<string, string> = {
   user: 'Пользователь',
 };
 
-// Project status labels
 export const projectStatusLabels: Record<string, string> = {
   ACTIVE: 'Активный',
   PLANNING: 'Планирование',
   ON_HOLD: 'На паузе',
   COMPLETED: 'Завершён',
   CANCELLED: 'Отменён',
+  PROJECT_STATUS_UNSPECIFIED: 'Без статуса',
 };
 
-// Project status colors for badges
 export const projectStatusColors: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-800',
   PLANNING: 'bg-blue-100 text-blue-800',
   ON_HOLD: 'bg-yellow-100 text-yellow-800',
   COMPLETED: 'bg-gray-100 text-gray-800',
   CANCELLED: 'bg-red-100 text-red-800',
+  PROJECT_STATUS_UNSPECIFIED: 'bg-gray-100 text-gray-500',
 };
 
-// Task status labels
 export const taskStatusLabels: Record<string, string> = {
   TODO: 'К выполнению',
   IN_PROGRESS: 'В работе',
@@ -38,7 +37,6 @@ export const taskStatusLabels: Record<string, string> = {
   BLOCKED: 'Заблокировано',
 };
 
-// Task status colors
 export const taskStatusColors: Record<string, string> = {
   TODO: 'bg-gray-100 text-gray-800',
   IN_PROGRESS: 'bg-blue-100 text-blue-800',
@@ -47,7 +45,6 @@ export const taskStatusColors: Record<string, string> = {
   BLOCKED: 'bg-red-100 text-red-800',
 };
 
-// Task priority labels
 export const taskPriorityLabels: Record<string, string> = {
   LOW: 'Низкий',
   MEDIUM: 'Средний',
@@ -55,7 +52,6 @@ export const taskPriorityLabels: Record<string, string> = {
   CRITICAL: 'Критический',
 };
 
-// Task priority colors
 export const taskPriorityColors: Record<string, string> = {
   LOW: 'bg-gray-100 text-gray-600',
   MEDIUM: 'bg-blue-100 text-blue-700',
@@ -63,7 +59,6 @@ export const taskPriorityColors: Record<string, string> = {
   CRITICAL: 'bg-red-100 text-red-700',
 };
 
-// Helper function to get label
 export const getLabel = (
   value: string | undefined | null,
   labels: Record<string, string>,
@@ -72,3 +67,5 @@ export const getLabel = (
   if (!value) return fallback;
   return labels[value] || value;
 };
+
+

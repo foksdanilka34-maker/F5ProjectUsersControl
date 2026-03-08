@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Роли в системе
 const (
 	RoleAdmin     = "admin"
 	RoleDirector  = "director"
@@ -18,7 +17,6 @@ const (
 	RoleDeveloper = "developer"
 )
 
-// Context keys
 type contextKey string
 
 const (
@@ -33,11 +31,10 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-// CORS возвращает middleware для обработки CORS
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		// Allow specific origins for credentials support
+
 		allowedOrigins := map[string]bool{
 			"http://localhost:5173": true, // Vite dev server
 			"http://localhost:3000": true, // Alternative dev server
@@ -48,7 +45,7 @@ func CORS(next http.Handler) http.Handler {
 		if allowedOrigins[origin] {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 		} else if origin == "" {
-			// Allow same-origin requests
+
 			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		}
 
@@ -65,7 +62,6 @@ func CORS(next http.Handler) http.Handler {
 	})
 }
 
-// RequestID добавляет уникальный ID к каждому запросу
 func RequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := r.Header.Get("X-Request-ID")
@@ -79,7 +75,6 @@ func RequestID(next http.Handler) http.Handler {
 	})
 }
 
-// Auth возвращает middleware для проверки JWT токена
 func Auth(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +116,6 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 	}
 }
 
-// RequireRole возвращает middleware для проверки ролей
 func RequireRole(roles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +125,6 @@ func RequireRole(roles ...string) func(http.Handler) http.Handler {
 				return
 			}
 
-			// developer и admin имеют полный доступ
 			if role == RoleDeveloper || role == RoleAdmin {
 				next.ServeHTTP(w, r)
 				return
@@ -149,10 +142,11 @@ func RequireRole(roles ...string) func(http.Handler) http.Handler {
 	}
 }
 
-// Chain позволяет объединять несколько middleware
 func Chain(h http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		h = middlewares[i](h)
 	}
 	return h
 }
+
+

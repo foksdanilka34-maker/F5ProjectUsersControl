@@ -40,3 +40,5 @@ func NewPostgresPool(ctx context.Context, cfg PostgresConfig) (*pgxpool.Pool, er
 
 	return pool, nil
 }
+
+

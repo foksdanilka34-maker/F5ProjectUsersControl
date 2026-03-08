@@ -59,7 +59,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
           console.log('[WS] Received:', message.type, message.payload);
           setLastMessage(message);
 
-          // Вызываем зарегистрированные обработчики
           const handlers = handlersRef.current.get(message.type);
           if (handlers) {
             handlers.forEach((handler) => {
@@ -80,7 +79,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         setIsConnected(false);
         wsRef.current = null;
 
-        // Пытаемся переподключиться
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current += 1;
           console.log(`[WS] Reconnecting... attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts}`);
@@ -118,7 +116,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     }
     handlersRef.current.get(eventType)!.add(handler);
 
-    // Возвращаем функцию отписки
     return () => {
       handlersRef.current.get(eventType)?.delete(handler);
     };
@@ -132,7 +129,6 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Подключаемся при монтировании
   useEffect(() => {
     connect();
     return () => {
@@ -155,7 +151,6 @@ export function useWebSocket() {
   return context;
 }
 
-// Хук для подписки на конкретное событие
 export function useWSEvent(
   eventType: WSEventType,
   handler: EventHandler,
@@ -166,8 +161,10 @@ export function useWSEvent(
   useEffect(() => {
     const unsubscribe = subscribe(eventType, handler);
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [eventType, subscribe, ...deps]);
 
   return { isConnected };
 }
+
+

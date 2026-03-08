@@ -8,28 +8,24 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// ProfileRepository - интерфейс репозитория профилей
 type ProfileRepository interface {
 	Create(ctx context.Context, tx pgx.Tx, p *repo.Profile) error
 	GetByID(ctx context.Context, id int64) (*repo.Profile, error)
 	List(ctx context.Context, pageSize, offset int, departmentID, positionID int64) ([]*repo.Profile, int, error)
 	Update(ctx context.Context, id int64, firstName, lastName *string, positionID, departmentID *int64, email, avatarURL *string) error
 
-	// Departments
 	CreateDepartment(ctx context.Context, name string) (int64, error)
 	GetDepartment(ctx context.Context, id int64) (*repo.Department, error)
 	ListDepartments(ctx context.Context) ([]*repo.Department, error)
 	UpdateDepartment(ctx context.Context, id int64, name string) error
 	DeleteDepartment(ctx context.Context, id int64) error
 
-	// Positions
 	CreatePosition(ctx context.Context, name string) (int64, error)
 	GetPosition(ctx context.Context, id int64) (*repo.Position, error)
 	ListPositions(ctx context.Context) ([]*repo.Position, error)
 	UpdatePosition(ctx context.Context, id int64, name string) error
 	DeletePosition(ctx context.Context, id int64) error
 
-	// Skills
 	CreateSkill(ctx context.Context, name string) (int64, error)
 	ListSkills(ctx context.Context) ([]repo.Skill, error)
 	DeleteSkill(ctx context.Context, id int64) error
@@ -39,14 +35,12 @@ type ProfileRepository interface {
 	BeginTx(ctx context.Context) (pgx.Tx, error)
 }
 
-// EmployeeEventPublisher - интерфейс для публикации событий сотрудников
 type EmployeeEventPublisher interface {
 	PublishEmployeeCreated(ctx context.Context, userID int64, fullName string) error
 	PublishEmployeeUpdated(ctx context.Context, userID int64, fullName string) error
 	PublishEmployeeDeleted(ctx context.Context, userID int64) error
 }
 
-// ProfileService - сервис профилей
 type ProfileService struct {
 	repo        ProfileRepository
 	authService *AuthService
@@ -119,7 +113,6 @@ func (s *ProfileService) CreateProfile(ctx context.Context, req *CreateProfileRe
 	profile.Role = role
 	profile.IsActive = true
 
-	// Publish event
 	if s.publisher != nil {
 		fullName := profile.FirstName + " " + profile.LastName
 		_ = s.publisher.PublishEmployeeCreated(ctx, userID, fullName)
@@ -172,7 +165,6 @@ func (s *ProfileService) UpdateProfile(ctx context.Context, id int64, req *Updat
 		return nil, err
 	}
 
-	// Publish event
 	if s.publisher != nil {
 		fullName := profile.FirstName + " " + profile.LastName
 		_ = s.publisher.PublishEmployeeUpdated(ctx, id, fullName)
@@ -185,7 +177,6 @@ func (s *ProfileService) ChangeUserStatus(ctx context.Context, userID int64, isA
 	return s.authService.ChangeStatus(ctx, userID, isActive)
 }
 
-// Department methods
 func (s *ProfileService) CreateDepartment(ctx context.Context, name string) (*repo.Department, error) {
 	id, err := s.repo.CreateDepartment(ctx, name)
 	if err != nil {
@@ -213,7 +204,6 @@ func (s *ProfileService) DeleteDepartment(ctx context.Context, id int64) error {
 	return s.repo.DeleteDepartment(ctx, id)
 }
 
-// Position methods
 func (s *ProfileService) CreatePosition(ctx context.Context, name string) (*repo.Position, error) {
 	id, err := s.repo.CreatePosition(ctx, name)
 	if err != nil {
@@ -241,7 +231,6 @@ func (s *ProfileService) DeletePosition(ctx context.Context, id int64) error {
 	return s.repo.DeletePosition(ctx, id)
 }
 
-// Skill methods
 func (s *ProfileService) CreateSkill(ctx context.Context, name string) (*repo.Skill, error) {
 	id, err := s.repo.CreateSkill(ctx, name)
 	if err != nil {
@@ -265,3 +254,5 @@ func (s *ProfileService) AddSkillToProfile(ctx context.Context, profileID, skill
 func (s *ProfileService) RemoveSkillFromProfile(ctx context.Context, profileID, skillID int64) error {
 	return s.repo.RemoveSkillFromProfile(ctx, profileID, skillID)
 }
+
+

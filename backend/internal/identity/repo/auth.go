@@ -66,7 +66,6 @@ func (r *AuthRepo) UpdateStatus(ctx context.Context, userID int64, isActive bool
 	return err
 }
 
-// Session methods
 func (r *AuthRepo) CreateSession(ctx context.Context, session *RefreshSession) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO identity.sessions (user_id, refresh_token, user_agent, ip_address, expires_at, created_at)
@@ -101,3 +100,5 @@ func (r *AuthRepo) DeleteUserSessions(ctx context.Context, userID int64) error {
 func (r *AuthRepo) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return r.pool.Begin(ctx)
 }
+
+

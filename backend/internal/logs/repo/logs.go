@@ -32,7 +32,7 @@ func (r *LogRepo) Create(ctx context.Context, entry *LogEntry) error {
 }
 
 func (r *LogRepo) List(ctx context.Context, filter *LogFilter) ([]*LogEntry, int, error) {
-	// Count query with builder
+
 	countBuilder := psql.Select("COUNT(*)").From("logs")
 
 	if filter.Service != "" {
@@ -60,7 +60,6 @@ func (r *LogRepo) List(ctx context.Context, filter *LogFilter) ([]*LogEntry, int
 		return nil, 0, err
 	}
 
-	// Main query with builder
 	queryBuilder := psql.Select("id", "service", "level", "message", "user_id", "request_id", "metadata", "timestamp").
 		From("logs")
 
@@ -122,3 +121,5 @@ func (r *LogRepo) DeleteOlderThan(ctx context.Context, days int) (int64, error) 
 	}
 	return result.RowsAffected(), nil
 }
+
+

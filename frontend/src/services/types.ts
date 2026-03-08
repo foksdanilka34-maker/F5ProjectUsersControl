@@ -1,4 +1,4 @@
-// Response types - backend returns raw objects, not wrapped in ApiResponse
+
 export type PaginatedMeta = {
   page_size: number;
   page_number: number;
@@ -39,7 +39,6 @@ export type PositionDTO = {
   name: string;
 };
 
-// Backend returns these directly, not wrapped
 export type ListProfilesResponse = {
   profiles: ProfileDTO[];
   total_count: number;
@@ -74,3 +73,5 @@ export type CreateProfileResponse = ProfileDTO;
 export type UpdateProfileRequest = Partial<CreateProfileRequest> & {
   avatar_url?: string | null;
 };
+
+

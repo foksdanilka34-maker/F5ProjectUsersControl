@@ -2,14 +2,13 @@ package docs
 
 import "net/http"
 
-// @title F5 Project Users Control API
-// @version 1.0
-// @description API для управления проектами и сотрудниками
-// @host localhost:8080
-// @BasePath /api/v1
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
+
+
+
+
+
+
+
 
 const SwaggerJSON = `{
   "openapi": "3.0.0",
@@ -370,3 +369,5 @@ func SwaggerHandler() http.Handler {
 	})
 	return mux
 }
+
+

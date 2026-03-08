@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft,
   ArrowRight,
   Calendar,
   FolderKanban,
@@ -31,16 +30,14 @@ export default function ProjectsHubPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  // Только менеджеры, директора, админы и разработчики могут создавать проекты
   const canCreate = user && ['manager', 'developer', 'director', 'admin'].includes(user.role);
-  
-  // Менеджеры, директора, админы и разработчики видят все проекты, остальные только свои
+
   const isManagerOrHigher = user && ['admin', 'director', 'manager', 'developer'].includes(user.role);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Обычные сотрудники видят только проекты, в которых они участвуют
+
         const params = isManagerOrHigher ? {} : { member_id: user?.id };
         const [projectsData, profilesData] = await Promise.all([
           getProjects(params),
@@ -64,10 +61,9 @@ export default function ProjectsHubPage() {
   };
 
   const filteredProjects = projects.filter((project) => {
-    // Status filter
+
     if (statusFilter !== 'all' && project.status !== statusFilter) return false;
-    
-    // Search filter
+
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -93,36 +89,27 @@ export default function ProjectsHubPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-white text-gray-900">
       <div className="mx-auto max-w-7xl px-4 py-6">
-        {/* Header */}
+        {}
         <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">Управление</p>
             <h1 className="text-2xl font-bold text-gray-900">Проекты</h1>
           </div>
-          <div className="flex gap-2">
-            {canCreate && (
-              <Link
-                to="/projects/new"
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 transition-colors"
-              >
-                <PlusCircle className="h-4 w-4" />
-                Новый проект
-              </Link>
-            )}
+          {canCreate && (
             <Link
-              to="/"
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600"
+              to="/projects/new"
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 transition-colors"
             >
-              <ArrowLeft className="h-4 w-4" />
-              К дашборду
+              <PlusCircle className="h-4 w-4" />
+              Новый проект
             </Link>
-          </div>
+          )}
         </header>
 
-        {/* Filters & Controls */}
+        {}
         <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm mb-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            {/* Status Tabs */}
+            {}
             <div className="flex flex-wrap gap-2">
               {statusFilterOptions.map((opt) => (
                 <button
@@ -145,7 +132,7 @@ export default function ProjectsHubPage() {
               ))}
             </div>
 
-            {/* View Toggle & Search */}
+            {}
             <div className="flex items-center gap-3">
               <div className="flex rounded-lg border border-gray-200 p-0.5">
                 <button
@@ -182,7 +169,7 @@ export default function ProjectsHubPage() {
           </div>
         </div>
 
-        {/* Projects Content */}
+        {}
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
@@ -313,3 +300,5 @@ export default function ProjectsHubPage() {
     </div>
   );
 }
+
+

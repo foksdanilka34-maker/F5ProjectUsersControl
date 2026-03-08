@@ -45,3 +45,5 @@ export default function Avatar({ src, name, size = 'sm', className = '' }: Avata
     </div>
   );
 }
+
+

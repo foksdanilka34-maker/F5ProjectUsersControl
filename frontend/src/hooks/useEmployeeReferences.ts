@@ -27,7 +27,7 @@ export function useEmployeeReferences() {
     const fetchDepartments = async () => {
       setDepartments((prev) => ({ ...prev, loading: true, error: null }));
       try {
-        // Backend returns { departments: [] } directly
+
         const response = await listDepartments();
         if (!aborted) {
           setDepartments({ items: response.departments ?? [], loading: false, error: null });
@@ -42,7 +42,7 @@ export function useEmployeeReferences() {
     const fetchPositions = async () => {
       setPositions((prev) => ({ ...prev, loading: true, error: null }));
       try {
-        // Backend returns { positions: [] } directly
+
         const response = await listPositions();
         if (!aborted) {
           setPositions({ items: response.positions ?? [], loading: false, error: null });
@@ -83,3 +83,5 @@ function getErrorMessage(error: unknown): string {
   }
   return 'Не удалось загрузить справочник';
 }
+
+

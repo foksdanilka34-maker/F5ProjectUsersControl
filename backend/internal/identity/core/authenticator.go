@@ -9,7 +9,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// JWTAuthenticator - реализация Authenticator интерфейса
 type JWTAuthenticator struct {
 	secret     string
 	accessTTL  time.Duration
@@ -24,7 +23,6 @@ func NewJWTAuthenticator(secret string, accessTTL, refreshTTL time.Duration) *JW
 	}
 }
 
-// NewAuthenticator - alias for NewJWTAuthenticator
 func NewAuthenticator(secret string, accessTTL, refreshTTL time.Duration) *JWTAuthenticator {
 	return NewJWTAuthenticator(secret, accessTTL, refreshTTL)
 }
@@ -92,3 +90,5 @@ func (a *JWTAuthenticator) ValidateRefreshToken(tokenString string) (*repo.Custo
 
 	return claims, nil
 }
+
+

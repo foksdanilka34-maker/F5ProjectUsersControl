@@ -46,8 +46,6 @@ func (s *BusinessServer) Start(addr string) error {
 	return grpcServer.Serve(lis)
 }
 
-// === PROJECT ===
-
 func (s *BusinessServer) CreateProject(ctx context.Context, req *business.CreateProjectRequest) (*business.Project, error) {
 	createReq := &core.CreateProjectRequest{
 		Name:    req.Name,
@@ -140,8 +138,6 @@ func (s *BusinessServer) DeleteProject(ctx context.Context, req *business.Delete
 	return &emptypb.Empty{}, nil
 }
 
-// === TASK ===
-
 func (s *BusinessServer) CreateTask(ctx context.Context, req *business.CreateTaskRequest) (*business.Task, error) {
 	createReq := &core.CreateTaskRequest{
 		ProjectID:   req.ProjectId,
@@ -217,6 +213,24 @@ func (s *BusinessServer) DeleteTask(ctx context.Context, req *business.DeleteTas
 }
 
 func (s *BusinessServer) MoveTask(ctx context.Context, req *business.MoveTaskRequest) (*business.Task, error) {
+	// If moving TO review, use SubmitForReview flow
+	if req.NewStatus == business.TaskStatus_REVIEW {
+		task, err := s.taskService.SubmitForReview(ctx, req.TaskId)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to submit for review: %v", err)
+		}
+		return taskToProto(task), nil
+	}
+
+	// Check if task is currently in review - block moving
+	existingTask, err := s.taskService.GetTask(ctx, req.TaskId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "task not found: %v", err)
+	}
+	if existingTask.Status == "IN_REVIEW" {
+		return nil, status.Errorf(codes.FailedPrecondition, "task is in review and cannot be moved manually")
+	}
+
 	st := protoTaskStatusToString(req.NewStatus)
 	updateReq := &core.UpdateTaskRequest{
 		Status: &st,
@@ -270,8 +284,6 @@ func (s *BusinessServer) ListTasksByProject(ctx context.Context, req *business.L
 	}, nil
 }
 
-// === PROJECT MEMBERS ===
-
 func (s *BusinessServer) AddMemberToProject(ctx context.Context, req *business.AddMemberToProjectRequest) (*emptypb.Empty, error) {
 	if err := s.projectService.AddMember(ctx, req.ProjectId, req.UserId, "member"); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to add member: %v", err)
@@ -306,8 +318,6 @@ func (s *BusinessServer) ListProjectMembers(ctx context.Context, req *business.L
 	}, nil
 }
 
-// === ANALYTICS ===
-
 func (s *BusinessServer) GetEmployeeMetrics(ctx context.Context, req *business.GetEmployeeMetricsRequest) (*business.EmployeeMetricsResponse, error) {
 	log.Printf("GetEmployeeMetrics called for employee_id: %d", req.EmployeeId)
 
@@ -321,14 +331,11 @@ func (s *BusinessServer) GetEmployeeMetrics(ctx context.Context, req *business.G
 		analytics.UserID, analytics.AssignedTasks, analytics.CompletedTasks, analytics.CompletedOnTime, analytics.CompletedLate,
 		analytics.WeightedOnTime, analytics.WeightedTotal)
 
-	// Процент выполненных задач от общего числа назначенных
 	var completionRate float64
 	if analytics.AssignedTasks > 0 {
 		completionRate = float64(analytics.CompletedTasks) / float64(analytics.AssignedTasks) * 100
 	}
 
-	// Простой процент вовремя (без учёта веса) для отображения
-	// Считаем только среди ЗАВЕРШЁННЫХ задач
 	var onTimeRate float64
 	if analytics.CompletedTasks > 0 {
 		onTimeRate = float64(analytics.CompletedOnTime) / float64(analytics.CompletedTasks) * 100
@@ -336,9 +343,6 @@ func (s *BusinessServer) GetEmployeeMetrics(ctx context.Context, req *business.G
 		onTimeRate = 0 // Нет завершённых задач - нечего оценивать
 	}
 
-	// ВЗВЕШЕННАЯ эффективность с учётом приоритета задач
-	// Считается ТОЛЬКО по завершённым задачам
-	// Формула: (WeightedOnTime / WeightedTotal) * 100
 	var weightedOnTimeRate float64
 	if analytics.WeightedTotal > 0 {
 		weightedOnTimeRate = analytics.WeightedOnTime / analytics.WeightedTotal * 100
@@ -346,8 +350,6 @@ func (s *BusinessServer) GetEmployeeMetrics(ctx context.Context, req *business.G
 		weightedOnTimeRate = 0 // Нет завершённых задач - эффективность 0
 	}
 
-	// Итоговая эффективность = completionRate * weightedOnTimeRate / 100
-	// Если ничего не выполнено, эффективность = 0
 	var efficiency float64
 	if analytics.CompletedTasks > 0 && analytics.AssignedTasks > 0 {
 		efficiency = completionRate * weightedOnTimeRate / 100
@@ -398,8 +400,6 @@ func (s *BusinessServer) GetProjectMetrics(ctx context.Context, req *business.Ge
 		progressPercent = float64(analytics.CompletedTasks) / float64(analytics.TotalTasks) * 100
 	}
 
-	// Процент задач выполненных вовремя (из завершённых)
-	// Формула: CompletedOnTime / CompletedTasks * 100
 	var onTimeRate float64
 	if analytics.CompletedTasks > 0 {
 		onTimeRate = float64(analytics.CompletedOnTime) / float64(analytics.CompletedTasks) * 100
@@ -460,13 +460,11 @@ func (s *BusinessServer) GetDashboardStats(ctx context.Context, req *business.Ge
 		return nil, status.Errorf(codes.Internal, "failed to get dashboard stats: %v", err)
 	}
 
-	// Процент выполненных задач от общего числа
 	var avgCompletionRate float64
 	if summary.TotalTasks > 0 {
 		avgCompletionRate = float64(summary.CompletedTasks) / float64(summary.TotalTasks) * 100
 	}
 
-	// Процент задач выполненных вовремя (из завершённых)
 	var avgOnTimeRate float64
 	if summary.CompletedTasks > 0 {
 		avgOnTimeRate = float64(summary.CompletedOnTime) / float64(summary.CompletedTasks) * 100
@@ -474,8 +472,6 @@ func (s *BusinessServer) GetDashboardStats(ctx context.Context, req *business.Ge
 		avgOnTimeRate = 100 // Если завершённых задач нет, считаем что все в срок
 	}
 
-	// Комбинированная эффективность: completionRate * onTimeRate / 100
-	// Выполнено 100%, вовремя 50% → эффективность 50%
 	var avgEfficiency float64
 	if summary.TotalTasks > 0 {
 		avgEfficiency = avgCompletionRate * avgOnTimeRate / 100
@@ -500,8 +496,6 @@ func (s *BusinessServer) GetDashboardStats(ctx context.Context, req *business.Ge
 		CalculatedAt:        timestamppb.Now(),
 	}, nil
 }
-
-// === CONVERTERS ===
 
 func projectToProto(p *repo.Project) *business.Project {
 	project := &business.Project{
@@ -540,7 +534,6 @@ func taskToProto(t *repo.Task) *business.Task {
 	return task
 }
 
-// Status converters
 func protoStatusToString(s business.ProjectStatus) string {
 	switch s {
 	case business.ProjectStatus_ACTIVE:
@@ -632,4 +625,42 @@ func max(a, b int32) int32 {
 		return a
 	}
 	return b
+}
+
+// Review RPCs
+
+func (s *BusinessServer) SubmitForReview(ctx context.Context, req *business.SubmitForReviewRequest) (*business.Task, error) {
+	task, err := s.taskService.SubmitForReview(ctx, req.TaskId)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to submit for review: %v", err)
+	}
+	return taskToProto(task), nil
+}
+
+func (s *BusinessServer) ApproveTask(ctx context.Context, req *business.ApproveTaskRequest) (*business.Task, error) {
+	task, err := s.taskService.ApproveTask(ctx, req.TaskId, req.UserId)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to approve task: %v", err)
+	}
+	return taskToProto(task), nil
+}
+
+func (s *BusinessServer) GetReviewStatus(ctx context.Context, req *business.GetReviewStatusRequest) (*business.ReviewStatusResponse, error) {
+	reviewStatus, err := s.taskService.GetReviewStatus(ctx, req.TaskId)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get review status: %v", err)
+	}
+
+	reviewers := make([]*business.ReviewerInfo, len(reviewStatus.Reviewers))
+	for i, r := range reviewStatus.Reviewers {
+		reviewers[i] = &business.ReviewerInfo{
+			UserId:   r.UserID,
+			Approved: r.Approved,
+		}
+	}
+
+	return &business.ReviewStatusResponse{
+		Reviewers: reviewers,
+		IsActive:  reviewStatus.IsActive,
+	}, nil
 }

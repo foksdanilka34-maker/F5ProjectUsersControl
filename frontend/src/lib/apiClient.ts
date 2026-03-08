@@ -97,14 +97,14 @@ export class ApiClient {
       const payload = await this.parsePayload(response);
 
       if (!response.ok) {
-        // Handle 401 with auto-refresh
+
         if (response.status === 401 && !options.skipRetry && this.onRefresh) {
           const newToken = await this.handleTokenRefresh();
           if (newToken) {
-            // Retry the original request with new token
+
             return this.executeRequest<T>(path, { ...options, skipRetry: true });
           }
-          // Refresh failed, trigger unauthorized handler
+
           if (this.onUnauthorized) {
             this.onUnauthorized();
           }
@@ -120,7 +120,7 @@ export class ApiClient {
   }
 
   private async handleTokenRefresh(): Promise<string | null> {
-    // Deduplicate concurrent refresh requests
+
     if (this.refreshPromise) {
       return this.refreshPromise;
     }
@@ -163,3 +163,5 @@ export class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+
+

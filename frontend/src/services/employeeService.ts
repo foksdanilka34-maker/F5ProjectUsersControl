@@ -13,7 +13,6 @@ import type {
   UpdateProfileRequest,
 } from './types';
 
-// Backend routes
 const PROFILES_PATH = '/profiles';
 const DEPARTMENTS_PATH = '/departments';
 const POSITIONS_PATH = '/positions';
@@ -35,7 +34,6 @@ const toQuery = (query: ListProfilesQuery = {}) => {
   return params.toString();
 };
 
-// Profiles
 export function listProfiles(query?: ListProfilesQuery) {
   const qs = toQuery(query);
   const path = qs ? `${PROFILES_PATH}?${qs}` : PROFILES_PATH;
@@ -64,7 +62,6 @@ export function deleteProfile(id: number) {
   return apiClient.request(`${PROFILES_PATH}/${id}`, { method: 'DELETE' });
 }
 
-// Departments
 export function listDepartments() {
   return apiClient.request<ListDepartmentsResponse>(DEPARTMENTS_PATH);
 }
@@ -87,7 +84,6 @@ export function deleteDepartment(id: number) {
   return apiClient.request(`${DEPARTMENTS_PATH}/${id}`, { method: 'DELETE' });
 }
 
-// Positions
 export function listPositions() {
   return apiClient.request<ListPositionsResponse>(POSITIONS_PATH);
 }
@@ -110,7 +106,6 @@ export function deletePosition(id: number) {
   return apiClient.request(`${POSITIONS_PATH}/${id}`, { method: 'DELETE' });
 }
 
-// Skills
 export function listSkills() {
   return apiClient.request<ListSkillsResponse>(SKILLS_PATH);
 }
@@ -128,7 +123,6 @@ export function deleteSkill(id: number) {
   });
 }
 
-// Profile Skills
 export function addSkillToProfile(profileId: number, skillId: number) {
   return apiClient.request(`${PROFILES_PATH}/${profileId}/skills`, {
     method: 'POST',
@@ -141,3 +135,5 @@ export function removeSkillFromProfile(profileId: number, skillId: number) {
     method: 'DELETE',
   });
 }
+
+

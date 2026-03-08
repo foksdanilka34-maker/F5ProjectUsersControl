@@ -7,7 +7,6 @@ import (
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/repo"
 )
 
-// AnalyticsRepository - интерфейс репозитория аналитики
 type AnalyticsRepository interface {
 	GetSummary(ctx context.Context) (*repo.AnalyticsSummary, error)
 	GetProjectAnalytics(ctx context.Context, projectID int64) (*repo.ProjectAnalytics, error)
@@ -18,7 +17,6 @@ type AnalyticsRepository interface {
 	GetPriorityDistribution(ctx context.Context, projectID int64) ([]repo.PriorityDistribution, error)
 }
 
-// AnalyticsService - сервис аналитики
 type AnalyticsService struct {
 	repo AnalyticsRepository
 }
@@ -77,7 +75,6 @@ func (s *AnalyticsService) GetPriorityDistribution(ctx context.Context, projectI
 	return s.repo.GetPriorityDistribution(ctx, projectID)
 }
 
-// Dashboard - комплексный объект для дашборда
 type Dashboard struct {
 	Summary              *repo.AnalyticsSummary
 	TaskStatusDist       []repo.TaskDistribution
@@ -123,3 +120,5 @@ func (s *AnalyticsService) GetDashboard(ctx context.Context, projectID int64) (*
 		TasksCompletedSeries: completedSeries,
 	}, nil
 }
+
+

@@ -8,3 +8,5 @@ var (
 	ErrInvalidInput      = errors.New("invalid input")
 	ErrProjectNameExists = errors.New("project with this name already exists")
 )
+
+

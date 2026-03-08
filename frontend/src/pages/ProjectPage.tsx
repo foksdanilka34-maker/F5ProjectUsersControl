@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  ArrowLeft,
   BarChart3,
+  CheckCircle,
   CheckCircle2,
   Edit2,
+  Eye,
   GripVertical,
   Loader2,
   Plus,
@@ -18,6 +19,13 @@ import {
   X,
   Shield,
 } from 'lucide-react';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+} from 'recharts';
 import Avatar from '../components/Avatar';
 
 import { useAuth } from '../context/AuthContext';
@@ -33,9 +41,12 @@ import {
   addProjectMember,
   removeProjectMember,
   updateProject,
+  getReviewStatus,
+  approveTask,
   type Project,
   type Task,
   type ProjectMember,
+  type ReviewStatus,
 } from '../services/projectService';
 import { listProfiles } from '../services/employeeService';
 import type { ProfileDTO } from '../services/types';
@@ -79,7 +90,6 @@ export default function ProjectPage() {
   const projectId = Number(id);
   const { user } = useAuth();
 
-  // Проверка прав - менеджер, разработчик, директор или админ
   const canManage = user && ['manager', 'developer', 'director', 'admin'].includes(user.role);
   const isManagerOrHigher = user && ['manager', 'developer', 'director', 'admin'].includes(user.role);
 
@@ -90,7 +100,6 @@ export default function ProjectPage() {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null);
 
-  // UI states
   const [activeTab, setActiveTab] = useState<'kanban' | 'team' | 'stats' | 'settings'>('kanban');
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -98,7 +107,10 @@ export default function ProjectPage() {
   const [draggingTask, setDraggingTask] = useState<Task | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
 
-  // Task form
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatus | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [taskPriority, setTaskPriority] = useState('TASK_PRIORITY_MEDIUM');
@@ -106,7 +118,6 @@ export default function ProjectPage() {
   const [taskDueDate, setTaskDueDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Settings
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [projectManager, setProjectManager] = useState('');
@@ -133,7 +144,6 @@ export default function ProjectPage() {
       setAllProfiles(profilesData.profiles || []);
       setMetrics(metricsData);
 
-      // Init settings form
       setProjectName(projectData.name);
       setProjectDescription(projectData.description || '');
       setProjectManager(projectData.manager_id?.toString() || '');
@@ -169,7 +179,6 @@ export default function ProjectPage() {
     return allProfiles.filter((p) => memberUserIds.has(p.id));
   }, [members, allProfiles]);
 
-  // Исполнителями могут быть только employee (не менеджеры и не developer)
   const assignableProfiles = useMemo(() => {
     const memberUserIds = new Set(members.map((m) => m.user_id));
     return allProfiles.filter((p) => memberUserIds.has(p.id) && p.role === 'employee');
@@ -189,14 +198,13 @@ export default function ProjectPage() {
     return allProfiles.find((p) => p.id === userId);
   };
 
-  // Task handlers
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle.trim()) return;
     setSubmitting(true);
     try {
       if (editingTask) {
-        // Update existing task
+
         await updateTask(editingTask.id, {
           title: taskTitle.trim(),
           description: taskDescription.trim() || undefined,
@@ -206,7 +214,7 @@ export default function ProjectPage() {
         });
         setSuccess('Задача обновлена');
       } else {
-        // Create new task
+
         await createTask({
           project_id: projectId,
           title: taskTitle.trim(),
@@ -258,13 +266,45 @@ export default function ProjectPage() {
     }
   };
 
-  // Drag & Drop handlers
-  // Перетаскивать может только: assignee задачи или developer
+  const openTaskDetail = async (task: Task) => {
+    setSelectedTask(task);
+    setReviewStatus(null);
+    if (task.status === 'REVIEW') {
+      setReviewLoading(true);
+      try {
+        const status = await getReviewStatus(task.id);
+        setReviewStatus(status);
+      } catch {
+        // review status not available
+      } finally {
+        setReviewLoading(false);
+      }
+    }
+  };
+
+  const handleApproveTask = async () => {
+    if (!selectedTask) return;
+    setReviewLoading(true);
+    try {
+      await approveTask(selectedTask.id);
+      setSuccess('Задача одобрена');
+      const status = await getReviewStatus(selectedTask.id);
+      setReviewStatus(status);
+      loadData();
+    } catch {
+      setError('Не удалось одобрить задачу');
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+
   const canDragTask = (task: Task): boolean => {
     if (!user) return false;
-    // Developer может перетаскивать любые задачи
+    if (task.status === 'REVIEW') return false;
+
     if (user.role === 'developer') return true;
-    // Assignee может перетаскивать свою задачу
+
     if (task.assignee_id === user.id) return true;
     return false;
   };
@@ -300,7 +340,7 @@ export default function ProjectPage() {
 
     try {
       await moveTask(draggingTask.id, columnId);
-      // Optimistic update
+
       setTasks((prev) => prev.map((t) => (t.id === draggingTask.id ? { ...t, status: columnId } : t)));
     } catch {
       setError('Не удалось переместить задачу');
@@ -309,7 +349,6 @@ export default function ProjectPage() {
     }
   };
 
-  // Member handlers
   const handleAddMember = async (userId: number) => {
     try {
       await addProjectMember(projectId, userId, 'member');
@@ -332,7 +371,6 @@ export default function ProjectPage() {
     }
   };
 
-  // Settings handler
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isManagerOrHigher) {
@@ -369,7 +407,7 @@ export default function ProjectPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-white via-emerald-50/30 to-white">
         <p className="text-gray-500 mb-4">Проект не найден</p>
-        <Link to="/" className="text-emerald-600 hover:underline">
+        <Link to="/projects" className="text-emerald-600 hover:underline">
           Вернуться на главную
         </Link>
       </div>
@@ -379,16 +417,9 @@ export default function ProjectPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-white text-gray-900">
       <div className="mx-auto max-w-7xl px-4 py-6">
-        {/* Header */}
+        {}
         <header className="flex flex-wrap items-start justify-between gap-4 mb-6">
           <div>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-emerald-600 mb-2"
-            >
-              <ArrowLeft className="h-3 w-3" />
-              Все проекты
-            </Link>
             <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
             <div className="flex items-center gap-3 mt-1">
               <span className="inline-flex items-center gap-1 text-sm text-gray-500">
@@ -406,7 +437,7 @@ export default function ProjectPage() {
           </div>
         </header>
 
-        {/* Messages */}
+        {}
         {success && (
           <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-700 flex justify-between">
             {success}
@@ -424,7 +455,7 @@ export default function ProjectPage() {
           </div>
         )}
 
-        {/* Tabs */}
+        {}
         <div className="flex flex-wrap gap-2 mb-6">
           {[
             { key: 'kanban', label: 'Задачи', icon: CheckCircle2 },
@@ -448,7 +479,7 @@ export default function ProjectPage() {
           ))}
         </div>
 
-        {/* Kanban Board */}
+        {}
         {activeTab === 'kanban' && (
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -497,8 +528,9 @@ export default function ProjectPage() {
                         key={task.id}
                         draggable={isDraggable}
                         onDragStart={(e) => handleDragStart(e, task)}
+                        onClick={() => openTaskDetail(task)}
                         className={`rounded-lg border bg-white p-2.5 shadow-sm transition-all group ${
-                          isDraggable ? 'cursor-grab active:cursor-grabbing hover:shadow-md hover:border-emerald-200' : 'cursor-default'
+                          isDraggable ? 'cursor-grab active:cursor-grabbing hover:shadow-md hover:border-emerald-200' : 'cursor-pointer'
                         } ${draggingTask?.id === task.id ? 'opacity-50 scale-95' : ''} ${
                           isOverdue ? 'border-l-2 border-l-red-400' : 'border-gray-100'
                         }`}
@@ -528,13 +560,21 @@ export default function ProjectPage() {
                         </div>
                         
                         <div className="flex items-center justify-between gap-2">
-                          <span
-                            className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                              PRIORITY_STYLES[task.priority]?.class || 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            {PRIORITY_STYLES[task.priority]?.label || '—'}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                                PRIORITY_STYLES[task.priority]?.class || 'bg-gray-100 text-gray-600'
+                              }`}
+                            >
+                              {PRIORITY_STYLES[task.priority]?.label || '—'}
+                            </span>
+                            {task.status === 'REVIEW' && (
+                              <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700">
+                                <Eye className="h-2.5 w-2.5" />
+                                Ревью
+                              </span>
+                            )}
+                          </div>
                           
                           <div className="flex items-center gap-1.5">
                             {task.due_date && (
@@ -558,7 +598,7 @@ export default function ProjectPage() {
                     );
                     })}
                     
-                    {/* Empty state */}
+                    {}
                     {(!tasksByStatus[column.id] || tasksByStatus[column.id].length === 0) && (
                       <div className="flex items-center justify-center h-20 text-xs text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
                         Перетащите задачу сюда
@@ -571,7 +611,7 @@ export default function ProjectPage() {
           </div>
         )}
 
-        {/* Team Tab */}
+        {}
         {activeTab === 'team' && (
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
@@ -635,7 +675,7 @@ export default function ProjectPage() {
               </div>
             </div>
 
-            {/* Team stats */}
+            {}
             <div>
               <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Статистика</h4>
@@ -666,10 +706,10 @@ export default function ProjectPage() {
           </div>
         )}
 
-        {/* Stats Tab */}
+        {}
         {activeTab === 'stats' && (
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Progress Overview */}
+            {}
             <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="h-5 w-5 text-emerald-500" />
@@ -713,7 +753,7 @@ export default function ProjectPage() {
               )}
             </div>
 
-            {/* Task Breakdown */}
+            {}
             <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <BarChart3 className="h-5 w-5 text-blue-500" />
@@ -721,38 +761,69 @@ export default function ProjectPage() {
               </div>
               
               {metrics ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
-                    <span className="text-sm text-gray-600">Всего задач</span>
-                    <span className="font-bold text-gray-900">{metrics.total_tasks}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50">
-                    <span className="text-sm text-emerald-700">Выполнено</span>
-                    <span className="font-bold text-emerald-700">{metrics.completed_tasks}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/50 pl-6">
-                    <span className="text-xs text-emerald-600">• В срок</span>
-                    <span className="font-medium text-emerald-600">{metrics.completed_on_time || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50/50 pl-6">
-                    <span className="text-xs text-amber-600">• С опозданием</span>
-                    <span className="font-medium text-amber-600">{metrics.completed_late || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50">
-                    <span className="text-sm text-blue-700">В работе</span>
-                    <span className="font-bold text-blue-700">{metrics.in_progress_tasks}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-red-50">
-                    <span className="text-sm text-red-700">Просрочено (не завершено)</span>
-                    <span className="font-bold text-red-700">{metrics.overdue_tasks}</span>
-                  </div>
-                </div>
+                (() => {
+                  const donutData = [
+                    { name: 'В срок', value: metrics.completed_on_time || 0, color: '#10b981' },
+                    { name: 'С опозданием', value: metrics.completed_late || 0, color: '#f59e0b' },
+                    { name: 'В работе', value: metrics.in_progress_tasks || 0, color: '#3b82f6' },
+                    { name: 'Просрочено', value: metrics.overdue_tasks || 0, color: '#ef4444' },
+                  ].filter((d) => d.value > 0);
+                  const remaining = metrics.total_tasks - (metrics.completed_tasks + metrics.in_progress_tasks + metrics.overdue_tasks);
+                  if (remaining > 0) {
+                    donutData.push({ name: 'Открыто', value: remaining, color: '#9ca3af' });
+                  }
+                  return donutData.length > 0 ? (
+                    <div>
+                      <div className="relative" style={{ height: 180 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={donutData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={50}
+                              outerRadius={75}
+                              paddingAngle={3}
+                              dataKey="value"
+                              stroke="none"
+                            >
+                              {donutData.map((entry, i) => (
+                                <Cell key={i} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(value: number, name: string) => [`${value} задач`, name]}
+                              contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="text-center">
+                            <p className="text-2xl font-bold text-gray-900">{metrics.total_tasks}</p>
+                            <p className="text-xs text-gray-400">задач</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3">
+                        {donutData.map((d) => (
+                          <div key={d.name} className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
+                            <span className="truncate">{d.name}</span>
+                            <span className="ml-auto font-semibold">{d.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm text-center py-8">Нет задач</p>
+                  );
+                })()
               ) : (
                 <p className="text-gray-500 text-sm">Загрузка статистики...</p>
               )}
             </div>
 
-            {/* Team & Health */}
+            {}
             <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <Users className="h-5 w-5 text-violet-500" />
@@ -777,7 +848,7 @@ export default function ProjectPage() {
               )}
             </div>
 
-            {/* Health Status */}
+            {}
             <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <CheckCircle2 className="h-5 w-5 text-amber-500" />
@@ -785,39 +856,72 @@ export default function ProjectPage() {
               </div>
               
               {metrics ? (
-                <div className="flex items-center gap-4">
-                  <div className={`p-4 rounded-2xl ${
-                    metrics.health_status === 'HEALTH_STATUS_HEALTHY' ? 'bg-emerald-100' :
-                    metrics.health_status === 'HEALTH_STATUS_AT_RISK' ? 'bg-amber-100' :
-                    'bg-red-100'
-                  }`}>
-                    <div className={`text-3xl font-bold ${
-                      metrics.health_status === 'HEALTH_STATUS_HEALTHY' ? 'text-emerald-700' :
-                      metrics.health_status === 'HEALTH_STATUS_AT_RISK' ? 'text-amber-700' :
-                      'text-red-700'
-                    }`}>
-                      {metrics.health_status === 'HEALTH_STATUS_HEALTHY' ? '✓' :
-                       metrics.health_status === 'HEALTH_STATUS_AT_RISK' ? '!' : '✗'}
+                (() => {
+                  const isHealthy = metrics.health_status === 'HEALTH_STATUS_HEALTHY';
+                  const isAtRisk = metrics.health_status === 'HEALTH_STATUS_AT_RISK';
+                  const statusColor = isHealthy ? '#10b981' : isAtRisk ? '#f59e0b' : '#ef4444';
+                  const statusBg = isHealthy ? 'bg-emerald-50' : isAtRisk ? 'bg-amber-50' : 'bg-red-50';
+                  const statusText = isHealthy ? 'text-emerald-700' : isAtRisk ? 'text-amber-700' : 'text-red-700';
+                  const statusLabel = isHealthy ? 'Отлично' : isAtRisk ? 'Требует внимания' : 'Критично';
+                  const statusDesc = isHealthy
+                    ? 'Проект идёт по плану'
+                    : isAtRisk
+                    ? 'Есть риски отставания'
+                    : 'Много просроченных задач';
+                  return (
+                    <div className="space-y-4">
+                      {/* Traffic light */}
+                      <div className="flex items-center gap-4">
+                        <div className={`rounded-2xl ${statusBg} p-3 flex items-center gap-2`}>
+                          <div className="flex flex-col gap-1.5">
+                            <span className={`h-4 w-4 rounded-full border-2 ${isHealthy ? 'bg-emerald-500 border-emerald-400' : 'bg-gray-200 border-gray-200'}`} />
+                            <span className={`h-4 w-4 rounded-full border-2 ${isAtRisk ? 'bg-amber-500 border-amber-400' : 'bg-gray-200 border-gray-200'}`} />
+                            <span className={`h-4 w-4 rounded-full border-2 ${!isHealthy && !isAtRisk ? 'bg-red-500 border-red-400' : 'bg-gray-200 border-gray-200'}`} />
+                          </div>
+                        </div>
+                        <div>
+                          <p className={`font-semibold ${statusText}`}>{statusLabel}</p>
+                          <p className="text-sm text-gray-500">{statusDesc}</p>
+                        </div>
+                      </div>
+
+                      {/* On-time rate mini bar */}
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-gray-500">Выполнение в срок</span>
+                          <span className="font-medium" style={{ color: statusColor }}>
+                            {Math.round(metrics.on_time_rate || 0)}%
+                          </span>
+                        </div>
+                        <div className="h-2.5 rounded-full bg-gray-100">
+                          <div
+                            className="h-2.5 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${Math.min(100, Math.max(0, metrics.on_time_rate || 0))}%`,
+                              backgroundColor: statusColor,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Quick metric counters */}
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="rounded-xl bg-emerald-50 py-2">
+                          <p className="text-lg font-bold text-emerald-700">{metrics.completed_tasks}</p>
+                          <p className="text-[10px] text-emerald-600">Готово</p>
+                        </div>
+                        <div className="rounded-xl bg-blue-50 py-2">
+                          <p className="text-lg font-bold text-blue-700">{metrics.in_progress_tasks}</p>
+                          <p className="text-[10px] text-blue-600">В работе</p>
+                        </div>
+                        <div className="rounded-xl bg-red-50 py-2">
+                          <p className="text-lg font-bold text-red-700">{metrics.overdue_tasks}</p>
+                          <p className="text-[10px] text-red-600">Просрочено</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <p className={`font-semibold ${
-                      metrics.health_status === 'HEALTH_STATUS_HEALTHY' ? 'text-emerald-700' :
-                      metrics.health_status === 'HEALTH_STATUS_AT_RISK' ? 'text-amber-700' :
-                      'text-red-700'
-                    }`}>
-                      {metrics.health_status === 'HEALTH_STATUS_HEALTHY' ? 'Отлично' :
-                       metrics.health_status === 'HEALTH_STATUS_AT_RISK' ? 'Требует внимания' : 'Критично'}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {metrics.health_status === 'HEALTH_STATUS_HEALTHY' 
-                        ? 'Проект идёт по плану' 
-                        : metrics.health_status === 'HEALTH_STATUS_AT_RISK'
-                        ? 'Есть риски отставания'
-                        : 'Много просроченных задач'}
-                    </p>
-                  </div>
-                </div>
+                  );
+                })()
               ) : (
                 <p className="text-gray-500 text-sm">Загрузка статистики...</p>
               )}
@@ -825,7 +929,7 @@ export default function ProjectPage() {
           </div>
         )}
 
-        {/* Settings Tab */}
+        {}
         {activeTab === 'settings' && (
           <div className="max-w-2xl">
             {!isManagerOrHigher && (
@@ -930,7 +1034,7 @@ export default function ProjectPage() {
         )}
       </div>
 
-      {/* Task Creation/Edit Modal */}
+      {}
       {showTaskForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
@@ -1037,7 +1141,7 @@ export default function ProjectPage() {
         </div>
       )}
 
-      {/* Add Member Modal */}
+      {}
       {showMemberModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
@@ -1078,6 +1182,162 @@ export default function ProjectPage() {
           </div>
         </div>
       )}
+
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedTask(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900 line-clamp-1">{selectedTask.title}</h3>
+              <button onClick={() => setSelectedTask(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Description */}
+              {selectedTask.description && (
+                <div>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Описание</label>
+                  <p className="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{selectedTask.description}</p>
+                </div>
+              )}
+
+              {/* Meta Info */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Статус</label>
+                  <p className="mt-1 text-sm font-medium text-gray-900">
+                    {KANBAN_COLUMNS.find((c) => c.id === selectedTask.status)?.title || selectedTask.status}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Приоритет</label>
+                  <p className="mt-1">
+                    <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${PRIORITY_STYLES[selectedTask.priority]?.class || 'bg-gray-100 text-gray-600'}`}>
+                      {PRIORITY_STYLES[selectedTask.priority]?.label || '—'}
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Исполнитель</label>
+                  <div className="mt-1 flex items-center gap-2">
+                    {selectedTask.assignee_id ? (
+                      <>
+                        <Avatar
+                          src={getProfile(selectedTask.assignee_id)?.avatar_url}
+                          name={getProfileName(selectedTask.assignee_id)}
+                          size="xs"
+                        />
+                        <span className="text-sm text-gray-900">{getProfileName(selectedTask.assignee_id)}</span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-400">Не назначен</span>
+                    )}
+                  </div>
+                </div>
+                {selectedTask.due_date && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-400 uppercase tracking-wide">Дедлайн</label>
+                    <p className={`mt-1 text-sm font-medium ${
+                      new Date(selectedTask.due_date) < new Date() && selectedTask.status !== 'DONE'
+                        ? 'text-red-500' : 'text-gray-900'
+                    }`}>
+                      {new Date(selectedTask.due_date).toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Review Section */}
+              {selectedTask.status === 'REVIEW' && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Eye className="h-4 w-4 text-amber-600" />
+                    <h4 className="text-sm font-semibold text-amber-800">Код-ревью</h4>
+                  </div>
+
+                  {reviewLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
+                    </div>
+                  ) : reviewStatus ? (
+                    <div className="space-y-2">
+                      {reviewStatus.reviewers.map((reviewer) => {
+                        const profile = getProfile(reviewer.user_id);
+                        return (
+                          <div key={reviewer.user_id} className="flex items-center justify-between rounded-lg bg-white px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <Avatar
+                                src={profile?.avatar_url}
+                                name={getProfileName(reviewer.user_id)}
+                                size="xs"
+                              />
+                              <span className="text-sm text-gray-900">{getProfileName(reviewer.user_id)}</span>
+                            </div>
+                            {reviewer.approved ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                <CheckCircle className="h-3 w-3" />
+                                Одобрено
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                                Ожидание
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Approve button — visible only if current user is a reviewer who hasn't approved yet */}
+                      {user && reviewStatus.reviewers.some((r) => r.user_id === user.id && !r.approved) && (
+                        <button
+                          onClick={handleApproveTask}
+                          disabled={reviewLoading}
+                          className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-60 transition-colors"
+                        >
+                          {reviewLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4" />
+                          )}
+                          Одобрить
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-amber-700">Информация о ревью недоступна</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-100">
+              {canManage && (
+                <button
+                  onClick={() => {
+                    openEditTask(selectedTask);
+                    setSelectedTask(null);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Edit2 className="h-4 w-4" />
+                  Редактировать
+                </button>
+              )}
+              <button
+                onClick={() => setSelectedTask(null)}
+                className="inline-flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+

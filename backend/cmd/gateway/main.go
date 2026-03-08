@@ -14,72 +14,71 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 )
 
 func main() {
-	// Config
+
 	httpAddr := getEnv("HTTP_ADDR", ":8080")
 	identityAddr := getEnv("IDENTITY_SERVICE_ADDR", "localhost:50051")
 	businessAddr := getEnv("BUSINESS_SERVICE_ADDR", "localhost:50052")
 	jwtSecret := getEnv("JWT_SECRET", "your-secret-key")
 
-	// WebSocket Hub
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
 
-	// gRPC connections
-	identityConn, err := grpc.NewClient(identityAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpcOpts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                10 * time.Second,
+			Timeout:             5 * time.Second,
+			PermitWithoutStream: true,
+		}),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(10 * 1024 * 1024)),
+	}
+
+	identityConn, err := grpc.NewClient(identityAddr, grpcOpts...)
 	if err != nil {
 		log.Fatalf("failed to connect to identity service: %v", err)
 	}
 	defer identityConn.Close()
 
-	businessConn, err := grpc.NewClient(businessAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	businessConn, err := grpc.NewClient(businessAddr, grpcOpts...)
 	if err != nil {
 		log.Fatalf("failed to connect to business service: %v", err)
 	}
 	defer businessConn.Close()
 
-	// Clients
 	clients := service.NewClients(identityConn, businessConn)
 
-	// Handlers
 	authHandler := handlers.NewAuthHTTPHandler(clients.Identity)
 	profileHandler := handlers.NewProfileHTTPHandler(clients.Identity)
 	projectHandler := handlers.NewProjectHTTPHandler(clients.Business)
 	taskHandler := handlers.NewTaskHTTPHandler(clients.Business, wsHub)
 	analyticsHandler := handlers.NewAnalyticsHTTPHandler(clients.Business)
 
-	// Routes
 	mux := http.NewServeMux()
 
-	// Public routes (auth)
 	authHandler.RegisterRoutes(mux)
 
-	// Protected routes (с auth middleware) - регистрируем напрямую
-	// потому что go1.22+ ServeMux не поддерживает middleware на группу
 	profileHandler.RegisterRoutes(mux)
 	projectHandler.RegisterRoutes(mux)
 	taskHandler.RegisterRoutes(mux)
 	analyticsHandler.RegisterRoutes(mux)
 
-	// Health check
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	// Swagger
 	mux.Handle("/swagger/", docs.SwaggerHandler())
 	mux.Handle("/swagger", docs.SwaggerHandler())
 
-	// WebSocket endpoint
 	mux.HandleFunc("GET /ws", func(w http.ResponseWriter, r *http.Request) {
 		websocket.HandleWebSocket(wsHub, w, r)
 	})
 
-	// Wrap with middleware
 	handler := middleware.Chain(
 		mux,
 		middleware.CORS,
@@ -87,7 +86,6 @@ func main() {
 		middleware.Auth(jwtSecret),
 	)
 
-	// Для public routes создаём отдельный handler без auth
 	publicMux := http.NewServeMux()
 	authHandler.RegisterRoutes(publicMux)
 	publicMux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -97,12 +95,11 @@ func main() {
 	})
 	publicMux.Handle("/swagger/", docs.SwaggerHandler())
 	publicMux.Handle("/swagger", docs.SwaggerHandler())
-	// WebSocket (public - авторизация через параметр токена)
+
 	publicMux.HandleFunc("GET /ws", func(w http.ResponseWriter, r *http.Request) {
 		websocket.HandleWebSocket(wsHub, w, r)
 	})
 
-	// Финальный router с разделением public/protected
 	finalHandler := &routerWithPublic{
 		publicPaths: []string{
 			"/api/v1/auth/",
@@ -132,7 +129,6 @@ func main() {
 	<-shutdown
 }
 
-// routerWithPublic разделяет public и protected роуты
 type routerWithPublic struct {
 	publicPaths      []string
 	publicHandler    http.Handler

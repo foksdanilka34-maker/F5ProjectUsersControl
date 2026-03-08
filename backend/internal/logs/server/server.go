@@ -16,7 +16,6 @@ const (
 	LogsSubjectName = "logs.>"
 )
 
-// LogMessage - структура сообщения лога из NATS
 type LogMessage struct {
 	Service   string            `json:"service"`
 	Level     string            `json:"level"`
@@ -27,7 +26,6 @@ type LogMessage struct {
 	Timestamp time.Time         `json:"timestamp"`
 }
 
-// LogsServer - сервер логов, подписывается на NATS JetStream
 type LogsServer struct {
 	logService *core.LogService
 	nc         *nats.Conn
@@ -48,13 +46,12 @@ func NewLogsServer(logService *core.LogService, nc *nats.Conn) (*LogsServer, err
 }
 
 func (s *LogsServer) Start(ctx context.Context) error {
-	// Create or get stream
+
 	stream, err := s.getOrCreateStream(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Create consumer
 	cons, err := stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
 		Durable:       "logs-processor",
 		FilterSubject: "logs.*",
@@ -66,7 +63,6 @@ func (s *LogsServer) Start(ctx context.Context) error {
 
 	log.Println("Logs server started, consuming messages...")
 
-	// Start consuming
 	go s.consumeMessages(ctx, cons)
 
 	return nil
@@ -78,7 +74,6 @@ func (s *LogsServer) getOrCreateStream(ctx context.Context) (jetstream.Stream, e
 		return stream, nil
 	}
 
-	// Create stream if not exists
 	stream, err = s.js.CreateStream(ctx, jetstream.StreamConfig{
 		Name:      LogsStreamName,
 		Subjects:  []string{LogsSubjectName},
@@ -137,3 +132,5 @@ func (s *LogsServer) processMessage(ctx context.Context, msg jetstream.Msg) erro
 
 	return s.logService.Log(ctx, req)
 }
+
+

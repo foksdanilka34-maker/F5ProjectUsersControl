@@ -7,7 +7,6 @@ import (
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/repo"
 )
 
-// ProjectRepository - интерфейс репозитория проектов
 type ProjectRepository interface {
 	Create(ctx context.Context, p *repo.Project) (int64, error)
 	GetByID(ctx context.Context, id int64) (*repo.Project, error)
@@ -24,7 +23,6 @@ type ProjectRepository interface {
 	GetTaskStats(ctx context.Context, projectID int64) (*repo.TaskStats, error)
 }
 
-// ProjectService - сервис проектов
 type ProjectService struct {
 	repo ProjectRepository
 }
@@ -42,7 +40,7 @@ type CreateProjectRequest struct {
 }
 
 func (s *ProjectService) CreateProject(ctx context.Context, req *CreateProjectRequest) (*repo.Project, error) {
-	// Проверка уникальности имени
+
 	exists, err := s.repo.ExistsByName(ctx, req.Name)
 	if err != nil {
 		return nil, err
@@ -68,7 +66,6 @@ func (s *ProjectService) CreateProject(ctx context.Context, req *CreateProjectRe
 	}
 	project.ID = id
 
-	// Add owner as member
 	_ = s.repo.AddMember(ctx, id, req.OwnerID, "owner")
 
 	return project, nil
@@ -173,3 +170,5 @@ func (s *ProjectService) CheckAccess(ctx context.Context, projectID, userID int6
 
 	return s.repo.IsMember(ctx, projectID, userID)
 }
+
+

@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  Bell,
-  ChevronDown,
   FolderKanban,
-  LogOut,
   Plus,
   Users,
   TrendingUp,
@@ -13,34 +10,32 @@ import {
   Clock,
   AlertTriangle,
   BarChart3,
-  Wifi,
-  WifiOff,
+  Trophy,
+  Medal,
+  AlertOctagon,
 } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import Avatar from '../components/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { useWebSocket } from '../context/WebSocketContext';
-import { roleLabels, projectStatusLabels, projectStatusColors } from '../lib/constants';
+import { projectStatusLabels, projectStatusColors } from '../lib/constants';
 import { getProjects, type Project } from '../services/projectService';
 import { getDashboardStats, type DashboardStats } from '../services/analyticsService';
-import Avatar from '../components/Avatar';
-
-const navTabs = ['Обзор', 'Проекты', 'Сотрудники'];
+import { listProfiles } from '../services/employeeService';
+import type { ProfileDTO } from '../services/types';
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState('Обзор');
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const { isConnected, subscribe } = useWebSocket();
+  const [profilesMap, setProfilesMap] = useState<Map<number, ProfileDTO>>(new Map());
+  const { user } = useAuth();
+  const { subscribe } = useWebSocket();
 
   const userRole = user?.role || 'user';
   const userName = user?.full_name || user?.login || 'Пользователь';
-  
-  // Проверка - менеджеры, директора, админы и разработчики видят все проекты, остальные только свои
+
   const isManagerOrHigher = ['admin', 'director', 'manager', 'developer'].includes(userRole);
 
   const loadStats = useCallback(async () => {
@@ -56,14 +51,13 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Реф для loadStats чтобы избежать пересоздания подписок
   const loadStatsRef = useRef(loadStats);
   loadStatsRef.current = loadStats;
 
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        // Обычные сотрудники видят только проекты, в которых они участвуют
+
         const params = isManagerOrHigher ? {} : { member_id: user?.id };
         const data = await getProjects(params);
         setProjects(data);
@@ -76,11 +70,18 @@ export default function DashboardPage() {
     
     loadProjects();
     loadStats();
+
+    listProfiles({ pageSize: 200 })
+      .then((res) => {
+        const map = new Map<number, ProfileDTO>();
+        res.profiles.forEach((p) => map.set(p.id, p));
+        setProfilesMap(map);
+      })
+      .catch((err) => console.error('Failed to load profiles:', err));
   }, [isManagerOrHigher, user?.id, loadStats]);
 
-  // WebSocket: обновляем статистику при изменении задач
   useEffect(() => {
-    // Используем стабильную функцию через ref
+
     const reloadStats = () => {
       console.log('[Dashboard] Task event received, reloading stats...');
       loadStatsRef.current();
@@ -101,16 +102,6 @@ export default function DashboardPage() {
     };
   }, [subscribe]); // Убираем loadStats из зависимостей, используем ref
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setIsUserMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const permissions = useMemo(
     () => ({
       canCreateProject: ['admin', 'manager', 'developer'].includes(userRole),
@@ -119,14 +110,8 @@ export default function DashboardPage() {
     [userRole],
   );
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   const recentProjects = projects.slice(0, 5);
 
-  // Calculate percentages for visual bars - защита от NaN
   const safePercent = (value: number) => {
     if (!Number.isFinite(value) || Number.isNaN(value)) return 0;
     return Math.max(0, Math.min(100, Math.round(value)));
@@ -134,13 +119,13 @@ export default function DashboardPage() {
   
   const taskCompletionPercent = safePercent(stats ? (stats.completed_tasks / Math.max(stats.total_tasks, 1)) * 100 : 0);
   const projectActivePercent = safePercent(stats ? (stats.active_projects / Math.max(stats.total_projects, 1)) * 100 : 0);
-  // Бэкенд уже отдает проценты, не умножаем на 100
+
   const avgCompletionPercent = safePercent(stats?.avg_completion_rate || 0);
   const avgOnTimePercent = safePercent(stats?.avg_on_time_rate || 0);
 
   return (
-    <div className="relative min-h-screen bg-white text-gray-900">
-      {/* Background decorations */}
+    <div className="relative">
+      {}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-24 top-12 h-80 w-80 rounded-full bg-emerald-200/40 blur-3xl" />
         <div className="absolute -right-16 top-36 h-64 w-64 rounded-full bg-lime-200/40 blur-3xl" />
@@ -148,114 +133,9 @@ export default function DashboardPage() {
       </div>
 
       <div className="relative z-10">
-        {/* Header */}
-        <header className="sticky top-0 z-20 border-b border-emerald-50 bg-white/80 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold tracking-tight text-emerald-600">КОМАНДА</span>
-                <span className="rounded-xl bg-gradient-to-r from-lime-400 to-emerald-400 px-3 py-1 text-sm font-bold text-gray-900">
-                  F5
-                </span>
-              </div>
-              <nav className="hidden gap-4 md:flex">
-                {navTabs.map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => {
-                      setActiveTab(tab);
-                      if (tab === 'Сотрудники') {
-                        navigate('/admin/employees');
-                      } else if (tab === 'Проекты') {
-                        navigate('/projects');
-                      } else if (tab === 'Обзор') {
-                        navigate('/');
-                      }
-                    }}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                      activeTab === tab
-                        ? 'bg-gray-900 text-white'
-                        : 'text-gray-500 hover:text-emerald-600'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* WebSocket Status Indicator */}
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  isConnected
-                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                    : 'bg-gray-100 text-gray-500 border border-gray-200'
-                }`}
-                title={isConnected ? 'Данные обновляются в реальном времени' : 'Нет подключения к серверу'}
-              >
-                {isConnected ? (
-                  <Wifi className="h-3.5 w-3.5" />
-                ) : (
-                  <WifiOff className="h-3.5 w-3.5" />
-                )}
-                {isConnected ? 'Live' : 'Offline'}
-              </span>
-
-              <button
-                type="button"
-                className="rounded-full border border-gray-200 bg-white p-2 text-gray-500 hover:text-emerald-600"
-              >
-                <Bell className="h-5 w-5" />
-              </button>
-              
-              {/* User Menu */}
-              <div className="relative" ref={userMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm hover:border-emerald-200"
-                >
-                  <Avatar
-                    src={user?.avatar_url}
-                    name={userName}
-                    size="sm"
-                  />
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-gray-700">{userName}</p>
-                    <p className="text-[11px] text-gray-400">{roleLabels[userRole] || userRole}</p>
-                  </div>
-                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-gray-100 bg-white py-2 shadow-lg">
-                    <Link
-                      to="/profile"
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <Users className="h-4 w-4" />
-                      Мой профиль
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Выйти
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
+        {}
         <main className="mx-auto max-w-7xl px-6 py-8">
-          {/* Welcome + Quick Stats */}
+          {}
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -287,37 +167,75 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            {/* Mini Stats */}
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Сводка</p>
+            {}
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm flex flex-col">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Задачи</p>
               {loadingStats ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
                 </div>
-              ) : stats ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Проектов</span>
-                    <span className="font-bold text-gray-900">{stats.total_projects}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Сотрудников</span>
-                    <span className="font-bold text-gray-900">{stats.total_employees}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Задач</span>
-                    <span className="font-bold text-gray-900">{stats.total_tasks}</span>
-                  </div>
-                </div>
+              ) : stats && stats.total_tasks > 0 ? (
+                (() => {
+                  const inProgress = stats.total_tasks - stats.completed_tasks - stats.overdue_tasks;
+                  const donutData = [
+                    { name: 'Вовремя', value: stats.completed_on_time || 0, color: '#10b981' },
+                    { name: 'С опозданием', value: stats.completed_late || 0, color: '#f59e0b' },
+                    { name: 'В работе', value: Math.max(0, inProgress), color: '#3b82f6' },
+                    { name: 'Просрочено', value: stats.overdue_tasks || 0, color: '#ef4444' },
+                  ].filter((d) => d.value > 0);
+                  return (
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                      <div className="relative w-full" style={{ height: 150 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={donutData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={40}
+                              outerRadius={60}
+                              paddingAngle={3}
+                              dataKey="value"
+                              stroke="none"
+                            >
+                              {donutData.map((entry, i) => (
+                                <Cell key={i} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(value: number, name: string) => [`${value} задач`, name]}
+                              contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-gray-900">{stats.total_tasks}</p>
+                            <p className="text-[10px] text-gray-400">задач</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 w-full px-2">
+                        {donutData.map((d) => (
+                          <div key={d.name} className="flex items-center gap-1.5 text-xs text-gray-600">
+                            <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
+                            <span className="truncate">{d.name}</span>
+                            <span className="ml-auto font-medium">{d.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()
               ) : (
                 <p className="text-sm text-gray-400 text-center py-4">Нет данных</p>
               )}
             </div>
           </div>
 
-          {/* Analytics Charts */}
+          {}
           <div className="mt-6 grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
-            {/* Tasks Progress */}
+            {}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="rounded-xl bg-emerald-50 p-2.5">
@@ -344,7 +262,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Active Projects */}
+            {}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="rounded-xl bg-blue-50 p-2.5">
@@ -371,7 +289,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Overdue Tasks */}
+            {}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="rounded-xl bg-amber-50 p-2.5">
@@ -403,7 +321,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Team Performance */}
+            {}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="rounded-xl bg-violet-50 p-2.5">
@@ -433,9 +351,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Two Column Layout */}
+          {}
           <div className="mt-6 grid gap-6 lg:grid-cols-3">
-            {/* Recent Projects */}
+            {}
             <div className="lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -460,8 +378,8 @@ export default function DashboardPage() {
                       className="flex items-center justify-between rounded-xl border border-gray-100 p-3 hover:border-emerald-100 hover:bg-emerald-50/30 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-gradient-to-r from-emerald-400 to-lime-400 flex items-center justify-center text-white font-semibold text-sm">
-                          {project.name.charAt(0).toUpperCase()}
+                        <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+                          <FolderKanban className="h-4.5 w-4.5 text-emerald-600" />
                         </div>
                         <div>
                           <h3 className="text-sm font-medium text-gray-900">{project.name}</h3>
@@ -491,7 +409,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Quick Actions */}
+            {}
             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
               <h2 className="font-semibold text-gray-900 mb-4">Быстрые действия</h2>
               <div className="space-y-2">
@@ -540,8 +458,130 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+          {/* Top employees leaderboard */}
+          {stats && stats.top_employees && stats.top_employees.length > 0 && (
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <Trophy className="h-5 w-5 text-amber-500" />
+                  <h2 className="font-semibold text-gray-900">Лучшие сотрудники</h2>
+                </div>
+                <div className="space-y-3">
+                  {stats.top_employees.slice(0, 5).map((emp, index) => {
+                    const profile = profilesMap.get(emp.employee_id);
+                    const name = profile
+                      ? `${profile.first_name} ${profile.last_name}`
+                      : `Сотрудник #${emp.employee_id}`;
+                    const medalColors = ['text-amber-500', 'text-gray-400', 'text-orange-400'];
+                    return (
+                      <Link
+                        key={emp.employee_id}
+                        to={`/profile/${emp.employee_id}`}
+                        className="flex items-center gap-3 rounded-xl border border-gray-50 p-3 hover:border-emerald-100 hover:bg-emerald-50/30 transition-colors"
+                      >
+                        <div className="flex-shrink-0 w-6 text-center">
+                          {index < 3 ? (
+                            <Medal className={`h-5 w-5 ${medalColors[index]}`} />
+                          ) : (
+                            <span className="text-sm font-bold text-gray-300">{index + 1}</span>
+                          )}
+                        </div>
+                        <Avatar
+                          src={profile?.avatar_url}
+                          name={name}
+                          size="sm"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
+                          <p className="text-xs text-gray-500">{emp.tasks_completed} задач выполнено</p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <div className="relative h-10 w-10">
+                            <svg className="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
+                              <circle cx="18" cy="18" r="14" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+                              <circle
+                                cx="18" cy="18" r="14" fill="none"
+                                stroke="#10b981"
+                                strokeWidth="3"
+                                strokeDasharray={`${Math.round(emp.completion_rate * 0.88)} 88`}
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-gray-700">
+                              {Math.round(emp.completion_rate)}%
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Problematic projects warning */}
+              {stats.problematic_projects && stats.problematic_projects.length > 0 && (
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="flex items-center gap-2 mb-4">
+                    <AlertOctagon className="h-5 w-5 text-red-500" />
+                    <h2 className="font-semibold text-gray-900">Проблемные проекты</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {stats.problematic_projects.slice(0, 5).map((pp) => {
+                      const project = projects.find((p) => p.id === pp.project_id);
+                      const name = project?.name || `Проект #${pp.project_id}`;
+                      const isHealthy = pp.health_status === 'HEALTH_STATUS_HEALTHY';
+                      const isAtRisk = pp.health_status === 'HEALTH_STATUS_AT_RISK';
+                      const healthColor = isHealthy
+                        ? 'bg-emerald-500'
+                        : isAtRisk
+                        ? 'bg-amber-500'
+                        : 'bg-red-500';
+                      const healthLabel = isHealthy
+                        ? 'Нормально'
+                        : isAtRisk
+                        ? 'Риск'
+                        : 'Критично';
+                      const onTime = Math.round(pp.on_time_rate || 0);
+                      return (
+                        <Link
+                          key={pp.project_id}
+                          to={`/projects/${pp.project_id}`}
+                          className="block rounded-xl border border-gray-50 p-3 hover:border-red-100 hover:bg-red-50/20 transition-colors"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <FolderKanban className="h-4 w-4 text-gray-400" />
+                              <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`h-2 w-2 rounded-full ${healthColor}`} />
+                              <span className="text-xs text-gray-500">{healthLabel}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-1.5 rounded-full bg-gray-100">
+                              <div
+                                className={`h-1.5 rounded-full transition-all ${
+                                  onTime >= 70 ? 'bg-emerald-400' : onTime >= 40 ? 'bg-amber-400' : 'bg-red-400'
+                                }`}
+                                style={{ width: `${onTime}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium text-gray-500">{onTime}% в срок</span>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
     </div>
   );
 }
+
+

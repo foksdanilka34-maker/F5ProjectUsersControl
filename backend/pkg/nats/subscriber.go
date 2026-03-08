@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -24,7 +26,6 @@ func NewSubscriber(nc *nats.Conn) (*Subscriber, error) {
 
 	ctx := context.Background()
 
-	// Ensure employee-events stream exists
 	_, err = js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
 		Name:      "employee-events",
 		Subjects:  []string{"employee.event.*"},
@@ -35,7 +36,6 @@ func NewSubscriber(nc *nats.Conn) (*Subscriber, error) {
 		return nil, fmt.Errorf("failed to create employee-events stream: %w", err)
 	}
 
-	// Ensure logs stream exists
 	_, err = js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
 		Name:      "logs",
 		Subjects:  []string{"logs.*"},
@@ -66,7 +66,14 @@ func (s *Subscriber) SubscribeEmployeeEvents(ctx context.Context, handler Employ
 
 	go func() {
 		for {
-			msgs, err := cons.Fetch(10, jetstream.FetchMaxWait(0))
+			select {
+			case <-ctx.Done():
+				log.Println("SubscribeEmployeeEvents: context cancelled, stopping")
+				return
+			default:
+			}
+
+			msgs, err := cons.Fetch(10, jetstream.FetchMaxWait(5*time.Second))
 			if err != nil {
 				continue
 			}
@@ -105,7 +112,14 @@ func (s *Subscriber) SubscribeLogs(ctx context.Context, handler LogEntryHandler)
 
 	go func() {
 		for {
-			msgs, err := cons.Fetch(100, jetstream.FetchMaxWait(0))
+			select {
+			case <-ctx.Done():
+				log.Println("SubscribeLogs: context cancelled, stopping")
+				return
+			default:
+			}
+
+			msgs, err := cons.Fetch(100, jetstream.FetchMaxWait(5*time.Second))
 			if err != nil {
 				continue
 			}

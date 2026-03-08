@@ -22,7 +22,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await loginWithCredentials({ login, password });
-      // PublicRoute will automatically redirect to / after isAuthenticated becomes true
+
     } catch (error) {
       if (error instanceof Error) {
         setFormError('Неверный логин или пароль');
@@ -36,7 +36,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/50 to-white flex items-center justify-center p-4">
-      {/* Background decorations */}
+      {}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-24 top-12 h-80 w-80 rounded-full bg-emerald-200/40 blur-3xl" />
         <div className="absolute -right-16 top-36 h-64 w-64 rounded-full bg-lime-200/40 blur-3xl" />
@@ -44,7 +44,7 @@ export default function LoginPage() {
       </div>
 
       <div className="w-full max-w-md relative z-10">
-        {/* Logo */}
+        {}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-3">
             <span className="text-2xl font-semibold tracking-tight text-emerald-600">КОМАНДА</span>
@@ -55,7 +55,7 @@ export default function LoginPage() {
           <p className="text-gray-500 text-sm">Войдите в систему</p>
         </div>
 
-        {/* Login Card */}
+        {}
         <div className="rounded-3xl border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {formError && (
@@ -64,7 +64,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Login Field */}
+            {}
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-2">
                 Логин
@@ -82,7 +82,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password Field */}
+            {}
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-2">
                 Пароль
@@ -107,7 +107,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Submit Button */}
+            {}
             <button
               type="submit"
               disabled={isSubmitting || !login || !password}
@@ -125,11 +125,13 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Footer */}
+        {}
         <p className="text-center text-gray-400 text-xs mt-6">
-          © 2025 Команда F5
+          © {new Date().getFullYear()} Команда F5
         </p>
       </div>
     </div>
   );
 }
+
+

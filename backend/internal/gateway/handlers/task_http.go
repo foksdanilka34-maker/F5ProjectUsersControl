@@ -11,7 +11,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// WebSocket event types
 type WSEvent struct {
 	Type    string      `json:"type"`
 	Payload interface{} `json:"payload"`
@@ -26,7 +25,6 @@ func NewTaskHTTPHandler(client pb.BusinessServiceClient, wsHub *websocket.Hub) *
 	return &TaskHTTPHandler{client: client, wsHub: wsHub}
 }
 
-// broadcastTaskEvent отправляет событие через WebSocket всем подключённым клиентам
 func (h *TaskHTTPHandler) broadcastTaskEvent(eventType string, payload interface{}) {
 	if h.wsHub == nil {
 		log.Println("[WS] Hub is nil, skipping broadcast")
@@ -39,7 +37,6 @@ func (h *TaskHTTPHandler) broadcastTaskEvent(eventType string, payload interface
 	})
 }
 
-// broadcastTaskEventFromProto - хелпер для отправки события с pb.Task
 func (h *TaskHTTPHandler) broadcastTaskFromProto(eventType string, task *pb.Task) {
 	h.broadcastTaskEvent(eventType, taskToMap(task))
 }
@@ -52,6 +49,9 @@ func (h *TaskHTTPHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/v1/tasks/{id}", h.Delete)
 	mux.HandleFunc("POST /api/v1/tasks/{id}/move", h.Move)
 	mux.HandleFunc("POST /api/v1/tasks/{id}/assign", h.Assign)
+	mux.HandleFunc("POST /api/v1/tasks/{id}/review/submit", h.SubmitForReview)
+	mux.HandleFunc("POST /api/v1/tasks/{id}/review/approve", h.ApproveTask)
+	mux.HandleFunc("GET /api/v1/tasks/{id}/review", h.GetReviewStatus)
 }
 
 func (h *TaskHTTPHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,6 @@ func (h *TaskHTTPHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получаем user_id из контекста (middleware должен положить)
 	userID, _ := r.Context().Value("user_id").(int64)
 
 	pbReq := &pb.CreateTaskRequest{
@@ -101,7 +100,6 @@ func (h *TaskHTTPHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Отправляем событие через WebSocket
 	h.broadcastTaskFromProto("task:created", task)
 
 	writeJSON(w, http.StatusCreated, taskToMap(task))
@@ -223,7 +221,6 @@ func (h *TaskHTTPHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Отправляем событие через WebSocket
 	h.broadcastTaskFromProto("task:updated", task)
 
 	writeJSON(w, http.StatusOK, taskToMap(task))
@@ -244,7 +241,6 @@ func (h *TaskHTTPHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Отправляем событие через WebSocket
 	h.broadcastTaskEvent("task:deleted", map[string]int64{"id": id})
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "task deleted"})
@@ -283,7 +279,6 @@ func (h *TaskHTTPHandler) Move(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Отправляем событие через WebSocket
 	h.broadcastTaskFromProto("task:moved", task)
 
 	writeJSON(w, http.StatusOK, taskToMap(task))
@@ -314,10 +309,91 @@ func (h *TaskHTTPHandler) Assign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Отправляем событие через WebSocket
 	h.broadcastTaskFromProto("task:assigned", task)
 
 	writeJSON(w, http.StatusOK, taskToMap(task))
+}
+
+func (h *TaskHTTPHandler) SubmitForReview(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := parseID(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid id"}`, http.StatusBadRequest)
+		return
+	}
+
+	task, err := h.client.SubmitForReview(r.Context(), &pb.SubmitForReviewRequest{
+		TaskId: id,
+	})
+	if err != nil {
+		log.Println("submit for review error:", err)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		return
+	}
+
+	h.broadcastTaskFromProto("task:moved", task)
+
+	writeJSON(w, http.StatusOK, taskToMap(task))
+}
+
+func (h *TaskHTTPHandler) ApproveTask(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := parseID(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid id"}`, http.StatusBadRequest)
+		return
+	}
+
+	userID, _ := r.Context().Value("user_id").(int64)
+	if userID == 0 {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	task, err := h.client.ApproveTask(r.Context(), &pb.ApproveTaskRequest{
+		TaskId: id,
+		UserId: userID,
+	})
+	if err != nil {
+		log.Println("approve task error:", err)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		return
+	}
+
+	h.broadcastTaskFromProto("task:updated", task)
+
+	writeJSON(w, http.StatusOK, taskToMap(task))
+}
+
+func (h *TaskHTTPHandler) GetReviewStatus(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := parseID(idStr)
+	if err != nil {
+		http.Error(w, `{"error":"invalid id"}`, http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.client.GetReviewStatus(r.Context(), &pb.GetReviewStatusRequest{
+		TaskId: id,
+	})
+	if err != nil {
+		log.Println("get review status error:", err)
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		return
+	}
+
+	reviewers := make([]map[string]interface{}, len(resp.Reviewers))
+	for i, rv := range resp.Reviewers {
+		reviewers[i] = map[string]interface{}{
+			"user_id":  rv.UserId,
+			"approved": rv.Approved,
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"reviewers": reviewers,
+		"is_active": resp.IsActive,
+	})
 }
 
 func taskToMap(t *pb.Task) map[string]interface{} {

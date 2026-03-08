@@ -8,14 +8,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// LogRepository - интерфейс репозитория логов
 type LogRepository interface {
 	Create(ctx context.Context, entry *repo.LogEntry) error
 	List(ctx context.Context, filter *repo.LogFilter) ([]*repo.LogEntry, int, error)
 	DeleteOlderThan(ctx context.Context, days int) (int64, error)
 }
 
-// LogService - сервис логирования
 type LogService struct {
 	repo LogRepository
 }
@@ -127,7 +125,6 @@ func (s *LogService) CleanupOldLogs(ctx context.Context, retentionDays int) (int
 	return s.repo.DeleteOlderThan(ctx, retentionDays)
 }
 
-// HandleLogEntry - обработчик для NATS сообщений логов
 type NATSLogEntry struct {
 	Service   string `json:"service"`
 	Level     string `json:"level"`
@@ -143,3 +140,5 @@ func (s *LogService) HandleLogEntry(ctx context.Context, entry *NATSLogEntry) er
 		Message: entry.Message,
 	})
 }
+
+

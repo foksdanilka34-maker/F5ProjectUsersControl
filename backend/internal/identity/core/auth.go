@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// AuthRepository - интерфейс репозитория авторизации
 type AuthRepository interface {
 	GetCredentialsByLogin(ctx context.Context, login string) (*repo.Credential, error)
 	GetCredentialsByUserID(ctx context.Context, userID int64) (*repo.Credential, error)
@@ -23,7 +22,6 @@ type AuthRepository interface {
 	BeginTx(ctx context.Context) (pgx.Tx, error)
 }
 
-// Authenticator - интерфейс для JWT операций
 type Authenticator interface {
 	HashPassword(password string) (string, error)
 	CheckPassword(password, hash string) bool
@@ -31,7 +29,6 @@ type Authenticator interface {
 	ValidateRefreshToken(token string) (*repo.CustomClaims, error)
 }
 
-// AuthService - сервис авторизации
 type AuthService struct {
 	repo          AuthRepository
 	authenticator Authenticator
@@ -178,7 +175,8 @@ func (s *AuthService) ChangeStatus(ctx context.Context, userID int64, isActive b
 	return s.repo.UpdateStatus(ctx, userID, isActive)
 }
 
-// ParseUserID parses string to int64
 func ParseUserID(s string) (int64, error) {
 	return strconv.ParseInt(s, 10, 64)
 }
+
+

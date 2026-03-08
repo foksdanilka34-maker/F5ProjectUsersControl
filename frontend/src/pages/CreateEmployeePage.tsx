@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   AlertCircle,
-  ArrowLeft,
   Calendar,
   Loader2,
   Lock,
@@ -18,10 +16,10 @@ import { ApiError } from '../lib/apiClient';
 import { useEmployeeReferences } from '../hooks/useEmployeeReferences';
 
 const roles = [
-  { label: 'Admin', value: 'admin' },
-  { label: 'Director', value: 'director' },
-  { label: 'Manager', value: 'manager' },
-  { label: 'Employee', value: 'employee' },
+  { label: 'Администратор', value: 'admin' },
+  { label: 'Директор', value: 'director' },
+  { label: 'Менеджер', value: 'manager' },
+  { label: 'Сотрудник', value: 'employee' },
 ];
 
 type FormState = {
@@ -84,7 +82,7 @@ export default function CreateEmployeePage() {
 
     try {
       const payload = buildCreatePayload(form);
-      // Backend returns ProfileDTO directly
+
       const profile = await createProfile(payload);
 
       setSubmitSuccess(
@@ -113,22 +111,13 @@ export default function CreateEmployeePage() {
       </div>
 
       <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10 lg:flex-row">
-        <section className="flex-1 rounded-[32px] border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
-          <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-6">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Администрирование</p>
-              <h1 className="mt-3 text-3xl font-semibold">Создать профиль сотрудника</h1>
-              <p className="mt-2 text-sm text-gray-500">
-                Поля повторяют контракт `CreateProfileRequest`, запрос уходит напрямую в employee-service через ApiGateway.
-              </p>
-            </div>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Назад к дашборду
-            </Link>
+        <section className="flex-1 rounded-3xl border border-gray-100 bg-white/95 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.08)]">
+          <header className="border-b border-gray-100 pb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Администрирование</p>
+            <h1 className="mt-3 text-3xl font-semibold">Создать профиль сотрудника</h1>
+            <p className="mt-2 text-sm text-gray-500">
+              Заполните данные для регистрации нового сотрудника
+            </p>
           </header>
 
           {submitSuccess && (
@@ -353,7 +342,7 @@ export default function CreateEmployeePage() {
           </form>
         </section>
 
-        <aside className="w-full rounded-[32px] border border-gray-100 bg-white/90 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.05)] lg:w-96">
+        <aside className="w-full rounded-3xl border border-gray-100 bg-white/90 p-8 shadow-[0_30px_80px_rgba(6,95,70,0.05)] lg:w-96">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Предпросмотр</p>
           <h2 className="mt-3 text-xl font-semibold text-gray-900">Карточка сотрудника</h2>
           <div className="mt-6 rounded-[28px] border border-emerald-50 bg-gradient-to-br from-white to-emerald-50/50 p-6">
@@ -445,3 +434,5 @@ function getErrorMessage(error: unknown): string {
   }
   return 'Не удалось создать профиль';
 }
+
+

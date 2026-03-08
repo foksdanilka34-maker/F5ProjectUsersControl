@@ -2,7 +2,6 @@ package repo
 
 import "time"
 
-// LogEntry - запись лога
 type LogEntry struct {
 	ID        string
 	Service   string
@@ -14,7 +13,6 @@ type LogEntry struct {
 	Timestamp time.Time
 }
 
-// LogFilter - фильтр для поиска логов
 type LogFilter struct {
 	Service   string
 	Level     string
@@ -25,3 +23,5 @@ type LogFilter struct {
 	PageSize  int
 	Offset    int
 }
+
+

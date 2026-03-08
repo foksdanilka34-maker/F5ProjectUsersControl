@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	// Config
+
 	dbHost := getEnv("DB_HOST", "localhost")
 	dbPort := getEnv("DB_PORT", "5435")
 	dbUser := getEnv("DB_USER", "business")
@@ -23,7 +23,6 @@ func main() {
 	grpcPort := getIntEnv("GRPC_PORT", 50052)
 	natsURL := getEnv("NATS_URL", "nats://localhost:4222")
 
-	// Database
 	pool, err := postgres.Connect(context.Background(), &postgres.Config{
 		Host:     dbHost,
 		Port:     dbPort,
@@ -37,7 +36,6 @@ func main() {
 	}
 	defer pool.Close()
 
-	// NATS
 	natsConn, err := nats.Connect(natsURL)
 	if err != nil {
 		log.Fatalf("failed to connect to NATS: %v", err)
@@ -49,23 +47,20 @@ func main() {
 		log.Fatalf("failed to create NATS subscriber: %v", err)
 	}
 
-	// Repos
 	projectRepo := repo.NewProjectRepo(pool)
 	taskRepo := repo.NewTaskRepo(pool)
 	analyticsRepo := repo.NewAnalyticsRepo(pool)
 
-	// Core
 	projectService := core.NewProjectService(projectRepo)
 	taskService := core.NewTaskService(taskRepo)
+	taskService.SetProjectRepo(projectRepo)
 	analyticsService := core.NewAnalyticsService(analyticsRepo)
 
-	// Subscribe to employee events
 	eventHandler := NewEmployeeEventHandler(pool)
 	if err := subscriber.SubscribeEmployeeEvents(context.Background(), eventHandler.HandleEmployeeEvent); err != nil {
 		log.Fatalf("failed to subscribe to employee events: %v", err)
 	}
 
-	// Server
 	srv := server.NewBusinessServer(projectService, taskService, analyticsService)
 
 	shutdown := make(chan struct{})

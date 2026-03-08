@@ -12,3 +12,5 @@ func GetEnv(key, defaultValue string) string {
 	log.Printf("env not set, using default: key=%s, default=%s", key, defaultValue)
 	return defaultValue
 }
+
+

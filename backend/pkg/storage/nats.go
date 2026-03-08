@@ -42,3 +42,5 @@ func (c *NATSClient) Close() {
 	_ = c.Conn.Drain()
 	c.Conn.Close()
 }
+
+

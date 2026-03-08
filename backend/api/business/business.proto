@@ -37,6 +37,10 @@ service BusinessService {
     rpc GetCompletionRateTrends(GetCompletionRateTrendsRequest) returns (CompletionRateTrendsResponse);
     
     rpc GetDashboardStats(GetDashboardStatsRequest) returns (DashboardStatsResponse);
+
+    rpc SubmitForReview(SubmitForReviewRequest) returns (Task);
+    rpc ApproveTask(ApproveTaskRequest) returns (Task);
+    rpc GetReviewStatus(GetReviewStatusRequest) returns (ReviewStatusResponse);
 }
 
 enum TaskStatus {
@@ -323,6 +327,30 @@ message CompletionRateTrendEntry {
     double on_time_rate = 2;
     int32 completed_count = 3;
     int32 overdue_count = 4;
+}
+
+// Review messages
+message SubmitForReviewRequest {
+    int64 task_id = 1;
+}
+
+message ApproveTaskRequest {
+    int64 task_id = 1;
+    int64 user_id = 2;
+}
+
+message GetReviewStatusRequest {
+    int64 task_id = 1;
+}
+
+message ReviewerInfo {
+    int64 user_id = 1;
+    bool approved = 2;
+}
+
+message ReviewStatusResponse {
+    repeated ReviewerInfo reviewers = 1;
+    bool is_active = 2;
 }
 
 message GetDashboardStatsRequest {

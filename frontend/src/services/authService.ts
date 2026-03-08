@@ -35,12 +35,11 @@ export function login(request: LoginRequest) {
   });
 }
 
-// Refresh session using HttpOnly cookie (sent automatically)
 export function refreshSession() {
   return apiClient.request<RefreshResponse>(`${AUTH_PREFIX}/refresh`, {
     method: 'POST',
     skipAuth: true,
-    skipRetry: true, // Don't retry refresh on 401
+    skipRetry: true, 
   });
 }
 
@@ -53,3 +52,5 @@ export function logout() {
 export function getMe() {
   return apiClient.request<MeResponse>(`${AUTH_PREFIX}/me`);
 }
+
+

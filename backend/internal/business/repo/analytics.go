@@ -7,7 +7,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Analytics models
 type ProjectAnalytics struct {
 	ProjectID         int64
 	ProjectName       string
@@ -31,7 +30,7 @@ type EmployeeAnalytics struct {
 	OverdueTasks      int32
 	AvgCompletionTime float64
 	ProjectCount      int32
-	// Взвешенные метрики (с учётом приоритета)
+
 	WeightedOnTime float64 // Сумма весов задач выполненных вовремя
 	WeightedTotal  float64 // Сумма весов всех завершённых задач
 }
@@ -122,7 +121,7 @@ func (r *AnalyticsRepo) GetProjectAnalytics(ctx context.Context, projectID int64
 }
 
 func (r *AnalyticsRepo) GetEmployeeAnalytics(ctx context.Context, userID int64) (*EmployeeAnalytics, error) {
-	// Веса приоритетов: critical=4, high=3, medium=2, low=1
+
 	query := `
 		WITH priority_weights AS (
 			SELECT 
@@ -169,7 +168,6 @@ func (r *AnalyticsRepo) GetEmployeeAnalytics(ctx context.Context, userID int64) 
 		return nil, err
 	}
 
-	// Get project count separately
 	var projectCount int32
 	err = r.db.QueryRow(ctx, `SELECT COUNT(DISTINCT project_id) FROM business.project_members WHERE user_id = $1`, userID).Scan(&projectCount)
 	if err == nil {
@@ -290,3 +288,5 @@ func (r *AnalyticsRepo) GetPriorityDistribution(ctx context.Context, projectID i
 	}
 	return dist, nil
 }
+
+

@@ -18,7 +18,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// IdentityServer - gRPC сервер Identity сервиса
 type IdentityServer struct {
 	identity.UnimplementedIdentityServiceServer
 	authService    *core.AuthService
@@ -46,7 +45,6 @@ func (s *IdentityServer) Start(addr string) error {
 	return grpcServer.Serve(lis)
 }
 
-// Login - авторизация пользователя
 func (s *IdentityServer) Login(ctx context.Context, req *identity.LoginRequest) (*identity.LoginResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	userAgent := ""
@@ -69,7 +67,6 @@ func (s *IdentityServer) Login(ctx context.Context, req *identity.LoginRequest) 
 		return nil, status.Errorf(codes.Unauthenticated, "invalid credentials: %v", err)
 	}
 
-	// Получаем профиль для UserInfo
 	profile, err := s.profileService.GetProfile(ctx, userID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get profile: %v", err)
@@ -88,7 +85,6 @@ func (s *IdentityServer) Login(ctx context.Context, req *identity.LoginRequest) 
 	}, nil
 }
 
-// GetMe - получение информации о текущем пользователе
 func (s *IdentityServer) GetMe(ctx context.Context, req *emptypb.Empty) (*identity.UserInfo, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	userIDStr := md.Get("x-user-id")
@@ -115,12 +111,10 @@ func (s *IdentityServer) GetMe(ctx context.Context, req *emptypb.Empty) (*identi
 	}, nil
 }
 
-// Logout - выход из системы
 func (s *IdentityServer) Logout(ctx context.Context, req *emptypb.Empty) (*emptypb.Empty, error) {
 	return &emptypb.Empty{}, nil
 }
 
-// Refresh - обновление токена
 func (s *IdentityServer) Refresh(ctx context.Context, req *emptypb.Empty) (*identity.RefreshResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	userAgent := ""
@@ -142,7 +136,6 @@ func (s *IdentityServer) Refresh(ctx context.Context, req *emptypb.Empty) (*iden
 		return nil, status.Errorf(codes.Unauthenticated, "refresh failed: %v", err)
 	}
 
-	// Get user profile info
 	profile, err := s.profileService.GetProfile(ctx, userID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get user profile: %v", err)
@@ -161,7 +154,6 @@ func (s *IdentityServer) Refresh(ctx context.Context, req *emptypb.Empty) (*iden
 	}, nil
 }
 
-// ChangePassword - смена пароля
 func (s *IdentityServer) ChangePassword(ctx context.Context, req *identity.ChangePasswordRequest) (*emptypb.Empty, error) {
 	if err := s.authService.ChangePassword(ctx, req.UserId, req.NewPassword); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to change password: %v", err)
@@ -169,7 +161,6 @@ func (s *IdentityServer) ChangePassword(ctx context.Context, req *identity.Chang
 	return &emptypb.Empty{}, nil
 }
 
-// CreateProfile - создание профиля
 func (s *IdentityServer) CreateProfile(ctx context.Context, req *identity.CreateProfileRequest) (*identity.Profile, error) {
 	createReq := &core.CreateProfileRequest{
 		FirstName:  req.FirstName,
@@ -192,7 +183,6 @@ func (s *IdentityServer) CreateProfile(ctx context.Context, req *identity.Create
 	return profileToProto(profile), nil
 }
 
-// GetProfile - получение профиля
 func (s *IdentityServer) GetProfile(ctx context.Context, req *identity.GetProfileRequest) (*identity.Profile, error) {
 	profile, err := s.profileService.GetProfile(ctx, req.UserId)
 	if err != nil {
@@ -201,7 +191,6 @@ func (s *IdentityServer) GetProfile(ctx context.Context, req *identity.GetProfil
 	return profileToProto(profile), nil
 }
 
-// ListProfiles - список профилей
 func (s *IdentityServer) ListProfiles(ctx context.Context, req *identity.ListProfilesRequest) (*identity.ListProfilesResponse, error) {
 	filter := &core.ListProfilesFilter{
 		PageSize:     int(req.PageSize),
@@ -225,7 +214,6 @@ func (s *IdentityServer) ListProfiles(ctx context.Context, req *identity.ListPro
 	}, nil
 }
 
-// UpdateProfile - обновление профиля
 func (s *IdentityServer) UpdateProfile(ctx context.Context, req *identity.UpdateProfileRequest) (*identity.Profile, error) {
 	updateReq := &core.UpdateProfileRequest{
 		FirstName:    req.FirstName,
@@ -244,7 +232,6 @@ func (s *IdentityServer) UpdateProfile(ctx context.Context, req *identity.Update
 	return profileToProto(profile), nil
 }
 
-// ChangeUserStatus - изменение статуса пользователя
 func (s *IdentityServer) ChangeUserStatus(ctx context.Context, req *identity.ChangeUserStatusRequest) (*emptypb.Empty, error) {
 	if err := s.profileService.ChangeUserStatus(ctx, req.UserId, req.IsActive); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to change user status: %v", err)
@@ -252,7 +239,6 @@ func (s *IdentityServer) ChangeUserStatus(ctx context.Context, req *identity.Cha
 	return &emptypb.Empty{}, nil
 }
 
-// CreateDepartment - создание отдела
 func (s *IdentityServer) CreateDepartment(ctx context.Context, req *identity.CreateDepartmentRequest) (*identity.Department, error) {
 	dept, err := s.profileService.CreateDepartment(ctx, req.Name)
 	if err != nil {
@@ -261,7 +247,6 @@ func (s *IdentityServer) CreateDepartment(ctx context.Context, req *identity.Cre
 	return &identity.Department{Id: dept.ID, Name: dept.Name}, nil
 }
 
-// GetDepartment - получение отдела
 func (s *IdentityServer) GetDepartment(ctx context.Context, req *identity.GetDepartmentRequest) (*identity.Department, error) {
 	dept, err := s.profileService.GetDepartment(ctx, req.Id)
 	if err != nil {
@@ -270,7 +255,6 @@ func (s *IdentityServer) GetDepartment(ctx context.Context, req *identity.GetDep
 	return &identity.Department{Id: dept.ID, Name: dept.Name}, nil
 }
 
-// ListDepartments - список отделов
 func (s *IdentityServer) ListDepartments(ctx context.Context, req *emptypb.Empty) (*identity.ListDepartmentsResponse, error) {
 	depts, err := s.profileService.ListDepartments(ctx)
 	if err != nil {
@@ -283,7 +267,6 @@ func (s *IdentityServer) ListDepartments(ctx context.Context, req *emptypb.Empty
 	return &identity.ListDepartmentsResponse{Departments: protoDepts}, nil
 }
 
-// UpdateDepartment - обновление отдела
 func (s *IdentityServer) UpdateDepartment(ctx context.Context, req *identity.UpdateDepartmentRequest) (*identity.Department, error) {
 	dept, err := s.profileService.UpdateDepartment(ctx, req.Id, req.Name)
 	if err != nil {
@@ -292,7 +275,6 @@ func (s *IdentityServer) UpdateDepartment(ctx context.Context, req *identity.Upd
 	return &identity.Department{Id: dept.ID, Name: dept.Name}, nil
 }
 
-// DeleteDepartment - удаление отдела
 func (s *IdentityServer) DeleteDepartment(ctx context.Context, req *identity.DeleteDepartmentRequest) (*emptypb.Empty, error) {
 	if err := s.profileService.DeleteDepartment(ctx, req.Id); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete department: %v", err)
@@ -300,7 +282,6 @@ func (s *IdentityServer) DeleteDepartment(ctx context.Context, req *identity.Del
 	return &emptypb.Empty{}, nil
 }
 
-// CreatePosition - создание должности
 func (s *IdentityServer) CreatePosition(ctx context.Context, req *identity.CreatePositionRequest) (*identity.Position, error) {
 	pos, err := s.profileService.CreatePosition(ctx, req.Name)
 	if err != nil {
@@ -309,7 +290,6 @@ func (s *IdentityServer) CreatePosition(ctx context.Context, req *identity.Creat
 	return &identity.Position{Id: pos.ID, Name: pos.Name}, nil
 }
 
-// GetPosition - получение должности
 func (s *IdentityServer) GetPosition(ctx context.Context, req *identity.GetPositionRequest) (*identity.Position, error) {
 	pos, err := s.profileService.GetPosition(ctx, req.Id)
 	if err != nil {
@@ -318,7 +298,6 @@ func (s *IdentityServer) GetPosition(ctx context.Context, req *identity.GetPosit
 	return &identity.Position{Id: pos.ID, Name: pos.Name}, nil
 }
 
-// ListPositions - список должностей
 func (s *IdentityServer) ListPositions(ctx context.Context, req *emptypb.Empty) (*identity.ListPositionsResponse, error) {
 	positions, err := s.profileService.ListPositions(ctx)
 	if err != nil {
@@ -331,7 +310,6 @@ func (s *IdentityServer) ListPositions(ctx context.Context, req *emptypb.Empty) 
 	return &identity.ListPositionsResponse{Positions: protoPositions}, nil
 }
 
-// UpdatePosition - обновление должности
 func (s *IdentityServer) UpdatePosition(ctx context.Context, req *identity.UpdatePositionRequest) (*identity.Position, error) {
 	pos, err := s.profileService.UpdatePosition(ctx, req.Id, req.Name)
 	if err != nil {
@@ -340,7 +318,6 @@ func (s *IdentityServer) UpdatePosition(ctx context.Context, req *identity.Updat
 	return &identity.Position{Id: pos.ID, Name: pos.Name}, nil
 }
 
-// DeletePosition - удаление должности
 func (s *IdentityServer) DeletePosition(ctx context.Context, req *identity.DeletePositionRequest) (*emptypb.Empty, error) {
 	if err := s.profileService.DeletePosition(ctx, req.Id); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete position: %v", err)
@@ -348,7 +325,6 @@ func (s *IdentityServer) DeletePosition(ctx context.Context, req *identity.Delet
 	return &emptypb.Empty{}, nil
 }
 
-// CreateSkill - создание навыка
 func (s *IdentityServer) CreateSkill(ctx context.Context, req *identity.CreateSkillRequest) (*identity.Skill, error) {
 	skill, err := s.profileService.CreateSkill(ctx, req.Name)
 	if err != nil {
@@ -357,7 +333,6 @@ func (s *IdentityServer) CreateSkill(ctx context.Context, req *identity.CreateSk
 	return &identity.Skill{Id: skill.ID, Name: skill.Name}, nil
 }
 
-// ListSkills - список навыков
 func (s *IdentityServer) ListSkills(ctx context.Context, req *emptypb.Empty) (*identity.ListSkillsResponse, error) {
 	skills, err := s.profileService.ListSkills(ctx)
 	if err != nil {
@@ -370,7 +345,6 @@ func (s *IdentityServer) ListSkills(ctx context.Context, req *emptypb.Empty) (*i
 	return &identity.ListSkillsResponse{Skills: protoSkills}, nil
 }
 
-// DeleteSkill - удаление навыка
 func (s *IdentityServer) DeleteSkill(ctx context.Context, req *identity.DeleteSkillRequest) (*emptypb.Empty, error) {
 	if err := s.profileService.DeleteSkill(ctx, req.Id); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete skill: %v", err)
@@ -378,7 +352,6 @@ func (s *IdentityServer) DeleteSkill(ctx context.Context, req *identity.DeleteSk
 	return &emptypb.Empty{}, nil
 }
 
-// AddSkillToEmployee - добавление навыка сотруднику
 func (s *IdentityServer) AddSkillToEmployee(ctx context.Context, req *identity.AddSkillToEmployeeRequest) (*emptypb.Empty, error) {
 	if err := s.profileService.AddSkillToProfile(ctx, req.EmployeeId, req.SkillId); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to add skill: %v", err)
@@ -386,7 +359,6 @@ func (s *IdentityServer) AddSkillToEmployee(ctx context.Context, req *identity.A
 	return &emptypb.Empty{}, nil
 }
 
-// RemoveSkillFromEmployee - удаление навыка у сотрудника
 func (s *IdentityServer) RemoveSkillFromEmployee(ctx context.Context, req *identity.RemoveSkillFromEmployeeRequest) (*emptypb.Empty, error) {
 	if err := s.profileService.RemoveSkillFromProfile(ctx, req.EmployeeId, req.SkillId); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to remove skill: %v", err)
@@ -394,7 +366,6 @@ func (s *IdentityServer) RemoveSkillFromEmployee(ctx context.Context, req *ident
 	return &emptypb.Empty{}, nil
 }
 
-// profileToProto - конвертация профиля в proto
 func profileToProto(p *repo.Profile) *identity.Profile {
 	profile := &identity.Profile{
 		Id:         p.ID,
@@ -425,3 +396,5 @@ func profileToProto(p *repo.Profile) *identity.Profile {
 	}
 	return profile
 }
+
+

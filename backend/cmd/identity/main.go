@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	// Config
+
 	dbHost := getEnv("DB_HOST", "localhost")
 	dbPort := getEnv("DB_PORT", "5432")
 	dbUser := getEnv("DB_USER", "identity")
@@ -27,7 +27,6 @@ func main() {
 	accessTTL := getDurationEnv("ACCESS_TTL", 15*time.Minute)
 	refreshTTL := getDurationEnv("REFRESH_TTL", 7*24*time.Hour)
 
-	// Database
 	pool, err := postgres.Connect(context.Background(), &postgres.Config{
 		Host:     dbHost,
 		Port:     dbPort,
@@ -40,7 +39,6 @@ func main() {
 	}
 	defer pool.Close()
 
-	// NATS
 	natsConn, err := nats.Connect(natsURL)
 	if err != nil {
 		log.Fatalf("failed to connect to NATS: %v", err)
@@ -52,16 +50,13 @@ func main() {
 		log.Fatalf("failed to create NATS publisher: %v", err)
 	}
 
-	// Repos
 	authRepo := repo.NewAuthRepo(pool)
 	profileRepo := repo.NewProfileRepo(pool)
 
-	// Core
 	authenticator := core.NewAuthenticator(jwtSecret, accessTTL, refreshTTL)
 	authService := core.NewAuthService(authRepo, authenticator, refreshTTL)
 	profileService := core.NewProfileService(profileRepo, authService, &publisherAdapter{publisher})
 
-	// Server
 	srv := server.NewIdentityServer(authService, profileService)
 
 	shutdown := make(chan struct{})
@@ -75,7 +70,6 @@ func main() {
 	<-shutdown
 }
 
-// publisherAdapter adapts nats.Publisher to core.EmployeeEventPublisher
 type publisherAdapter struct {
 	pub *nats.Publisher
 }
@@ -122,3 +116,5 @@ func getDurationEnv(key string, defaultVal time.Duration) time.Duration {
 	}
 	return defaultVal
 }
+
+

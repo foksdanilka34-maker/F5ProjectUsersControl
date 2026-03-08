@@ -18,7 +18,7 @@ func NewEmployeeEventHandler(pool *pgxpool.Pool) *EmployeeEventHandler {
 }
 
 func (h *EmployeeEventHandler) HandleEmployeeEvent(ctx context.Context, event *nats.EmployeeEvent) error {
-	// Sync employee data to local database for joins
+
 	query := `
 		INSERT INTO users_meta (user_id, full_name, photo_url, updated_at)
 		VALUES ($1, $2, $3, NOW())
@@ -35,3 +35,5 @@ func (h *EmployeeEventHandler) HandleEmployeeEvent(ctx context.Context, event *n
 	log.Printf("User meta upserted: %d (%s)", event.UserID, event.FullName)
 	return nil
 }
+
+

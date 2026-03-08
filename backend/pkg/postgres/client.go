@@ -30,7 +30,6 @@ func Connect(ctx context.Context, cfg *Config) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	// Optimize pool settings
 	poolConfig.MinConns = 2                       // Keep warm connections
 	poolConfig.MaxConns = 10                      // Max connections
 	poolConfig.MaxConnLifetime = 30 * time.Minute // Connection lifetime
@@ -48,3 +47,5 @@ func Connect(ctx context.Context, cfg *Config) (*pgxpool.Pool, error) {
 
 	return pool, nil
 }
+
+

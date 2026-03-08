@@ -55,7 +55,6 @@ export interface EmployeeMetrics {
   on_time_rate: number;           // CompletedOnTime / CompletedTasks * 100
 }
 
-// Analytics - API: /api/v1/analytics
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   return apiClient.request<DashboardStats>('/analytics/dashboard', {
     method: 'GET',
@@ -79,3 +78,5 @@ export const getEmployeeMetrics = async (employeeId: number): Promise<EmployeeMe
     method: 'GET',
   });
 };
+
+

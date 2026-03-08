@@ -6,7 +6,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Auth models
 type Credential struct {
 	UserID       int64     `json:"user_id"`
 	Login        string    `json:"login"`
@@ -33,7 +32,6 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-// Profile models
 type Profile struct {
 	ID           int64       `json:"id"`
 	FirstName    string      `json:"first_name"`
@@ -66,3 +64,5 @@ type Skill struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
 }
+
+

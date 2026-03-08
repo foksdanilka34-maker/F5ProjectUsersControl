@@ -40,7 +40,6 @@ func NewPublisher(nc *nats.Conn) (*Publisher, error) {
 		return nil, fmt.Errorf("failed to create jetstream context: %w", err)
 	}
 
-	// Ensure employee-events stream exists
 	ctx := context.Background()
 	_, err = js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
 		Name:      "employee-events",
@@ -90,3 +89,5 @@ func (p *Publisher) PublishEmployeeDeleted(ctx context.Context, userID int64) er
 func (p *Publisher) PublishLog(ctx context.Context, entry *LogEntry) error {
 	return p.publish(ctx, TopicLogEntry, entry)
 }
+
+

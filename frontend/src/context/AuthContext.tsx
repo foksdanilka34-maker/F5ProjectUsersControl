@@ -37,7 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [accessToken, hydrated]);
 
-  // Refresh handler for apiClient (called on 401)
   const handleRefresh = useCallback(async (): Promise<string | null> => {
     try {
       const response = await refreshRequest();
@@ -92,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await refreshRequest();
       updateAccessToken(response.access_token);
-      // Обновляем информацию о пользователе из refresh ответа
+
       if (response.user) {
         setUser(response.user);
       }
@@ -112,26 +111,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearSession]);
 
-  // Try to refresh on mount only if we have a stored token
   useEffect(() => {
     if (!hydrated || refreshAttemptedRef.current) {
       return;
     }
     refreshAttemptedRef.current = true;
-    
-    // Only try refresh if we have a stored token (means user was logged in before)
+
     const storedToken = readStoredToken();
     if (storedToken) {
       refreshSession()
         .catch(() => {
-          // Refresh failed, clear the invalid stored token
+
           clearSession();
         })
         .finally(() => {
           setInitialized(true);
         });
     } else {
-      // No stored token, mark as initialized immediately
+
       setInitialized(true);
     }
   }, [hydrated, refreshSession, clearSession]);
@@ -156,3 +153,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
+

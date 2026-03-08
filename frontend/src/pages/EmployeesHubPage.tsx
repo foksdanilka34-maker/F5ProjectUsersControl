@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft,
   Building2,
   ChevronLeft,
   ChevronRight,
@@ -12,6 +11,7 @@ import {
   Save,
   Search,
   Star,
+  Trash2,
   TrendingUp,
   User,
   UserPlus,
@@ -37,7 +37,6 @@ import {
 } from '../services/employeeService';
 import { getEmployeeMetrics, type EmployeeMetrics } from '../services/analyticsService';
 import type { ProfileDTO, DepartmentDTO, PositionDTO, SkillDTO, CreateProfileRequest } from '../services/types';
-import { Trash2 } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
@@ -84,8 +83,7 @@ export default function EmployeesHubPage() {
   const [activeTab, setActiveTab] = useState<TabType>('Профили');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  
-  // Data states
+
   const [profiles, setProfiles] = useState<ProfileDTO[]>([]);
   const [departments, setDepartments] = useState<DepartmentDTO[]>([]);
   const [positions, setPositions] = useState<PositionDTO[]>([]);
@@ -93,8 +91,7 @@ export default function EmployeesHubPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [employeeMetrics, setEmployeeMetrics] = useState<Record<number, EmployeeMetrics>>({});
-  
-  // Form states
+
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -102,7 +99,6 @@ export default function EmployeesHubPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Department/Position/Skill form states
   const [editingDept, setEditingDept] = useState<{ id: number; name: string } | null>(null);
   const [newDeptName, setNewDeptName] = useState('');
   const [editingPos, setEditingPos] = useState<{ id: number; name: string } | null>(null);
@@ -123,8 +119,7 @@ export default function EmployeesHubPage() {
       setDepartments(depsRes.departments || []);
       setPositions(posRes.positions || []);
       setSkills(skillsRes.skills || []);
-      
-      // Load employee metrics for each profile
+
       const metricsMap: Record<number, EmployeeMetrics> = {};
       const loadedProfiles = profilesRes.profiles || [];
       await Promise.all(
@@ -177,7 +172,7 @@ export default function EmployeesHubPage() {
 
     try {
       if (editingId) {
-        // Update existing profile
+
         await updateProfile(editingId, {
           first_name: form.firstName.trim(),
           last_name: form.lastName.trim(),
@@ -187,7 +182,7 @@ export default function EmployeesHubPage() {
         });
         setSuccess('Профиль успешно обновлён');
       } else {
-        // Create new profile
+
         const payload: CreateProfileRequest = {
           first_name: form.firstName.trim(),
           last_name: form.lastName.trim(),
@@ -214,7 +209,6 @@ export default function EmployeesHubPage() {
     }
   };
 
-  // Department handlers
   const handleCreateDepartment = async () => {
     if (!newDeptName.trim()) return;
     setSubmitting(true);
@@ -256,7 +250,6 @@ export default function EmployeesHubPage() {
     }
   };
 
-  // Position handlers
   const handleCreatePosition = async () => {
     if (!newPosName.trim()) return;
     setSubmitting(true);
@@ -298,7 +291,6 @@ export default function EmployeesHubPage() {
     }
   };
 
-  // Skill handler
   const handleCreateSkill = async () => {
     if (!newSkillName.trim()) return;
     setSubmitting(true);
@@ -360,22 +352,15 @@ export default function EmployeesHubPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-white text-gray-900">
       <div className="mx-auto max-w-7xl px-4 py-6">
-        {/* Header */}
+        {}
         <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-emerald-500">Управление</p>
             <h1 className="text-2xl font-bold text-gray-900">Сотрудники</h1>
           </div>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:text-emerald-600"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            К дашборду
-          </Link>
         </header>
 
-        {/* Success/Error messages */}
+        {}
         {success && (
           <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
             {success}
@@ -387,7 +372,7 @@ export default function EmployeesHubPage() {
           </div>
         )}
 
-        {/* Tabs */}
+        {}
         <div className="flex flex-wrap gap-2 mb-6">
           {tabs.map((tab) => (
             <button
@@ -406,11 +391,11 @@ export default function EmployeesHubPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Main Content Area */}
+          {}
           <div className="lg:col-span-2">
             {activeTab === 'Профили' && (
               <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                {/* Search & Actions */}
+                {}
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                   <div className="relative flex-1 min-w-[200px] max-w-sm">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -432,7 +417,7 @@ export default function EmployeesHubPage() {
                   </button>
                 </div>
 
-                {/* Table */}
+                {}
                 <div className="overflow-hidden rounded-xl border border-gray-100">
                   {loading ? (
                     <div className="flex items-center justify-center py-12">
@@ -540,7 +525,7 @@ export default function EmployeesHubPage() {
                   )}
                 </div>
 
-                {/* Pagination */}
+                {}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-4 text-sm">
                     <span className="text-gray-500">
@@ -571,7 +556,7 @@ export default function EmployeesHubPage() {
 
             {activeTab === 'Оргструктура' && (
               <div className="grid gap-4 sm:grid-cols-2">
-                {/* Departments */}
+                {}
                 <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -581,7 +566,7 @@ export default function EmployeesHubPage() {
                     <span className="text-xs text-gray-400">{departments.length}</span>
                   </div>
 
-                  {/* Add new department */}
+                  {}
                   <div className="flex gap-2 mb-3">
                     <input
                       type="text"
@@ -659,7 +644,7 @@ export default function EmployeesHubPage() {
                   </div>
                 </div>
 
-                {/* Positions */}
+                {}
                 <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -669,7 +654,7 @@ export default function EmployeesHubPage() {
                     <span className="text-xs text-gray-400">{positions.length}</span>
                   </div>
 
-                  {/* Add new position */}
+                  {}
                   <div className="flex gap-2 mb-3">
                     <input
                       type="text"
@@ -759,7 +744,7 @@ export default function EmployeesHubPage() {
                   <span className="text-xs text-gray-400">{skills.length} навыков</span>
                 </div>
 
-                {/* Add new skill */}
+                {}
                 <div className="flex gap-2 mb-4">
                   <input
                     type="text"
@@ -801,7 +786,7 @@ export default function EmployeesHubPage() {
             )}
           </div>
 
-          {/* Sidebar - Create/Edit Form */}
+          {}
           <div className="lg:col-span-1">
             {showForm ? (
               <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sticky top-6">
@@ -969,7 +954,7 @@ export default function EmployeesHubPage() {
               </div>
             )}
 
-            {/* Quick Stats */}
+            {}
             <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Статистика</h4>
               <div className="space-y-2">
@@ -997,3 +982,5 @@ export default function EmployeesHubPage() {
     </div>
   );
 }
+
+

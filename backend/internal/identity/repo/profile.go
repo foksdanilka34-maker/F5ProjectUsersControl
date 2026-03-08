@@ -55,14 +55,13 @@ func (r *ProfileRepo) GetByID(ctx context.Context, id int64) (*Profile, error) {
 		p.Department = &Department{ID: *deptID, Name: *deptName}
 	}
 
-	// Load skills
 	p.Skills, _ = r.GetProfileSkills(ctx, id)
 
 	return p, nil
 }
 
 func (r *ProfileRepo) List(ctx context.Context, pageSize, offset int, departmentID, positionID int64) ([]*Profile, int, error) {
-	// Count query with builder
+
 	countBuilder := psql.Select("COUNT(*)").
 		From("identity.profiles p").
 		Join("identity.credentials c ON c.user_id = p.id")
@@ -80,7 +79,6 @@ func (r *ProfileRepo) List(ctx context.Context, pageSize, offset int, department
 		return nil, 0, err
 	}
 
-	// Main query with builder
 	queryBuilder := psql.Select(
 		"p.id", "p.first_name", "p.last_name", "p.position_id", "p.department_id", "p.email",
 		"COALESCE(p.avatar_url, '')", "p.hire_date", "p.created_at", "p.updated_at",
@@ -161,7 +159,6 @@ func (r *ProfileRepo) Update(ctx context.Context, id int64, firstName, lastName 
 	return err
 }
 
-// Department methods
 func (r *ProfileRepo) CreateDepartment(ctx context.Context, name string) (int64, error) {
 	var id int64
 	err := r.pool.QueryRow(ctx, `INSERT INTO identity.departments (name) VALUES ($1) RETURNING id`, name).Scan(&id)
@@ -202,7 +199,6 @@ func (r *ProfileRepo) DeleteDepartment(ctx context.Context, id int64) error {
 	return err
 }
 
-// Position methods
 func (r *ProfileRepo) CreatePosition(ctx context.Context, name string) (int64, error) {
 	var id int64
 	err := r.pool.QueryRow(ctx, `INSERT INTO identity.positions (name) VALUES ($1) RETURNING id`, name).Scan(&id)
@@ -243,7 +239,6 @@ func (r *ProfileRepo) DeletePosition(ctx context.Context, id int64) error {
 	return err
 }
 
-// Skill methods
 func (r *ProfileRepo) CreateSkill(ctx context.Context, name string) (int64, error) {
 	var id int64
 	err := r.pool.QueryRow(ctx, `INSERT INTO identity.skills (name) VALUES ($1) RETURNING id`, name).Scan(&id)
@@ -309,3 +304,5 @@ func (r *ProfileRepo) RemoveSkillFromProfile(ctx context.Context, profileID, ski
 func (r *ProfileRepo) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return r.pool.Begin(ctx)
 }
+
+

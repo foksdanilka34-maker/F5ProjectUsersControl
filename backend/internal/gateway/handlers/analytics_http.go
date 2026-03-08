@@ -112,7 +112,7 @@ func (h *AnalyticsHTTPHandler) GetEmployeeAnalytics(w http.ResponseWriter, r *ht
 func (h *AnalyticsHTTPHandler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.client.GetDashboardStats(r.Context(), &pb.GetDashboardStatsRequest{})
 	if err != nil {
-		// Don't log context canceled errors (normal when client disconnects)
+
 		if r.Context().Err() != context.Canceled && status.Code(err) != codes.Canceled {
 			log.Println("dashboard error:", err)
 		}
@@ -154,3 +154,5 @@ func (h *AnalyticsHTTPHandler) GetDashboard(w http.ResponseWriter, r *http.Reque
 		"problematic_projects": problematicProjects,
 	})
 }
+
+

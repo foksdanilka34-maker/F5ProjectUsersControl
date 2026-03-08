@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// PostgreSQL placeholder format
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 type ProjectRepo struct {
@@ -61,7 +60,7 @@ func (r *ProjectRepo) GetByID(ctx context.Context, id int64) (*Project, error) {
 }
 
 func (r *ProjectRepo) List(ctx context.Context, pageSize, offset int, status string, ownerID int64, memberID int64) ([]*Project, int, error) {
-	// Count query
+
 	countBuilder := psql.Select("COUNT(DISTINCT p.id)").From("projects p")
 	if memberID > 0 {
 		countBuilder = countBuilder.LeftJoin("project_members pm ON pm.project_id = p.id").
@@ -84,7 +83,6 @@ func (r *ProjectRepo) List(ctx context.Context, pageSize, offset int, status str
 		return nil, 0, err
 	}
 
-	// Select query
 	selectBuilder := psql.Select(
 		"DISTINCT p.id", "p.name", "p.description", "p.status", "p.start_date", "p.end_date",
 		"p.owner_id", "p.created_at", "p.updated_at",
@@ -198,7 +196,6 @@ func (r *ProjectRepo) GetUserProjects(ctx context.Context, userID int64) ([]*Pro
 	return projects, nil
 }
 
-// Project Members
 func (r *ProjectRepo) AddMember(ctx context.Context, projectID, userID int64, role string) error {
 	query := `
 		INSERT INTO project_members (project_id, user_id, role, joined_at)
@@ -244,13 +241,15 @@ func (r *ProjectRepo) GetTaskStats(ctx context.Context, projectID int64) (*TaskS
 	query := `
 		SELECT 
 			COUNT(*) as total,
-			COUNT(*) FILTER (WHERE status = 'todo') as todo,
-			COUNT(*) FILTER (WHERE status = 'in_progress') as in_progress,
-			COUNT(*) FILTER (WHERE status = 'done') as done
+			COUNT(*) FILTER (WHERE status = 'todo' OR status = 'TODO') as todo,
+			COUNT(*) FILTER (WHERE status = 'in_progress' OR status = 'IN_PROGRESS') as in_progress,
+			COUNT(*) FILTER (WHERE status = 'in_review' OR status = 'IN_REVIEW') as in_review,
+			COUNT(*) FILTER (WHERE status = 'done' OR status = 'DONE') as done
 		FROM tasks WHERE project_id = $1
 	`
 	var stats TaskStats
-	err := r.db.QueryRow(ctx, query, projectID).Scan(&stats.Total, &stats.Todo, &stats.InProgress, &stats.Done)
+	var inReview int
+	err := r.db.QueryRow(ctx, query, projectID).Scan(&stats.Total, &stats.Todo, &stats.InProgress, &inReview, &stats.Done)
 	if err != nil {
 		return nil, err
 	}

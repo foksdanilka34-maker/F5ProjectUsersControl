@@ -2,7 +2,6 @@ package repo
 
 import "time"
 
-// Project - проект
 type Project struct {
 	ID          int64
 	Name        string
@@ -14,14 +13,12 @@ type Project struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 
-	// Joined fields
 	OwnerName   string
 	TaskCount   int
 	MemberCount int
 	TaskStats   *TaskStats
 }
 
-// TaskStats - статистика задач проекта
 type TaskStats struct {
 	Total      int
 	Todo       int
@@ -29,18 +26,15 @@ type TaskStats struct {
 	Done       int
 }
 
-// ProjectMember - участник проекта
 type ProjectMember struct {
 	ProjectID int64
 	UserID    int64
 	Role      string // owner, manager, member
 	JoinedAt  time.Time
 
-	// Joined fields
 	UserName string
 }
 
-// Task - задача
 type Task struct {
 	ID          int64
 	ProjectID   int64
@@ -57,13 +51,11 @@ type Task struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 
-	// Joined fields
 	AssigneeName string
 	CreatorName  string
 	ProjectName  string
 }
 
-// TaskComment - комментарий к задаче
 type TaskComment struct {
 	ID        int64
 	TaskID    int64
@@ -71,11 +63,9 @@ type TaskComment struct {
 	Content   string
 	CreatedAt time.Time
 
-	// Joined fields
 	UserName string
 }
 
-// TaskHistory - история изменений задачи
 type TaskHistory struct {
 	ID        int64
 	TaskID    int64
@@ -85,11 +75,9 @@ type TaskHistory struct {
 	NewValue  string
 	ChangedAt time.Time
 
-	// Joined fields
 	UserName string
 }
 
-// AnalyticsSummary - сводная аналитика
 type AnalyticsSummary struct {
 	TotalProjects     int32
 	ActiveProjects    int32
@@ -104,7 +92,6 @@ type AnalyticsSummary struct {
 	AvgTasksPerMember float32
 }
 
-// EmployeeMetrics - метрики сотрудника
 type EmployeeMetrics struct {
 	EmployeeID      int64
 	AssignedTasks   int32
@@ -115,7 +102,6 @@ type EmployeeMetrics struct {
 	OnTimeRate      float64
 }
 
-// ProjectMetrics - метрики проекта
 type ProjectMetrics struct {
 	ProjectID       int64
 	ManagerID       int64
@@ -128,3 +114,5 @@ type ProjectMetrics struct {
 	OnTimeRate      float64
 	HealthStatus    string
 }
+
+

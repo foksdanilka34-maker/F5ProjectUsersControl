@@ -28,7 +28,7 @@ export function useEmployeesData() {
     const fetchProfiles = async () => {
       setProfiles((prev) => ({ ...prev, loading: true, error: null }));
       try {
-        // Backend returns { profiles: [], total_count: number } directly
+
         const response = await listProfiles();
         if (!aborted) {
           setProfiles({
@@ -48,7 +48,7 @@ export function useEmployeesData() {
     const fetchDepartments = async () => {
       setDepartments((prev) => ({ ...prev, loading: true, error: null }));
       try {
-        // Backend returns { departments: [] } directly
+
         const response = await listDepartments();
         if (!aborted) {
           setDepartments({ items: response.departments ?? [], loading: false, error: null });
@@ -63,7 +63,7 @@ export function useEmployeesData() {
     const fetchPositions = async () => {
       setPositions((prev) => ({ ...prev, loading: true, error: null }));
       try {
-        // Backend returns { positions: [] } directly
+
         const response = await listPositions();
         if (!aborted) {
           setPositions({ items: response.positions ?? [], loading: false, error: null });
@@ -78,7 +78,7 @@ export function useEmployeesData() {
     const fetchSkills = async () => {
       setSkills((prev) => ({ ...prev, loading: true, error: null }));
       try {
-        // Backend returns { skills: [] } directly
+
         const response = await listSkills();
         if (!aborted) {
           setSkills({ items: response.skills ?? [], loading: false, error: null });
@@ -126,3 +126,5 @@ function getErrorMessage(error: unknown) {
   }
   return 'Не удалось загрузить данные';
 }
+
+

@@ -53,7 +53,6 @@ export interface GetProjectsParams {
   manager_id?: number;
 }
 
-// Projects - API: /api/v1/projects
 export const getProjects = async (params?: GetProjectsParams): Promise<Project[]> => {
   const searchParams = new URLSearchParams();
   if (params?.status) searchParams.set('status', params.status);
@@ -103,7 +102,6 @@ export const deleteProject = async (id: number): Promise<void> => {
   });
 };
 
-// Tasks - API: /api/v1/tasks
 export const getTasks = async (projectId?: number): Promise<Task[]> => {
   const url = projectId ? `/tasks?project_id=${projectId}` : '/tasks';
   const response = await apiClient.request<{ tasks: Task[] }>(url, {
@@ -138,7 +136,6 @@ export const deleteTask = async (id: number): Promise<void> => {
   });
 };
 
-// Move task (for Kanban)
 export const moveTask = async (id: number, newStatus: string): Promise<Task> => {
   return apiClient.request<Task>(`/tasks/${id}/move`, {
     method: 'POST',
@@ -146,7 +143,6 @@ export const moveTask = async (id: number, newStatus: string): Promise<Task> => 
   });
 };
 
-// Assign task
 export const assignTask = async (id: number, assigneeId: number): Promise<Task> => {
   return apiClient.request<Task>(`/tasks/${id}/assign`, {
     method: 'POST',
@@ -154,7 +150,6 @@ export const assignTask = async (id: number, assigneeId: number): Promise<Task> 
   });
 };
 
-// Project Members - API: /api/v1/projects/{id}/members
 export const getProjectMembers = async (projectId: number): Promise<ProjectMember[]> => {
   const response = await apiClient.request<{ members: ProjectMember[] }>(`/projects/${projectId}/members`, {
     method: 'GET',
@@ -174,3 +169,35 @@ export const removeProjectMember = async (projectId: number, userId: number): Pr
     method: 'DELETE',
   });
 };
+
+// Review API
+
+export interface ReviewerInfo {
+  user_id: number;
+  approved: boolean;
+}
+
+export interface ReviewStatus {
+  reviewers: ReviewerInfo[];
+  is_active: boolean;
+}
+
+export const submitForReview = async (taskId: number): Promise<Task> => {
+  return apiClient.request<Task>(`/tasks/${taskId}/review/submit`, {
+    method: 'POST',
+  });
+};
+
+export const approveTask = async (taskId: number): Promise<Task> => {
+  return apiClient.request<Task>(`/tasks/${taskId}/review/approve`, {
+    method: 'POST',
+  });
+};
+
+export const getReviewStatus = async (taskId: number): Promise<ReviewStatus> => {
+  return apiClient.request<ReviewStatus>(`/tasks/${taskId}/review`, {
+    method: 'GET',
+  });
+};
+
+
