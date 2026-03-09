@@ -1,14 +1,10 @@
 
 export const roleLabels: Record<string, string> = {
   admin: 'Администратор',
+  director: 'Директор',
   manager: 'Менеджер',
+  employee: 'Сотрудник',
   developer: 'Разработчик',
-  analyst: 'Аналитик',
-  designer: 'Дизайнер',
-  tester: 'Тестировщик',
-  hr: 'HR-специалист',
-  viewer: 'Наблюдатель',
-  user: 'Пользователь',
 };
 
 export const projectStatusLabels: Record<string, string> = {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	pb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/business"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/gateway/middleware"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/gateway/websocket"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -74,7 +75,7 @@ func (h *TaskHTTPHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, _ := r.Context().Value("user_id").(int64)
+	userID, _ := r.Context().Value(middleware.UserIDKey).(int64)
 
 	pbReq := &pb.CreateTaskRequest{
 		ProjectId:   req.ProjectID,
@@ -281,6 +282,25 @@ func (h *TaskHTTPHandler) Move(w http.ResponseWriter, r *http.Request) {
 
 	h.broadcastTaskFromProto("task:moved", task)
 
+	// If moved to REVIEW — notify reviewers
+	if req.NewStatus == "REVIEW" {
+		go func() {
+			reviewResp, err := h.client.GetReviewStatus(r.Context(), &pb.GetReviewStatusRequest{TaskId: id})
+			if err == nil && reviewResp != nil {
+				for _, rv := range reviewResp.Reviewers {
+					h.broadcastTaskEvent("notification", map[string]interface{}{
+						"target_user_id": rv.UserId,
+						"kind":           "review_assigned",
+						"task_id":        task.Id,
+						"task_title":     task.Title,
+						"project_id":     task.ProjectId,
+						"message":        "Вам назначена задача на ревью: " + task.Title,
+					})
+				}
+			}
+		}()
+	}
+
 	writeJSON(w, http.StatusOK, taskToMap(task))
 }
 
@@ -310,6 +330,16 @@ func (h *TaskHTTPHandler) Assign(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.broadcastTaskFromProto("task:assigned", task)
+
+	// Notify the assignee
+	h.broadcastTaskEvent("notification", map[string]interface{}{
+		"target_user_id": req.AssigneeID,
+		"kind":           "task_assigned",
+		"task_id":        task.Id,
+		"task_title":     task.Title,
+		"project_id":     task.ProjectId,
+		"message":        "Вам назначена задача: " + task.Title,
+	})
 
 	writeJSON(w, http.StatusOK, taskToMap(task))
 }
@@ -344,7 +374,7 @@ func (h *TaskHTTPHandler) ApproveTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, _ := r.Context().Value("user_id").(int64)
+	userID, _ := r.Context().Value(middleware.UserIDKey).(int64)
 	if userID == 0 {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		return
@@ -361,6 +391,18 @@ func (h *TaskHTTPHandler) ApproveTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.broadcastTaskFromProto("task:updated", task)
+
+	// Notify assignee that their task was approved
+	if task.AssigneeId != 0 {
+		h.broadcastTaskEvent("notification", map[string]interface{}{
+			"target_user_id": task.AssigneeId,
+			"kind":           "review_approved",
+			"task_id":        task.Id,
+			"task_title":     task.Title,
+			"project_id":     task.ProjectId,
+			"message":        "Ваша задача одобрена: " + task.Title,
+		})
+	}
 
 	writeJSON(w, http.StatusOK, taskToMap(task))
 }

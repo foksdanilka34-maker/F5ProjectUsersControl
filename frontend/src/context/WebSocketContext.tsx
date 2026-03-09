@@ -8,7 +8,8 @@ export type WSEventType =
   | 'task:deleted'
   | 'task:moved'
   | 'task:assigned'
-  | 'metrics:updated';
+  | 'metrics:updated'
+  | 'notification';
 
 export interface WSMessage {
   type: WSEventType;

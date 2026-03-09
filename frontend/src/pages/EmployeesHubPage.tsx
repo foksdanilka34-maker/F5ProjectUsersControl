@@ -12,12 +12,13 @@ import {
   Search,
   Star,
   Trash2,
-  TrendingUp,
   User,
   UserPlus,
   X,
 } from 'lucide-react';
 import Avatar from '../components/Avatar';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useAuth } from '../context/AuthContext';
 
 import {
   listProfiles,
@@ -35,7 +36,6 @@ import {
   createSkill,
   deleteSkill,
 } from '../services/employeeService';
-import { getEmployeeMetrics, type EmployeeMetrics } from '../services/analyticsService';
 import type { ProfileDTO, DepartmentDTO, PositionDTO, SkillDTO, CreateProfileRequest } from '../services/types';
 
 const PAGE_SIZE = 10;
@@ -90,7 +90,6 @@ export default function EmployeesHubPage() {
   const [skills, setSkills] = useState<SkillDTO[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [employeeMetrics, setEmployeeMetrics] = useState<Record<number, EmployeeMetrics>>({});
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -98,6 +97,18 @@ export default function EmployeesHubPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'developer';
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+
+  const closeConfirm = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
 
   const [editingDept, setEditingDept] = useState<{ id: number; name: string } | null>(null);
   const [newDeptName, setNewDeptName] = useState('');
@@ -119,22 +130,6 @@ export default function EmployeesHubPage() {
       setDepartments(depsRes.departments || []);
       setPositions(posRes.positions || []);
       setSkills(skillsRes.skills || []);
-
-      const metricsMap: Record<number, EmployeeMetrics> = {};
-      const loadedProfiles = profilesRes.profiles || [];
-      await Promise.all(
-        loadedProfiles.map(async (profile) => {
-          try {
-            const metrics = await getEmployeeMetrics(profile.id);
-            console.log(`Metrics for profile ${profile.id}:`, metrics);
-            metricsMap[profile.id] = metrics;
-          } catch (err) {
-            console.error(`Failed to load metrics for profile ${profile.id}:`, err);
-          }
-        })
-      );
-      console.log('All metrics loaded:', metricsMap);
-      setEmployeeMetrics(metricsMap);
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
@@ -240,14 +235,21 @@ export default function EmployeesHubPage() {
   };
 
   const handleDeleteDepartment = async (id: number) => {
-    if (!confirm('Удалить отдел?')) return;
-    try {
-      await deleteDepartment(id);
-      setSuccess('Отдел удалён');
-      loadData();
-    } catch {
-      setError('Не удалось удалить отдел');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Удалить отдел',
+      message: 'Вы уверены, что хотите удалить этот отдел? Это действие нельзя отменить.',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          await deleteDepartment(id);
+          setSuccess('Отдел удалён');
+          loadData();
+        } catch {
+          setError('Не удалось удалить отдел');
+        }
+      },
+    });
   };
 
   const handleCreatePosition = async () => {
@@ -281,14 +283,21 @@ export default function EmployeesHubPage() {
   };
 
   const handleDeletePosition = async (id: number) => {
-    if (!confirm('Удалить должность?')) return;
-    try {
-      await deletePosition(id);
-      setSuccess('Должность удалена');
-      loadData();
-    } catch {
-      setError('Не удалось удалить должность');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Удалить должность',
+      message: 'Вы уверены, что хотите удалить эту должность? Это действие нельзя отменить.',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          await deletePosition(id);
+          setSuccess('Должность удалена');
+          loadData();
+        } catch {
+          setError('Не удалось удалить должность');
+        }
+      },
+    });
   };
 
   const handleCreateSkill = async () => {
@@ -307,17 +316,24 @@ export default function EmployeesHubPage() {
   };
 
   const handleDeleteSkill = async (skillId: number, skillName: string) => {
-    if (!confirm(`Удалить навык "${skillName}"?`)) return;
-    setSubmitting(true);
-    try {
-      await deleteSkill(skillId);
-      setSuccess('Навык удалён');
-      loadData();
-    } catch {
-      setError('Не удалось удалить навык');
-    } finally {
-      setSubmitting(false);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Удалить навык',
+      message: `Вы уверены, что хотите удалить навык «${skillName}»?`,
+      onConfirm: async () => {
+        closeConfirm();
+        setSubmitting(true);
+        try {
+          await deleteSkill(skillId);
+          setSuccess('Навык удалён');
+          loadData();
+        } catch {
+          setError('Не удалось удалить навык');
+        } finally {
+          setSubmitting(false);
+        }
+      },
+    });
   };
 
   const getPositionName = (positionId: number) => 
@@ -430,7 +446,6 @@ export default function EmployeesHubPage() {
                           <th className="px-4 py-3">Сотрудник</th>
                           <th className="px-4 py-3 hidden sm:table-cell">Должность</th>
                           <th className="px-4 py-3 hidden md:table-cell">Отдел</th>
-                          <th className="px-4 py-3">Эффективность</th>
                           <th className="px-4 py-3">Статус</th>
                           <th className="px-4 py-3 w-24">Действия</th>
                         </tr>
@@ -458,35 +473,6 @@ export default function EmployeesHubPage() {
                             </td>
                             <td className="px-4 py-3 hidden md:table-cell text-gray-600">
                               {profile.department?.name || '—'}
-                            </td>
-                            <td className="px-4 py-3">
-                              {employeeMetrics[profile.id] ? (
-                                <div className="flex items-center gap-2">
-                                  <TrendingUp className={`h-4 w-4 ${
-                                    (employeeMetrics[profile.id].completion_rate || 0) >= 70 
-                                      ? 'text-emerald-500' 
-                                      : (employeeMetrics[profile.id].completion_rate || 0) >= 40 
-                                        ? 'text-amber-500' 
-                                        : 'text-rose-500'
-                                  }`} />
-                                  <div className="flex flex-col">
-                                    <span className={`text-sm font-medium ${
-                                      (employeeMetrics[profile.id].completion_rate || 0) >= 70 
-                                        ? 'text-emerald-600' 
-                                        : (employeeMetrics[profile.id].completion_rate || 0) >= 40 
-                                          ? 'text-amber-600' 
-                                          : 'text-rose-600'
-                                    }`}>
-                                      {Math.round(employeeMetrics[profile.id].completion_rate || 0)}%
-                                    </span>
-                                    <span className="text-xs text-gray-400">
-                                      {employeeMetrics[profile.id].completed_tasks || 0}/{employeeMetrics[profile.id].assigned_tasks || 0} задач
-                                    </span>
-                                  </div>
-                                </div>
-                              ) : (
-                                <span className="text-gray-400">—</span>
-                              )}
                             </td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -566,25 +552,26 @@ export default function EmployeesHubPage() {
                     <span className="text-xs text-gray-400">{departments.length}</span>
                   </div>
 
-                  {}
-                  <div className="flex gap-2 mb-3">
-                    <input
-                      type="text"
-                      value={newDeptName}
-                      onChange={(e) => setNewDeptName(e.target.value)}
-                      placeholder="Название отдела"
-                      className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-emerald-400 focus:outline-none"
-                      onKeyDown={(e) => e.key === 'Enter' && handleCreateDepartment()}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleCreateDepartment}
-                      disabled={!newDeptName.trim() || submitting}
-                      className="rounded-lg bg-emerald-500 px-3 py-1.5 text-white hover:bg-emerald-600 disabled:opacity-50"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="text"
+                        value={newDeptName}
+                        onChange={(e) => setNewDeptName(e.target.value)}
+                        placeholder="Название отдела"
+                        className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-emerald-400 focus:outline-none"
+                        onKeyDown={(e) => e.key === 'Enter' && handleCreateDepartment()}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreateDepartment}
+                        disabled={!newDeptName.trim() || submitting}
+                        className="rounded-lg bg-emerald-500 px-3 py-1.5 text-white hover:bg-emerald-600 disabled:opacity-50"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
 
                   <div className="space-y-2 max-h-[300px] overflow-y-auto">
                     {departments.length ? departments.map((dep) => (
@@ -604,39 +591,41 @@ export default function EmployeesHubPage() {
                         ) : (
                           <span className="font-medium text-gray-700">{dep.name}</span>
                         )}
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {editingDept?.id === dep.id ? (
-                            <>
-                              <button
-                                onClick={handleUpdateDepartment}
-                                className="p-1 text-emerald-600 hover:bg-emerald-100 rounded"
-                              >
-                                <Save className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={() => setEditingDept(null)}
-                                className="p-1 text-gray-400 hover:bg-gray-200 rounded"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => setEditingDept({ id: dep.id, name: dep.name })}
-                                className="p-1 text-gray-400 hover:bg-gray-200 rounded"
-                              >
-                                <Edit2 className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteDepartment(dep.id)}
-                                className="p-1 text-red-400 hover:bg-red-100 rounded"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </>
-                          )}
-                        </div>
+                        {isAdmin && (
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {editingDept?.id === dep.id ? (
+                              <>
+                                <button
+                                  onClick={handleUpdateDepartment}
+                                  className="p-1 text-emerald-600 hover:bg-emerald-100 rounded"
+                                >
+                                  <Save className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => setEditingDept(null)}
+                                  className="p-1 text-gray-400 hover:bg-gray-200 rounded"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => setEditingDept({ id: dep.id, name: dep.name })}
+                                  className="p-1 text-gray-400 hover:bg-gray-200 rounded"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteDepartment(dep.id)}
+                                  className="p-1 text-red-400 hover:bg-red-100 rounded"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )) : (
                       <p className="text-sm text-gray-400 py-4 text-center">Отделов пока нет</p>
@@ -654,25 +643,26 @@ export default function EmployeesHubPage() {
                     <span className="text-xs text-gray-400">{positions.length}</span>
                   </div>
 
-                  {}
-                  <div className="flex gap-2 mb-3">
-                    <input
-                      type="text"
-                      value={newPosName}
-                      onChange={(e) => setNewPosName(e.target.value)}
-                      placeholder="Название должности"
-                      className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-emerald-400 focus:outline-none"
-                      onKeyDown={(e) => e.key === 'Enter' && handleCreatePosition()}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleCreatePosition}
-                      disabled={!newPosName.trim() || submitting}
-                      className="rounded-lg bg-emerald-500 px-3 py-1.5 text-white hover:bg-emerald-600 disabled:opacity-50"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="text"
+                        value={newPosName}
+                        onChange={(e) => setNewPosName(e.target.value)}
+                        placeholder="Название должности"
+                        className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-emerald-400 focus:outline-none"
+                        onKeyDown={(e) => e.key === 'Enter' && handleCreatePosition()}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreatePosition}
+                        disabled={!newPosName.trim() || submitting}
+                        className="rounded-lg bg-emerald-500 px-3 py-1.5 text-white hover:bg-emerald-600 disabled:opacity-50"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
 
                   <div className="space-y-2 max-h-[300px] overflow-y-auto">
                     {positions.length ? positions.map((pos) => (
@@ -692,39 +682,41 @@ export default function EmployeesHubPage() {
                         ) : (
                           <span className="font-medium text-gray-700">{pos.name}</span>
                         )}
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {editingPos?.id === pos.id ? (
-                            <>
-                              <button
-                                onClick={handleUpdatePosition}
-                                className="p-1 text-emerald-600 hover:bg-emerald-100 rounded"
-                              >
-                                <Save className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={() => setEditingPos(null)}
-                                className="p-1 text-gray-400 hover:bg-gray-200 rounded"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => setEditingPos({ id: pos.id, name: pos.name })}
-                                className="p-1 text-gray-400 hover:bg-gray-200 rounded"
-                              >
-                                <Edit2 className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDeletePosition(pos.id)}
-                                className="p-1 text-red-400 hover:bg-red-100 rounded"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </>
-                          )}
-                        </div>
+                        {isAdmin && (
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {editingPos?.id === pos.id ? (
+                              <>
+                                <button
+                                  onClick={handleUpdatePosition}
+                                  className="p-1 text-emerald-600 hover:bg-emerald-100 rounded"
+                                >
+                                  <Save className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => setEditingPos(null)}
+                                  className="p-1 text-gray-400 hover:bg-gray-200 rounded"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => setEditingPos({ id: pos.id, name: pos.name })}
+                                  className="p-1 text-gray-400 hover:bg-gray-200 rounded"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePosition(pos.id)}
+                                  className="p-1 text-red-400 hover:bg-red-100 rounded"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )) : (
                       <p className="text-sm text-gray-400 py-4 text-center">Должностей пока нет</p>
@@ -744,39 +736,42 @@ export default function EmployeesHubPage() {
                   <span className="text-xs text-gray-400">{skills.length} навыков</span>
                 </div>
 
-                {}
-                <div className="flex gap-2 mb-4">
-                  <input
-                    type="text"
-                    value={newSkillName}
-                    onChange={(e) => setNewSkillName(e.target.value)}
-                    placeholder="Название навыка"
-                    className="flex-1 max-w-xs rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-emerald-400 focus:outline-none"
-                    onKeyDown={(e) => e.key === 'Enter' && handleCreateSkill()}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCreateSkill}
-                    disabled={!newSkillName.trim() || submitting}
-                    className="rounded-lg bg-emerald-500 px-3 py-1.5 text-white hover:bg-emerald-600 disabled:opacity-50"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-2 mb-4">
+                    <input
+                      type="text"
+                      value={newSkillName}
+                      onChange={(e) => setNewSkillName(e.target.value)}
+                      placeholder="Название навыка"
+                      className="flex-1 max-w-xs rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-emerald-400 focus:outline-none"
+                      onKeyDown={(e) => e.key === 'Enter' && handleCreateSkill()}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateSkill}
+                      disabled={!newSkillName.trim() || submitting}
+                      className="rounded-lg bg-emerald-500 px-3 py-1.5 text-white hover:bg-emerald-600 disabled:opacity-50"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap gap-2 max-h-[300px] overflow-y-auto">
                   {skills.length ? skills.map((skill) => (
                     <span key={skill.id} className="group inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
                       {skill.name}
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteSkill(skill.id, skill.name)}
-                        disabled={submitting}
-                        className="ml-1 rounded-full p-0.5 text-emerald-400 hover:bg-emerald-100 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Удалить навык"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSkill(skill.id, skill.name)}
+                          disabled={submitting}
+                          className="ml-1 rounded-full p-0.5 text-emerald-400 hover:bg-emerald-100 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Удалить навык"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
                     </span>
                   )) : (
                     <p className="text-sm text-gray-400 py-4 w-full text-center">Навыков пока нет</p>
@@ -979,6 +974,16 @@ export default function EmployeesHubPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel="Удалить"
+        variant="danger"
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
     </div>
   );
 }

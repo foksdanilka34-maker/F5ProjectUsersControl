@@ -227,7 +227,7 @@ func (s *BusinessServer) MoveTask(ctx context.Context, req *business.MoveTaskReq
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "task not found: %v", err)
 	}
-	if existingTask.Status == "IN_REVIEW" {
+	if existingTask.Status == "REVIEW" {
 		return nil, status.Errorf(codes.FailedPrecondition, "task is in review and cannot be moved manually")
 	}
 
@@ -376,9 +376,38 @@ func (s *BusinessServer) GetEmployeeMetrics(ctx context.Context, req *business.G
 }
 
 func (s *BusinessServer) ListEmployeeMetrics(ctx context.Context, req *business.ListEmployeeMetricsRequest) (*business.ListEmployeeMetricsResponse, error) {
+	all, err := s.analyticsService.GetAllEmployeeAnalytics(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list employee metrics: %v", err)
+	}
+
+	var metrics []*business.EmployeeMetrics
+	for _, a := range all {
+		var completionRate, onTimeRate float64
+		if a.AssignedTasks > 0 {
+			completionRate = float64(a.CompletedTasks) / float64(a.AssignedTasks) * 100
+		}
+		if a.CompletedTasks > 0 {
+			onTimeRate = float64(a.CompletedOnTime) / float64(a.CompletedTasks) * 100
+		} else {
+			onTimeRate = 100
+		}
+		metrics = append(metrics, &business.EmployeeMetrics{
+			EmployeeId:      a.UserID,
+			AssignedTasks:   a.AssignedTasks,
+			CompletedTasks:  a.CompletedTasks,
+			CompletedOnTime: a.CompletedOnTime,
+			CompletedLate:   a.CompletedLate,
+			InProgressTasks: a.InProgressTasks,
+			OverdueTasks:    a.OverdueTasks,
+			CompletionRate:  completionRate,
+			OnTimeRate:      onTimeRate,
+		})
+	}
+
 	return &business.ListEmployeeMetricsResponse{
-		Metrics:    []*business.EmployeeMetrics{},
-		TotalCount: 0,
+		Metrics:    metrics,
+		TotalCount: int32(len(metrics)),
 	}, nil
 }
 
@@ -434,15 +463,73 @@ func (s *BusinessServer) GetProjectMetrics(ctx context.Context, req *business.Ge
 }
 
 func (s *BusinessServer) ListProjectMetrics(ctx context.Context, req *business.ListProjectMetricsRequest) (*business.ListProjectMetricsResponse, error) {
+	all, err := s.analyticsService.GetAllProjectAnalytics(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list project metrics: %v", err)
+	}
+
+	var metrics []*business.ProjectMetrics
+	for _, a := range all {
+		var progressPercent, onTimeRate float64
+		if a.TotalTasks > 0 {
+			progressPercent = float64(a.CompletedTasks) / float64(a.TotalTasks) * 100
+		}
+		if a.CompletedTasks > 0 {
+			onTimeRate = float64(a.CompletedOnTime) / float64(a.CompletedTasks) * 100
+		} else {
+			onTimeRate = 100
+		}
+
+		healthStatus := business.HealthStatus_HEALTH_STATUS_HEALTHY
+		if a.OverdueTasks > a.TotalTasks/2 {
+			healthStatus = business.HealthStatus_HEALTH_STATUS_CRITICAL
+		} else if a.OverdueTasks > 0 {
+			healthStatus = business.HealthStatus_HEALTH_STATUS_AT_RISK
+		}
+
+		metrics = append(metrics, &business.ProjectMetrics{
+			ProjectId:       a.ProjectID,
+			TotalTasks:      a.TotalTasks,
+			CompletedTasks:  a.CompletedTasks,
+			CompletedOnTime: a.CompletedOnTime,
+			CompletedLate:   a.CompletedLate,
+			InProgressTasks: a.InProgressTasks,
+			OverdueTasks:    a.OverdueTasks,
+			TeamSize:        a.MemberCount,
+			ProgressPercent: progressPercent,
+			OnTimeRate:      onTimeRate,
+			HealthStatus:    healthStatus,
+		})
+	}
+
 	return &business.ListProjectMetricsResponse{
-		Metrics:    []*business.ProjectMetrics{},
-		TotalCount: 0,
+		Metrics:    metrics,
+		TotalCount: int32(len(metrics)),
 	}, nil
 }
 
 func (s *BusinessServer) GetProductivityTrends(ctx context.Context, req *business.GetProductivityTrendsRequest) (*business.ProductivityTrendsResponse, error) {
+	days := req.Limit
+	if days <= 0 {
+		days = 30
+	}
+
+	points, err := s.analyticsService.GetProductivityTrends(ctx, days)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get productivity trends: %v", err)
+	}
+
+	var entries []*business.ProductivityTrendEntry
+	for _, p := range points {
+		entries = append(entries, &business.ProductivityTrendEntry{
+			Date:              timestamppb.New(p.Date),
+			TasksCompleted:    p.TasksCompleted,
+			AvgCompletionRate: p.AvgCompletionRate,
+		})
+	}
+
 	return &business.ProductivityTrendsResponse{
-		Entries: []*business.ProductivityTrendEntry{},
+		Entries: entries,
 		Period:  req.Period,
 	}, nil
 }
@@ -537,23 +624,25 @@ func taskToProto(t *repo.Task) *business.Task {
 func protoStatusToString(s business.ProjectStatus) string {
 	switch s {
 	case business.ProjectStatus_ACTIVE:
-		return "active"
+		return "ACTIVE"
 	case business.ProjectStatus_ON_HOLD:
-		return "on_hold"
+		return "ON_HOLD"
 	case business.ProjectStatus_ARCHIVED:
-		return "archived"
+		return "ARCHIVED"
 	default:
-		return "active"
+		return "ACTIVE"
 	}
 }
 
 func stringToProtoStatus(s string) business.ProjectStatus {
 	switch s {
-	case "active":
+	case "ACTIVE":
 		return business.ProjectStatus_ACTIVE
-	case "on_hold":
+	case "ON_HOLD":
 		return business.ProjectStatus_ON_HOLD
-	case "archived":
+	case "ARCHIVED":
+		return business.ProjectStatus_ARCHIVED
+	case "COMPLETED":
 		return business.ProjectStatus_ARCHIVED
 	default:
 		return business.ProjectStatus_PROJECT_STATUS_UNSPECIFIED
@@ -567,7 +656,7 @@ func protoTaskStatusToString(s business.TaskStatus) string {
 	case business.TaskStatus_IN_PROGRESS:
 		return "IN_PROGRESS"
 	case business.TaskStatus_REVIEW:
-		return "IN_REVIEW"
+		return "REVIEW"
 	case business.TaskStatus_DONE:
 		return "DONE"
 	default:
@@ -581,7 +670,7 @@ func stringToProtoTaskStatus(s string) business.TaskStatus {
 		return business.TaskStatus_TODO
 	case "IN_PROGRESS":
 		return business.TaskStatus_IN_PROGRESS
-	case "IN_REVIEW":
+	case "REVIEW", "IN_REVIEW":
 		return business.TaskStatus_REVIEW
 	case "DONE":
 		return business.TaskStatus_DONE

@@ -241,10 +241,10 @@ func (r *ProjectRepo) GetTaskStats(ctx context.Context, projectID int64) (*TaskS
 	query := `
 		SELECT 
 			COUNT(*) as total,
-			COUNT(*) FILTER (WHERE status = 'todo' OR status = 'TODO') as todo,
-			COUNT(*) FILTER (WHERE status = 'in_progress' OR status = 'IN_PROGRESS') as in_progress,
-			COUNT(*) FILTER (WHERE status = 'in_review' OR status = 'IN_REVIEW') as in_review,
-			COUNT(*) FILTER (WHERE status = 'done' OR status = 'DONE') as done
+			COUNT(*) FILTER (WHERE status = 'TODO') as todo,
+			COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as in_progress,
+			COUNT(*) FILTER (WHERE status = 'REVIEW') as in_review,
+			COUNT(*) FILTER (WHERE status = 'DONE') as done
 		FROM tasks WHERE project_id = $1
 	`
 	var stats TaskStats

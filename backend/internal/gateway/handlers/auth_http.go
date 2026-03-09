@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	pb "github.com/foksdanilka34-maker/F5ProjectUsersControl/gen/go/identity"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/gateway/middleware"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -16,7 +17,7 @@ import (
 
 const (
 	refreshTokenCookieName = "refresh_token"
-	refreshTokenMaxAge     = 7 * 24 * 60 * 60 
+	refreshTokenMaxAge     = 7 * 24 * 60 * 60
 )
 
 type AuthHTTPHandler struct {
@@ -177,7 +178,7 @@ func (h *AuthHTTPHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHTTPHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 
-	userID, ok := r.Context().Value("user_id").(int64)
+	userID, ok := r.Context().Value(middleware.UserIDKey).(int64)
 	if !ok || userID == 0 {
 		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 		return
@@ -230,5 +231,3 @@ func (h *AuthHTTPHandler) ChangePassword(w http.ResponseWriter, r *http.Request)
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "password changed successfully"})
 }
-
-

@@ -21,11 +21,6 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
   Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Cell,
 } from 'recharts';
 import Avatar from '../components/Avatar';
 
@@ -409,12 +404,25 @@ export default function ProfilePage() {
                     { axis: 'Загрузка', value: load },
                     { axis: 'Надёжность', value: reliability },
                   ];
+
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const renderAxisTick = (props: any) => {
+                    const { x, y, payload, cx: chartCx } = props;
+                    const anchor = x < chartCx - 5 ? 'end' : x > chartCx + 5 ? 'start' : 'middle';
+                    const dx = anchor === 'end' ? -6 : anchor === 'start' ? 6 : 0;
+                    return (
+                      <text x={x + dx} y={y} textAnchor={anchor} fontSize={10} fill="#6b7280" dominantBaseline="central">
+                        {payload.value}
+                      </text>
+                    );
+                  };
+
                   return (
-                    <div style={{ height: 200 }}>
+                    <div style={{ height: 230 }}>
                       <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
+                        <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="55%">
                           <PolarGrid stroke="#e5e7eb" />
-                          <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11, fill: '#6b7280' }} />
+                          <PolarAngleAxis dataKey="axis" tick={renderAxisTick} />
                           <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
                           <Radar
                             dataKey="value"
@@ -497,29 +505,27 @@ export default function ProfilePage() {
                         </div>
                       )}
 
-                      <div className="mb-4" style={{ height: 160 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={barData} layout="vertical" barCategoryGap={6}>
-                            <XAxis type="number" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                            <YAxis
-                              type="category"
-                              dataKey="name"
-                              tick={{ fontSize: 11, fill: '#6b7280' }}
-                              width={85}
-                              axisLine={false}
-                              tickLine={false}
-                            />
-                            <Tooltip
-                              formatter={(value: number) => [`${value} задач`]}
-                              contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
-                            />
-                            <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={16}>
-                              {barData.map((d, i) => (
-                                <Cell key={i} fill={d.color} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
+                      <div className="mb-4 space-y-3">
+                        {barData.map((d) => (
+                          <div key={d.name}>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-gray-500">{d.name}</span>
+                              <span className="font-medium text-gray-700">{d.value}</span>
+                            </div>
+                            <div className="h-3 rounded-full bg-gray-100 overflow-hidden">
+                              {total > 0 && d.value > 0 && (
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{
+                                    width: `${(d.value / total) * 100}%`,
+                                    backgroundColor: d.color,
+                                    minWidth: d.value > 0 ? '8px' : undefined,
+                                  }}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
                       <div className="border-t border-gray-100 pt-3 flex items-center justify-between">

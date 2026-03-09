@@ -79,4 +79,72 @@ export const getEmployeeMetrics = async (employeeId: number): Promise<EmployeeMe
   });
 };
 
+// --- Director analytics types & functions ---
+
+export interface EmployeeMetricItem {
+  employee_id: number;
+  assigned_tasks: number;
+  completed_tasks: number;
+  completed_on_time: number;
+  completed_late: number;
+  in_progress_tasks: number;
+  overdue_tasks: number;
+  completion_rate: number;
+  on_time_rate: number;
+}
+
+export interface ProjectMetricItem {
+  project_id: number;
+  manager_id: number;
+  total_tasks: number;
+  completed_tasks: number;
+  completed_on_time: number;
+  completed_late: number;
+  in_progress_tasks: number;
+  overdue_tasks: number;
+  team_size: number;
+  progress_percent: number;
+  on_time_rate: number;
+  health_status: string;
+}
+
+export interface TrendEntry {
+  date: string;
+  tasks_completed: number;
+  avg_completion_rate: number;
+}
+
+export interface ListEmployeeMetricsResponse {
+  metrics: EmployeeMetricItem[];
+  total_count: number;
+}
+
+export interface ListProjectMetricsResponse {
+  metrics: ProjectMetricItem[];
+  total_count: number;
+}
+
+export interface TrendsResponse {
+  entries: TrendEntry[];
+  period: string;
+}
+
+export const listEmployeeMetrics = async (): Promise<ListEmployeeMetricsResponse> => {
+  return apiClient.request<ListEmployeeMetricsResponse>('/analytics/employees', {
+    method: 'GET',
+  });
+};
+
+export const listProjectMetrics = async (): Promise<ListProjectMetricsResponse> => {
+  return apiClient.request<ListProjectMetricsResponse>('/analytics/projects', {
+    method: 'GET',
+  });
+};
+
+export const getProductivityTrends = async (): Promise<TrendsResponse> => {
+  return apiClient.request<TrendsResponse>('/analytics/trends', {
+    method: 'GET',
+  });
+};
+
 

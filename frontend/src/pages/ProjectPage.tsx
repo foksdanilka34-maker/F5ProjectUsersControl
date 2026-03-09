@@ -27,6 +27,7 @@ import {
   Tooltip,
 } from 'recharts';
 import Avatar from '../components/Avatar';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 import { useAuth } from '../context/AuthContext';
 import { getProjectMetrics, type ProjectMetrics } from '../services/analyticsService';
@@ -66,10 +67,10 @@ const KANBAN_COLUMNS: KanbanColumn[] = [
 ];
 
 const PRIORITY_STYLES: Record<string, { label: string; class: string; value: number }> = {
-  TASK_PRIORITY_LOW: { label: 'Низкий', class: 'bg-gray-100 text-gray-600', value: 1 },
-  TASK_PRIORITY_MEDIUM: { label: 'Средний', class: 'bg-blue-100 text-blue-600', value: 2 },
-  TASK_PRIORITY_HIGH: { label: 'Высокий', class: 'bg-amber-100 text-amber-600', value: 3 },
-  TASK_PRIORITY_CRITICAL: { label: 'Критический', class: 'bg-red-100 text-red-600', value: 4 },
+  LOW: { label: 'Низкий', class: 'bg-gray-100 text-gray-600', value: 1 },
+  MEDIUM: { label: 'Средний', class: 'bg-blue-100 text-blue-600', value: 2 },
+  HIGH: { label: 'Высокий', class: 'bg-amber-100 text-amber-600', value: 3 },
+  CRITICAL: { label: 'Критический', class: 'bg-red-100 text-red-600', value: 4 },
 };
 
 const PROJECT_STATUSES = [
@@ -113,7 +114,7 @@ export default function ProjectPage() {
 
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
-  const [taskPriority, setTaskPriority] = useState('TASK_PRIORITY_MEDIUM');
+  const [taskPriority, setTaskPriority] = useState('MEDIUM');
   const [taskAssignee, setTaskAssignee] = useState('');
   const [taskDueDate, setTaskDueDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -126,6 +127,15 @@ export default function ProjectPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+
+  const closeConfirm = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
 
   const loadData = useCallback(async () => {
     if (!projectId) return;
@@ -238,7 +248,7 @@ export default function ProjectPage() {
   const resetTaskForm = () => {
     setTaskTitle('');
     setTaskDescription('');
-    setTaskPriority('TASK_PRIORITY_MEDIUM');
+    setTaskPriority('MEDIUM');
     setTaskAssignee('');
     setTaskDueDate('');
     setShowTaskForm(false);
@@ -249,21 +259,28 @@ export default function ProjectPage() {
     setEditingTask(task);
     setTaskTitle(task.title);
     setTaskDescription(task.description || '');
-    setTaskPriority(task.priority || 'TASK_PRIORITY_MEDIUM');
+    setTaskPriority(task.priority || 'MEDIUM');
     setTaskAssignee(task.assignee_id?.toString() || '');
     setTaskDueDate(task.due_date ? task.due_date.split('T')[0] : '');
     setShowTaskForm(true);
   };
 
   const handleDeleteTask = async (taskId: number) => {
-    if (!confirm('Удалить задачу?')) return;
-    try {
-      await deleteTask(taskId);
-      setSuccess('Задача удалена');
-      loadData();
-    } catch {
-      setError('Не удалось удалить задачу');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Удалить задачу',
+      message: 'Вы уверены, что хотите удалить эту задачу? Это действие нельзя отменить.',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          await deleteTask(taskId);
+          setSuccess('Задача удалена');
+          loadData();
+        } catch {
+          setError('Не удалось удалить задачу');
+        }
+      },
+    });
   };
 
   const openTaskDetail = async (task: Task) => {
@@ -361,14 +378,21 @@ export default function ProjectPage() {
   };
 
   const handleRemoveMember = async (userId: number) => {
-    if (!confirm('Удалить участника?')) return;
-    try {
-      await removeProjectMember(projectId, userId);
-      setSuccess('Участник удалён');
-      loadData();
-    } catch {
-      setError('Не удалось удалить участника');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Удалить участника',
+      message: 'Вы уверены, что хотите удалить этого участника из проекта?',
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          await removeProjectMember(projectId, userId);
+          setSuccess('Участник удалён');
+          loadData();
+        } catch {
+          setError('Не удалось удалить участника');
+        }
+      },
+    });
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -415,6 +439,7 @@ export default function ProjectPage() {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-gradient-to-br from-white via-emerald-50/30 to-white text-gray-900">
       <div className="mx-auto max-w-7xl px-4 py-6">
         {}
@@ -1079,10 +1104,10 @@ export default function ProjectPage() {
                     onChange={(e) => setTaskPriority(e.target.value)}
                     className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
                   >
-                    <option value="TASK_PRIORITY_LOW">Низкий</option>
-                    <option value="TASK_PRIORITY_MEDIUM">Средний</option>
-                    <option value="TASK_PRIORITY_HIGH">Высокий</option>
-                    <option value="TASK_PRIORITY_CRITICAL">Критический</option>
+                    <option value="LOW">Низкий</option>
+                    <option value="MEDIUM">Средний</option>
+                    <option value="HIGH">Высокий</option>
+                    <option value="CRITICAL">Критический</option>
                   </select>
                 </div>
 
@@ -1337,6 +1362,17 @@ export default function ProjectPage() {
         </div>
       )}
     </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel="Удалить"
+        variant="danger"
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
+    </>
   );
 }
 

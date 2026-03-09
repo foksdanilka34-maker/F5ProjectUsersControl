@@ -62,14 +62,14 @@ CREATE INDEX idx_tasks_due_date ON business.tasks(due_date);
 
 -- Task status constraint (always UPPERCASE)
 ALTER TABLE business.tasks ADD CONSTRAINT chk_task_status 
-    CHECK (status IN ('TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'));
+    CHECK (status IN ('TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'));
 
 -- Task priority constraint (always lowercase strings)
 ALTER TABLE business.tasks ADD CONSTRAINT chk_task_priority 
     CHECK (priority IN ('low', 'medium', 'high', 'critical'));
 
 -- Add comments for documentation
-COMMENT ON COLUMN business.tasks.status IS 'Task status: TODO, IN_PROGRESS, IN_REVIEW, DONE (always UPPERCASE)';
+COMMENT ON COLUMN business.tasks.status IS 'Task status: TODO, IN_PROGRESS, REVIEW, DONE (always UPPERCASE)';
 COMMENT ON COLUMN business.tasks.priority IS 'Task priority: low, medium, high, critical (always lowercase)';
 
 -- Project status constraint

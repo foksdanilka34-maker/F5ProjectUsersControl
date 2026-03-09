@@ -133,6 +133,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [hydrated, refreshSession, clearSession]);
 
+  // Proactive token refresh every 13 minutes (access token lives 15 min)
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const REFRESH_INTERVAL = 13 * 60 * 1000; // 13 minutes
+    const intervalId = setInterval(() => {
+      refreshSession().catch(() => {
+        // silent fail — reactive refresh on 401 will handle it
+      });
+    }, REFRESH_INTERVAL);
+
+    return () => clearInterval(intervalId);
+  }, [accessToken, refreshSession]);
+
   const value = useMemo<AuthContextValue>(() => ({
     accessToken,
     user,

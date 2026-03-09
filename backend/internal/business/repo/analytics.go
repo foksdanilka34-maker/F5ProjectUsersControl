@@ -177,6 +177,161 @@ func (r *AnalyticsRepo) GetEmployeeAnalytics(ctx context.Context, userID int64) 
 	return &a, nil
 }
 
+func (r *AnalyticsRepo) GetAllEmployeeAnalytics(ctx context.Context) ([]EmployeeAnalytics, error) {
+	query := `
+		WITH emp AS (
+			SELECT DISTINCT user_id FROM business.project_members
+		),
+		priority_weights AS (
+			SELECT
+				t.assignee_id,
+				t.id,
+				UPPER(t.status) as status,
+				t.due_date,
+				t.completed_at,
+				t.created_at,
+				CASE LOWER(t.priority)
+					WHEN 'critical' THEN 4
+					WHEN 'high' THEN 3
+					WHEN 'medium' THEN 2
+					WHEN 'low' THEN 1
+					ELSE 2
+				END as weight
+			FROM business.tasks t
+			WHERE t.assignee_id IS NOT NULL
+		)
+		SELECT
+			e.user_id,
+			COALESCE(COUNT(pw.id), 0) as assigned_tasks,
+			COALESCE(COUNT(pw.id) FILTER (WHERE pw.status = 'DONE'), 0) as completed_tasks,
+			COALESCE(COUNT(pw.id) FILTER (WHERE pw.status = 'DONE' AND (pw.due_date IS NULL OR pw.completed_at <= pw.due_date)), 0) as completed_on_time,
+			COALESCE(COUNT(pw.id) FILTER (WHERE pw.status = 'DONE' AND pw.due_date IS NOT NULL AND pw.completed_at > pw.due_date), 0) as completed_late,
+			COALESCE(COUNT(pw.id) FILTER (WHERE pw.status = 'IN_PROGRESS'), 0) as in_progress_tasks,
+			COALESCE(COUNT(pw.id) FILTER (WHERE pw.due_date IS NOT NULL AND pw.due_date < NOW() AND pw.status != 'DONE'), 0) as overdue_tasks,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (pw.completed_at - pw.created_at)) / 86400) FILTER (WHERE pw.status = 'DONE' AND pw.completed_at IS NOT NULL), 0) as avg_completion_time,
+			COALESCE(SUM(pw.weight) FILTER (WHERE pw.status = 'DONE' AND (pw.due_date IS NULL OR pw.completed_at <= pw.due_date)), 0) as weighted_on_time,
+			COALESCE(SUM(pw.weight) FILTER (WHERE pw.status = 'DONE'), 0) as weighted_total,
+			(SELECT COUNT(DISTINCT project_id) FROM business.project_members WHERE user_id = e.user_id) as project_count
+		FROM emp e
+		LEFT JOIN priority_weights pw ON pw.assignee_id = e.user_id
+		GROUP BY e.user_id
+		ORDER BY e.user_id
+	`
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []EmployeeAnalytics
+	for rows.Next() {
+		var a EmployeeAnalytics
+		if err := rows.Scan(
+			&a.UserID, &a.AssignedTasks, &a.CompletedTasks, &a.CompletedOnTime, &a.CompletedLate,
+			&a.InProgressTasks, &a.OverdueTasks, &a.AvgCompletionTime,
+			&a.WeightedOnTime, &a.WeightedTotal, &a.ProjectCount,
+		); err != nil {
+			return nil, err
+		}
+		results = append(results, a)
+	}
+	return results, nil
+}
+
+func (r *AnalyticsRepo) GetAllProjectAnalytics(ctx context.Context) ([]ProjectAnalytics, error) {
+	query := `
+		SELECT
+			p.id,
+			p.name,
+			COUNT(t.id) as total_tasks,
+			COUNT(t.id) FILTER (WHERE UPPER(t.status) = 'DONE') as completed_tasks,
+			COUNT(t.id) FILTER (WHERE UPPER(t.status) = 'DONE' AND (t.due_date IS NULL OR t.completed_at <= t.due_date)) as completed_on_time,
+			COUNT(t.id) FILTER (WHERE UPPER(t.status) = 'DONE' AND t.due_date IS NOT NULL AND t.completed_at > t.due_date) as completed_late,
+			COUNT(t.id) FILTER (WHERE UPPER(t.status) = 'IN_PROGRESS') as in_progress_tasks,
+			COUNT(t.id) FILTER (WHERE t.due_date IS NOT NULL AND t.due_date < NOW() AND UPPER(t.status) != 'DONE') as overdue_tasks,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (t.completed_at - t.created_at)) / 86400) FILTER (WHERE UPPER(t.status) = 'DONE' AND t.completed_at IS NOT NULL), 0) as avg_completion_time,
+			(SELECT COUNT(*) FROM business.project_members WHERE project_id = p.id) as member_count
+		FROM business.projects p
+		LEFT JOIN business.tasks t ON p.id = t.project_id
+		GROUP BY p.id, p.name
+		ORDER BY p.id
+	`
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []ProjectAnalytics
+	for rows.Next() {
+		var a ProjectAnalytics
+		if err := rows.Scan(
+			&a.ProjectID, &a.ProjectName, &a.TotalTasks, &a.CompletedTasks,
+			&a.CompletedOnTime, &a.CompletedLate, &a.InProgressTasks, &a.OverdueTasks,
+			&a.AvgCompletionTime, &a.MemberCount,
+		); err != nil {
+			return nil, err
+		}
+		results = append(results, a)
+	}
+	return results, nil
+}
+
+type TrendPoint struct {
+	Date              time.Time
+	TasksCompleted    int32
+	AvgCompletionRate float64
+}
+
+func (r *AnalyticsRepo) GetProductivityTrends(ctx context.Context, days int32) ([]TrendPoint, error) {
+	query := `
+		WITH dates AS (
+			SELECT generate_series(
+				CURRENT_DATE - make_interval(days => $1),
+				CURRENT_DATE,
+				'1 day'::interval
+			)::date as day
+		),
+		daily AS (
+			SELECT
+				DATE(t.completed_at) as day,
+				COUNT(*) as completed,
+				COUNT(*) FILTER (WHERE t.due_date IS NULL OR t.completed_at <= t.due_date) as on_time,
+				COUNT(*) as total_completed
+			FROM business.tasks t
+			WHERE UPPER(t.status) = 'DONE'
+				AND t.completed_at IS NOT NULL
+				AND t.completed_at >= CURRENT_DATE - make_interval(days => $1)
+			GROUP BY DATE(t.completed_at)
+		)
+		SELECT
+			d.day,
+			COALESCE(dl.completed, 0) as tasks_completed,
+			CASE WHEN COALESCE(dl.total_completed, 0) > 0
+				THEN (dl.on_time::float / dl.total_completed * 100)
+				ELSE 0
+			END as avg_completion_rate
+		FROM dates d
+		LEFT JOIN daily dl ON d.day = dl.day
+		ORDER BY d.day
+	`
+	rows, err := r.db.Query(ctx, query, int(days))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []TrendPoint
+	for rows.Next() {
+		var p TrendPoint
+		if err := rows.Scan(&p.Date, &p.TasksCompleted, &p.AvgCompletionRate); err != nil {
+			return nil, err
+		}
+		results = append(results, p)
+	}
+	return results, nil
+}
+
 func (r *AnalyticsRepo) GetTasksTimeSeries(ctx context.Context, startDate, endDate time.Time, projectID int64) ([]TimeSeriesPoint, error) {
 	query := `
 		SELECT DATE(created_at) as date, COUNT(*) as count
@@ -288,5 +443,3 @@ func (r *AnalyticsRepo) GetPriorityDistribution(ctx context.Context, projectID i
 	}
 	return dist, nil
 }
-
-

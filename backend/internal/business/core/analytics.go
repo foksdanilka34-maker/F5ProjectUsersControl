@@ -11,6 +11,9 @@ type AnalyticsRepository interface {
 	GetSummary(ctx context.Context) (*repo.AnalyticsSummary, error)
 	GetProjectAnalytics(ctx context.Context, projectID int64) (*repo.ProjectAnalytics, error)
 	GetEmployeeAnalytics(ctx context.Context, userID int64) (*repo.EmployeeAnalytics, error)
+	GetAllEmployeeAnalytics(ctx context.Context) ([]repo.EmployeeAnalytics, error)
+	GetAllProjectAnalytics(ctx context.Context) ([]repo.ProjectAnalytics, error)
+	GetProductivityTrends(ctx context.Context, days int32) ([]repo.TrendPoint, error)
 	GetTasksTimeSeries(ctx context.Context, startDate, endDate time.Time, projectID int64) ([]repo.TimeSeriesPoint, error)
 	GetCompletedTasksTimeSeries(ctx context.Context, startDate, endDate time.Time, projectID int64) ([]repo.TimeSeriesPoint, error)
 	GetTaskDistribution(ctx context.Context, projectID int64) ([]repo.TaskDistribution, error)
@@ -75,6 +78,18 @@ func (s *AnalyticsService) GetPriorityDistribution(ctx context.Context, projectI
 	return s.repo.GetPriorityDistribution(ctx, projectID)
 }
 
+func (s *AnalyticsService) GetAllEmployeeAnalytics(ctx context.Context) ([]repo.EmployeeAnalytics, error) {
+	return s.repo.GetAllEmployeeAnalytics(ctx)
+}
+
+func (s *AnalyticsService) GetAllProjectAnalytics(ctx context.Context) ([]repo.ProjectAnalytics, error) {
+	return s.repo.GetAllProjectAnalytics(ctx)
+}
+
+func (s *AnalyticsService) GetProductivityTrends(ctx context.Context, days int32) ([]repo.TrendPoint, error) {
+	return s.repo.GetProductivityTrends(ctx, days)
+}
+
 type Dashboard struct {
 	Summary              *repo.AnalyticsSummary
 	TaskStatusDist       []repo.TaskDistribution
@@ -120,5 +135,3 @@ func (s *AnalyticsService) GetDashboard(ctx context.Context, projectID int64) (*
 		TasksCompletedSeries: completedSeries,
 	}, nil
 }
-
-

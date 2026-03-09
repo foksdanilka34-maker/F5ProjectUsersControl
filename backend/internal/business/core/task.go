@@ -225,7 +225,7 @@ type ReviewerInfo struct {
 	Approved bool  `json:"approved"`
 }
 
-// SubmitForReview assigns 2 random reviewers from project team (excluding assignee) and sets status to IN_REVIEW
+// SubmitForReview assigns 2 random reviewers from project team (excluding assignee) and sets status to REVIEW
 func (s *TaskService) SubmitForReview(ctx context.Context, taskID int64) (*repo.Task, error) {
 	task, err := s.repo.GetByID(ctx, taskID)
 	if err != nil {
@@ -255,7 +255,25 @@ func (s *TaskService) SubmitForReview(ctx context.Context, taskID int64) (*repo.
 	}
 
 	if len(candidates) < 2 {
-		return nil, fmt.Errorf("not enough team members for review (need at least 2 reviewers, have %d)", len(candidates))
+		// Not enough reviewers – still move to REVIEW, assign whoever is available
+		for _, reviewerID := range candidates {
+			comment := &repo.TaskComment{
+				TaskID:    taskID,
+				UserID:    reviewerID,
+				Content:   fmt.Sprintf("%s%d", ReviewAssignPrefix, reviewerID),
+				CreatedAt: time.Now(),
+			}
+			if _, err := s.repo.CreateComment(ctx, comment); err != nil {
+				return nil, fmt.Errorf("failed to assign reviewer: %w", err)
+			}
+		}
+
+		inReview := "REVIEW"
+		if err := s.repo.Update(ctx, taskID, nil, nil, &inReview, nil, nil, nil); err != nil {
+			return nil, err
+		}
+		s.addHistory(ctx, taskID, 0, "status", task.Status, "REVIEW")
+		return s.repo.GetByID(ctx, taskID)
 	}
 
 	// Shuffle and pick 2
@@ -285,13 +303,13 @@ func (s *TaskService) SubmitForReview(ctx context.Context, taskID int64) (*repo.
 		}
 	}
 
-	// Set status to IN_REVIEW
-	inReview := "IN_REVIEW"
+	// Set status to REVIEW
+	inReview := "REVIEW"
 	if err := s.repo.Update(ctx, taskID, nil, nil, &inReview, nil, nil, nil); err != nil {
 		return nil, err
 	}
 
-	s.addHistory(ctx, taskID, 0, "status", task.Status, "IN_REVIEW")
+	s.addHistory(ctx, taskID, 0, "status", task.Status, "REVIEW")
 
 	return s.repo.GetByID(ctx, taskID)
 }
@@ -306,7 +324,7 @@ func (s *TaskService) ApproveTask(ctx context.Context, taskID, userID int64) (*r
 		return nil, ErrNotFound
 	}
 
-	if task.Status != "IN_REVIEW" {
+	if task.Status != "REVIEW" {
 		return nil, fmt.Errorf("task is not in review status")
 	}
 
@@ -368,7 +386,7 @@ func (s *TaskService) ApproveTask(ctx context.Context, taskID, userID int64) (*r
 		if err := s.repo.Update(ctx, taskID, nil, nil, &done, nil, nil, nil); err != nil {
 			return nil, err
 		}
-		s.addHistory(ctx, taskID, userID, "status", "IN_REVIEW", "DONE")
+		s.addHistory(ctx, taskID, userID, "status", "REVIEW", "DONE")
 	}
 
 	return s.repo.GetByID(ctx, taskID)
@@ -390,7 +408,7 @@ func (s *TaskService) GetReviewStatus(ctx context.Context, taskID int64) (*Revie
 	}
 
 	status := s.parseReviewStatus(comments)
-	status.IsActive = task.Status == "IN_REVIEW"
+	status.IsActive = task.Status == "REVIEW"
 	return status, nil
 }
 

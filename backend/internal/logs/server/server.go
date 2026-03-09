@@ -95,6 +95,11 @@ func (s *LogsServer) consumeMessages(ctx context.Context, cons jetstream.Consume
 		default:
 			msgs, err := cons.Fetch(100, jetstream.FetchMaxWait(time.Second*5))
 			if err != nil {
+				select {
+				case <-time.After(2 * time.Second):
+				case <-ctx.Done():
+					return
+				}
 				continue
 			}
 
@@ -132,5 +137,3 @@ func (s *LogsServer) processMessage(ctx context.Context, msg jetstream.Msg) erro
 
 	return s.logService.Log(ctx, req)
 }
-
-

@@ -75,6 +75,11 @@ func (s *Subscriber) SubscribeEmployeeEvents(ctx context.Context, handler Employ
 
 			msgs, err := cons.Fetch(10, jetstream.FetchMaxWait(5*time.Second))
 			if err != nil {
+				select {
+				case <-time.After(2 * time.Second):
+				case <-ctx.Done():
+					return
+				}
 				continue
 			}
 			for msg := range msgs.Messages() {
@@ -121,6 +126,11 @@ func (s *Subscriber) SubscribeLogs(ctx context.Context, handler LogEntryHandler)
 
 			msgs, err := cons.Fetch(100, jetstream.FetchMaxWait(5*time.Second))
 			if err != nil {
+				select {
+				case <-time.After(2 * time.Second):
+				case <-ctx.Done():
+					return
+				}
 				continue
 			}
 			for msg := range msgs.Messages() {
