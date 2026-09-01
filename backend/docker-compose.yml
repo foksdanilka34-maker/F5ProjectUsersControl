@@ -39,26 +39,6 @@ services:
     networks:
       - app_network
 
-  logs_db:
-    image: postgres:17-alpine
-    container_name: logs_db
-    restart: always
-    environment:
-      POSTGRES_USER: logs
-      POSTGRES_PASSWORD: logs
-      POSTGRES_DB: logs
-    ports:
-      - "5434:5432"
-    volumes:
-      - logs_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U logs -d logs"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app_network
-
   migrate_identity:
     image: migrate/migrate
     entrypoint: ["migrate"]
@@ -89,53 +69,30 @@ services:
     networks:
       - app_network
 
-  migrate_logs:
-    image: migrate/migrate
-    entrypoint: ["migrate"]
-    depends_on:
-      logs_db:
-        condition: service_healthy
-    volumes:
-      - ./migrations/logs:/migrations
-    command: >
-      -path /migrations
-      -database "postgres://logs:logs@logs_db:5432/logs?sslmode=disable"
-      up
-    networks:
-      - app_network
-
-  nats:
-    image: nats:2.10-alpine
-    container_name: nats
-    ports:
-      - "4222:4222"
-      - "8222:8222"
-    command: ["--js", "--sd=/data", "--http_port=8222"]
-    volumes:
-      - nats_data:/data
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
     restart: always
-    networks:
-      - app_network
-
-  nats-setup:
-    image: natsio/nats-box:latest
-    container_name: nats-setup
-    depends_on:
-      - nats
-    entrypoint: ["sh", "-c"]
-    command: |
-      until nats --server nats:4222 server check >/dev/null 2>&1; do sleep 1; done
-      nats --server nats:4222 stream add employee-events --storage file --retention limits --subjects "employee.event.*" --max-msgs=-1 --defaults 2>/dev/null || true
-      nats --server nats:4222 stream add logs-stream --storage file --retention limits --subjects "logs.*" --max-msgs=-1 --defaults 2>/dev/null || true
-    restart: "no"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - app_network
 
 volumes:
   identity_data:
   business_data:
-  logs_data:
-  nats_data:
+  rabbitmq_data:
 
 networks:
   app_network:

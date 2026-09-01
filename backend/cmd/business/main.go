@@ -2,95 +2,141 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/consumer"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/core"
+	bizHttp "github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/http"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/http/middleware"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/outbox"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/repo"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/server"
-	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/nats"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/postgres"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/rabbitmq"
 )
 
 func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
 
+	httpAddr := getEnv("HTTP_ADDR", ":8082")
 	dbHost := getEnv("DB_HOST", "localhost")
 	dbPort := getEnv("DB_PORT", "5435")
 	dbUser := getEnv("DB_USER", "business")
 	dbPassword := getEnv("DB_PASSWORD", "business")
 	dbName := getEnv("DB_NAME", "business")
-	grpcPort := getIntEnv("GRPC_PORT", 50052)
-	natsURL := getEnv("NATS_URL", "nats://localhost:4222")
+	rabbitURL := getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+	jwtSecret := getEnv("JWT_SECRET", "your-secret-key")
 
-	pool, err := postgres.Connect(context.Background(), &postgres.Config{
+	log.Printf("Starting Business Service on %s...", httpAddr)
+
+	// 1. Connect Postgres
+	pool, err := postgres.Connect(ctx, &postgres.Config{
 		Host:     dbHost,
 		Port:     dbPort,
 		User:     dbUser,
 		Password: dbPassword,
 		Database: dbName,
-		Schema:   "business", // Явно указываем схему business
 	})
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer pool.Close()
 
-	natsConn, err := nats.Connect(natsURL)
+	// 2. Connect RabbitMQ
+	rabbit, err := rabbitmq.Connect(rabbitURL)
 	if err != nil {
-		log.Fatalf("failed to connect to NATS: %v", err)
+		log.Fatalf("failed to connect to rabbitmq: %v", err)
 	}
-	defer natsConn.Close()
+	defer rabbit.Close()
 
-	subscriber, err := nats.NewSubscriber(natsConn)
-	if err != nil {
-		log.Fatalf("failed to create NATS subscriber: %v", err)
-	}
-
+	// 3. Initialize Repositories & Services
+	txManager := repo.NewTxManager(pool)
 	projectRepo := repo.NewProjectRepo(pool)
 	taskRepo := repo.NewTaskRepo(pool)
 	analyticsRepo := repo.NewAnalyticsRepo(pool)
 
-	projectService := core.NewProjectService(projectRepo)
-	taskService := core.NewTaskService(taskRepo)
-	taskService.SetProjectRepo(projectRepo)
+	wsHub := bizHttp.NewWSHub()
+	go wsHub.Run(ctx)
+
+	projectService := core.NewProjectService(projectRepo, txManager)
+	taskService := core.NewTaskService(taskRepo, projectRepo, txManager, wsHub)
 	analyticsService := core.NewAnalyticsService(analyticsRepo)
 
-	eventHandler := NewEmployeeEventHandler(pool)
-	if err := subscriber.SubscribeEmployeeEvents(context.Background(), eventHandler.HandleEmployeeEvent); err != nil {
-		log.Fatalf("failed to subscribe to employee events: %v", err)
+	// 4. Start Business Outbox Poller
+	bizPoller := outbox.NewPoller(txManager, rabbit, wsHub, outbox.PollerConfig{
+		PollInterval: 500 * time.Millisecond,
+		BatchSize:    20,
+		WorkerCount:  4,
+	})
+	go bizPoller.Start(ctx)
+
+	// 5. Start RabbitMQ Consumer Pool
+	empConsumer := consumer.NewEmployeeConsumer(rabbit, txManager)
+	if err := empConsumer.Start(ctx, 4); err != nil {
+		log.Fatalf("failed to start rabbitmq consumer pool: %v", err)
 	}
 
-	srv := server.NewBusinessServer(projectService, taskService, analyticsService)
+	// 6. Setup HTTP Routes & Middlewares
+	jwtValidator := middleware.NewJWTValidator(jwtSecret)
+	mux := http.NewServeMux()
 
-	shutdown := make(chan struct{})
+	bizHttp.NewProjectHandler(mux, projectService, jwtValidator)
+	bizHttp.NewTaskHandler(mux, taskService, jwtValidator)
+	bizHttp.NewAnalyticsHandler(mux, analyticsService, jwtValidator)
+
+	// WebSocket Route
+	mux.HandleFunc("GET /ws", wsHub.HandleWS)
+
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok","service":"business"}`))
+	})
+
+	rateLimiter := middleware.NewTokenBucketLimiter(150, 300)
+
+	handler := middleware.RequestID(
+		middleware.CORS(
+			middleware.RateLimiter(rateLimiter)(mux),
+		),
+	)
+
+	server := &http.Server{
+		Addr:         httpAddr,
+		Handler:      handler,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+	}
+
 	go func() {
-		if err := srv.Start(fmt.Sprintf(":%d", grpcPort)); err != nil {
-			log.Fatalf("failed to start server: %v", err)
+		log.Printf("Business Service HTTP server listening on %s", httpAddr)
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("server error: %v", err)
 		}
 	}()
 
-	log.Println("BusinessService started:", grpcPort)
-	<-shutdown
+	<-ctx.Done()
+	log.Println("Shutting down Business Service gracefully...")
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Printf("server shutdown error: %v", err)
+	}
+
+	log.Println("Business Service exited cleanly")
 }
 
 func getEnv(key, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
-	}
-	return defaultVal
-}
-
-func getIntEnv(key string, defaultVal int) int {
-	if val := os.Getenv(key); val != "" {
-		n := 0
-		for _, c := range val {
-			if c < '0' || c > '9' {
-				return defaultVal
-			}
-			n = n*10 + int(c-'0')
-		}
-		return n
 	}
 	return defaultVal
 }
