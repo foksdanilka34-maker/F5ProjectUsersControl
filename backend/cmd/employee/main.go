@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -81,10 +82,16 @@ func main() {
 	empHttp.NewProfileHandler(mux, profileService, authService)
 	empHttp.NewOrgHandler(mux, orgService, authService)
 
+	startTime := time.Now()
+
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok","service":"employee"}`))
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"status":  "ok",
+			"service": "employee",
+			"uptime":  time.Since(startTime).Truncate(time.Second).String(),
+		})
 	})
 
 	rateLimiter := middleware.NewTokenBucketLimiter(100, 200) // 100 req/sec, burst 200

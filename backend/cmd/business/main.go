@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -93,10 +94,16 @@ func main() {
 	// WebSocket Route
 	mux.HandleFunc("GET /ws", wsHub.HandleWS)
 
+	startTime := time.Now()
+
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok","service":"business"}`))
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"status":  "ok",
+			"service": "business",
+			"uptime":  time.Since(startTime).Truncate(time.Second).String(),
+		})
 	})
 
 	rateLimiter := middleware.NewTokenBucketLimiter(150, 300)

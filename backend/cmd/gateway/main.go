@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -40,6 +41,8 @@ func main() {
 		businessProxy.ServeHTTP(w, r)
 	}
 
+	startTime := time.Now()
+
 	// Dispatcher
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
@@ -48,7 +51,11 @@ func main() {
 		if path == "/health" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"status":"ok","gateway":"active"}`))
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"status":  "ok",
+				"gateway": "active",
+				"uptime":  time.Since(startTime).Truncate(time.Second).String(),
+			})
 			return
 		}
 
