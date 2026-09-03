@@ -606,3 +606,71 @@ func (s *TaskService) GetReviewStatus(ctx context.Context, id int64) (dto.Review
 		IsActive:  task.Status == "REVIEW",
 	}, nil
 }
+
+func (s *TaskService) SystemTransition(ctx context.Context, id int64, newStatus, reason string) (dto.TaskDTO, error) {
+	task, err := s.GetTask(ctx, id)
+	if err != nil {
+		return dto.TaskDTO{}, err
+	}
+	if task.Status == newStatus {
+		return task, nil
+	}
+
+	err = s.txManager.WithinTx(ctx, func(r *repo.RepositoryRegistry) error {
+		_ = r.Task().AddHistory(ctx, &dto.TaskHistoryDTO{
+			TaskID: id, UserID: 0, Field: "status", OldValue: task.Status, NewValue: newStatus, ChangedAt: time.Now(),
+		})
+
+		if err := r.Task().Update(ctx, id, dto.UpdateTaskRequest{Status: &newStatus}); err != nil {
+			return err
+		}
+
+		if reason != "" {
+			_, _ = r.Task().CreateComment(ctx, &dto.TaskCommentDTO{
+				TaskID:    id,
+				UserID:    0,
+				Content:   reason,
+				CreatedAt: time.Now(),
+			})
+		}
+
+		eventPayload := dto.TaskEventPayload{
+			EventID:    uuid.New().String(),
+			TaskID:     id,
+			ProjectID:  task.ProjectID,
+			Title:      task.Title,
+			Status:     newStatus,
+			AssigneeID: task.AssigneeID,
+			Timestamp:  time.Now(),
+		}
+		payloadBytes, _ := json.Marshal(eventPayload)
+		_, err := r.Outbox().Insert(ctx, "task.event.moved", payloadBytes)
+		return err
+	})
+
+	if err != nil {
+		return dto.TaskDTO{}, err
+	}
+
+	updated, err := s.GetTask(ctx, id)
+	if err == nil && s.broadcaster != nil {
+		s.broadcaster.Broadcast("task:moved", updated)
+	}
+	return updated, err
+}
+
+func (s *TaskService) IsReviewComplete(ctx context.Context, id int64) (bool, error) {
+	status, err := s.GetReviewStatus(ctx, id)
+	if err != nil {
+		return false, err
+	}
+	if len(status.Reviewers) == 0 {
+		return false, nil
+	}
+	for _, reviewer := range status.Reviewers {
+		if !reviewer.Approved {
+			return false, nil
+		}
+	}
+	return true, nil
+}
