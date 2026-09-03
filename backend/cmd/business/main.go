@@ -65,6 +65,7 @@ func main() {
 	taskRepo := repo.NewTaskRepo(pool)
 	analyticsRepo := repo.NewAnalyticsRepo(pool)
 	gitlabRepo := repo.NewGitLabRepo(pool)
+	extensionRepo := repo.NewExtensionRepo(pool)
 
 	sealer, err := crypto.NewSealer(gitlabTokenKey)
 	if err != nil {
@@ -79,6 +80,7 @@ func main() {
 	analyticsService := core.NewAnalyticsService(analyticsRepo)
 	gitlabService := core.NewGitLabService(gitlabRepo, taskRepo, txManager, sealer, wsHub, publicURL)
 	gitlabWebhooks := core.NewGitLabWebhookService(gitlabRepo, taskService, txManager, wsHub, gitlabService)
+	extensionService := core.NewExtensionService(extensionRepo, taskRepo, txManager, sealer)
 
 	// 4. Start Business Outbox Poller
 	bizPoller := outbox.NewPoller(txManager, rabbit, wsHub, outbox.PollerConfig{
@@ -91,10 +93,15 @@ func main() {
 	// 5. Start GitLab Webhook Worker
 	go gitlabWebhooks.RunWorker(ctx, time.Second, 20)
 
-	// 6. Start RabbitMQ Consumer Pool
+	// 6. Start RabbitMQ Consumer Pools
 	empConsumer := consumer.NewEmployeeConsumer(rabbit, txManager)
 	if err := empConsumer.Start(ctx, 4); err != nil {
 		log.Fatalf("failed to start rabbitmq consumer pool: %v", err)
+	}
+
+	extConsumer := consumer.NewExtensionConsumer(rabbit, txManager, sealer)
+	if err := extConsumer.Start(ctx, 4); err != nil {
+		log.Fatalf("failed to start extension dispatch consumer: %v", err)
 	}
 
 	// 7. Setup HTTP Routes & Middlewares
@@ -105,6 +112,7 @@ func main() {
 	bizHttp.NewTaskHandler(mux, taskService, jwtValidator)
 	bizHttp.NewAnalyticsHandler(mux, analyticsService, jwtValidator)
 	bizHttp.NewGitLabHandler(mux, gitlabService, gitlabWebhooks, jwtValidator)
+	bizHttp.NewExtensionHandler(mux, extensionService, jwtValidator)
 
 	// WebSocket Route
 	mux.HandleFunc("GET /ws", wsHub.HandleWS)

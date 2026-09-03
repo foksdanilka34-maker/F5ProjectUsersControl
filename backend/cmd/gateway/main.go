@@ -79,7 +79,8 @@ func main() {
 		if strings.HasPrefix(path, "/api/v1/projects") ||
 			strings.HasPrefix(path, "/api/v1/tasks") ||
 			strings.HasPrefix(path, "/api/v1/analytics") ||
-			strings.HasPrefix(path, "/api/v1/gitlab") {
+			strings.HasPrefix(path, "/api/v1/gitlab") ||
+			strings.HasPrefix(path, "/api/v1/extensions") {
 			businessHandler(w, r)
 			return
 		}

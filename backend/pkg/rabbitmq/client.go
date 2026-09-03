@@ -11,14 +11,18 @@ import (
 )
 
 const (
-	EventsExchange       = "app.events"
-	EventsExchangeType   = "topic"
-	EmployeeSyncQueue    = "business.employee.sync"
-	EmployeeSyncDLQ      = "business.employee.sync.dlq"
-	EmployeeEventsKey    = "employee.event.*"
-	EmployeeCreatedKey   = "employee.event.created"
-	EmployeeUpdatedKey   = "employee.event.updated"
-	EmployeeDeletedKey   = "employee.event.deleted"
+	EventsExchange     = "app.events"
+	EventsExchangeType = "topic"
+	EmployeeSyncQueue  = "business.employee.sync"
+	EmployeeSyncDLQ    = "business.employee.sync.dlq"
+	EmployeeEventsKey  = "employee.event.*"
+	EmployeeCreatedKey = "employee.event.created"
+	EmployeeUpdatedKey = "employee.event.updated"
+	EmployeeDeletedKey = "employee.event.deleted"
+
+	ExtensionDispatchQueue = "business.extensions.dispatch"
+	ExtensionDispatchDLQ   = "business.extensions.dispatch.dlq"
+	TaskEventsKey          = "task.event.*"
 )
 
 type Client struct {
@@ -113,6 +117,48 @@ func (c *Client) SetupTopology() error {
 	)
 	if err != nil {
 		return fmt.Errorf("failed to bind queue %s to exchange %s: %w", EmployeeSyncQueue, EventsExchange, err)
+	}
+
+	// 5. Declare Extension Dispatch DLQ
+	_, err = c.ch.QueueDeclare(
+		ExtensionDispatchDLQ,
+		true,  // durable
+		false, // auto-delete
+		false, // exclusive
+		false, // no-wait
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare dlq %s: %w", ExtensionDispatchDLQ, err)
+	}
+
+	// 6. Declare Extension Dispatch Queue with DLQ arguments
+	extArgs := amqp.Table{
+		"x-dead-letter-exchange":    "",
+		"x-dead-letter-routing-key": ExtensionDispatchDLQ,
+	}
+	_, err = c.ch.QueueDeclare(
+		ExtensionDispatchQueue,
+		true,  // durable
+		false, // auto-delete
+		false, // exclusive
+		false, // no-wait
+		extArgs,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare queue %s: %w", ExtensionDispatchQueue, err)
+	}
+
+	// 7. Bind Extension Dispatch Queue to Exchange (all task.event.* messages)
+	err = c.ch.QueueBind(
+		ExtensionDispatchQueue,
+		TaskEventsKey,
+		EventsExchange,
+		false,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to bind queue %s to exchange %s: %w", ExtensionDispatchQueue, EventsExchange, err)
 	}
 
 	return nil

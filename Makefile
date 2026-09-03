@@ -1,6 +1,6 @@
-.PHONY: build build-all build-employee build-business build-gateway run-employee run-business run-gateway docker-up docker-down docker-logs fmt tidy test kill clean
+.PHONY: build build-all build-employee build-business build-gateway build-demo-extension run-employee run-business run-gateway run-demo-extension docker-up docker-down docker-logs fmt tidy test kill clean
 
-build-all: build-employee build-business build-gateway
+build-all: build-employee build-business build-gateway build-demo-extension
 
 build-employee:
 	cd backend && go build -o ../build/employee_service ./cmd/employee
@@ -11,6 +11,9 @@ build-business:
 build-gateway:
 	cd backend && go build -o ../build/gateway ./cmd/gateway
 
+build-demo-extension:
+	cd backend && go build -o ../build/demo_extension ./cmd/demo-extension
+
 run-employee:
 	cd backend && go run ./cmd/employee/main.go
 
@@ -19,6 +22,9 @@ run-business:
 
 run-gateway:
 	cd backend && go run ./cmd/gateway/main.go
+
+run-demo-extension:
+	cd backend && go run ./cmd/demo-extension/main.go
 
 test:
 	cd backend && go test -v -race ./...

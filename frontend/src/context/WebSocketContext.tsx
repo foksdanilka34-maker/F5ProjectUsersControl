@@ -11,6 +11,7 @@ export type WSEventType =
   | 'metrics:updated'
   | 'gitlab:pipeline'
   | 'gitlab:link'
+  | 'task:comment_added'
   | 'notification';
 
 export interface WSMessage {
