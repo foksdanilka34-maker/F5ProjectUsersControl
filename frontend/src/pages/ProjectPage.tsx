@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Edit2,
   Eye,
+  GitMerge,
   GripVertical,
   Loader2,
   Plus,
@@ -28,8 +29,11 @@ import {
 } from 'recharts';
 import Avatar from '../components/Avatar';
 import ConfirmDialog from '../components/ConfirmDialog';
+import GitLabSettingsCard from '../components/GitLabSettingsCard';
+import TaskGitPanel from '../components/TaskGitPanel';
 
 import { useAuth } from '../context/AuthContext';
+import { useWSEvent } from '../context/WebSocketContext';
 import { getProjectMetrics, type ProjectMetrics } from '../services/analyticsService';
 import {
   getProject,
@@ -49,6 +53,11 @@ import {
   type ProjectMember,
   type ReviewStatus,
 } from '../services/projectService';
+import {
+  getProjectGitSummary,
+  pipelineStyle,
+  type ProjectGitSummaryItem,
+} from '../services/gitlabService';
 import { listProfiles } from '../services/employeeService';
 import type { ProfileDTO } from '../services/types';
 
@@ -100,6 +109,7 @@ export default function ProjectPage() {
   const [allProfiles, setAllProfiles] = useState<ProfileDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null);
+  const [gitSummary, setGitSummary] = useState<Record<number, ProjectGitSummaryItem>>({});
 
   const [activeTab, setActiveTab] = useState<'kanban' | 'team' | 'stats' | 'settings'>('kanban');
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -141,18 +151,20 @@ export default function ProjectPage() {
     if (!projectId) return;
     setLoading(true);
     try {
-      const [projectData, tasksData, membersData, profilesData, metricsData] = await Promise.all([
+      const [projectData, tasksData, membersData, profilesData, metricsData, gitData] = await Promise.all([
         getProject(projectId),
         getTasks(projectId),
         getProjectMembers(projectId),
         listProfiles({ pageSize: 100 }),
         getProjectMetrics(projectId).catch(() => null),
+        getProjectGitSummary(projectId).catch(() => [] as ProjectGitSummaryItem[]),
       ]);
       setProject(projectData);
       setTasks(tasksData || []);
       setMembers(membersData || []);
       setAllProfiles(profilesData.profiles || []);
       setMetrics(metricsData);
+      setGitSummary(Object.fromEntries(gitData.map((item) => [item.task_id, item])));
 
       setProjectName(projectData.name);
       setProjectDescription(projectData.description || '');
@@ -170,6 +182,23 @@ export default function ProjectPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handlePipelineEvent = useCallback((payload: unknown) => {
+    const pipeline = payload as { task_id?: number; status?: string; web_url?: string };
+    const taskId = pipeline?.task_id;
+    if (!taskId) return;
+
+    setGitSummary((prev) => ({
+      ...prev,
+      [taskId]: {
+        ...(prev[taskId] ?? { task_id: taskId, branches: 0, merge_requests: 0 }),
+        pipeline_status: pipeline.status,
+        pipeline_url: pipeline.web_url,
+      },
+    }));
+  }, []);
+
+  useWSEvent('gitlab:pipeline', handlePipelineEvent, [handlePipelineEvent]);
 
   const tasksByStatus = useMemo(() => {
     const grouped: Record<string, Task[]> = {};
@@ -597,6 +626,18 @@ export default function ProjectPage() {
                               <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700">
                                 <Eye className="h-2.5 w-2.5" />
                                 Ревью
+                              </span>
+                            )}
+                            {gitSummary[task.id]?.pipeline_status && (
+                              <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium bg-white border border-gray-200 text-gray-600">
+                                <span className={`h-1.5 w-1.5 rounded-full ${pipelineStyle(gitSummary[task.id].pipeline_status).dot}`} />
+                                CI
+                              </span>
+                            )}
+                            {(gitSummary[task.id]?.merge_requests ?? 0) > 0 && (
+                              <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium bg-orange-100 text-orange-700">
+                                <GitMerge className="h-2.5 w-2.5" />
+                                {gitSummary[task.id].merge_requests}
                               </span>
                             )}
                           </div>
@@ -1055,6 +1096,15 @@ export default function ProjectPage() {
                 )}
               </form>
             </div>
+
+            <div className="mt-6">
+              <GitLabSettingsCard
+                projectId={projectId}
+                canManage={Boolean(isManagerOrHigher)}
+                onError={setError}
+                onSuccess={setSuccess}
+              />
+            </div>
           </div>
         )}
       </div>
@@ -1335,6 +1385,13 @@ export default function ProjectPage() {
                   )}
                 </div>
               )}
+
+              <TaskGitPanel
+                taskId={selectedTask.id}
+                canManage={Boolean(canManage)}
+                onError={setError}
+                onSuccess={setSuccess}
+              />
             </div>
 
             {/* Modal Footer */}

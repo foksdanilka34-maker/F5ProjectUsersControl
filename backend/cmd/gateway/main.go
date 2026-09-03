@@ -78,7 +78,8 @@ func main() {
 		// Business Service Routes
 		if strings.HasPrefix(path, "/api/v1/projects") ||
 			strings.HasPrefix(path, "/api/v1/tasks") ||
-			strings.HasPrefix(path, "/api/v1/analytics") {
+			strings.HasPrefix(path, "/api/v1/analytics") ||
+			strings.HasPrefix(path, "/api/v1/gitlab") {
 			businessHandler(w, r)
 			return
 		}
