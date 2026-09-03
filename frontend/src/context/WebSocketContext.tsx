@@ -9,6 +9,8 @@ export type WSEventType =
   | 'task:moved'
   | 'task:assigned'
   | 'metrics:updated'
+  | 'gitlab:pipeline'
+  | 'gitlab:link'
   | 'notification';
 
 export interface WSMessage {

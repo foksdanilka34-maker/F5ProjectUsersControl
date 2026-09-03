@@ -17,6 +17,7 @@ import (
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/http/middleware"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/outbox"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/repo"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/crypto"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/postgres"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/rabbitmq"
 )
@@ -33,6 +34,8 @@ func main() {
 	dbName := getEnv("DB_NAME", "business")
 	rabbitURL := getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 	jwtSecret := getEnv("JWT_SECRET", "your-secret-key")
+	gitlabTokenKey := getEnv("GITLAB_TOKEN_KEY", jwtSecret)
+	publicURL := getEnv("PUBLIC_BASE_URL", "http://localhost:8080")
 
 	log.Printf("Starting Business Service on %s...", httpAddr)
 
@@ -61,6 +64,12 @@ func main() {
 	projectRepo := repo.NewProjectRepo(pool)
 	taskRepo := repo.NewTaskRepo(pool)
 	analyticsRepo := repo.NewAnalyticsRepo(pool)
+	gitlabRepo := repo.NewGitLabRepo(pool)
+
+	sealer, err := crypto.NewSealer(gitlabTokenKey)
+	if err != nil {
+		log.Fatalf("failed to init token sealer: %v", err)
+	}
 
 	wsHub := bizHttp.NewWSHub()
 	go wsHub.Run(ctx)
@@ -68,6 +77,8 @@ func main() {
 	projectService := core.NewProjectService(projectRepo, txManager)
 	taskService := core.NewTaskService(taskRepo, projectRepo, txManager, wsHub)
 	analyticsService := core.NewAnalyticsService(analyticsRepo)
+	gitlabService := core.NewGitLabService(gitlabRepo, taskRepo, txManager, sealer, wsHub, publicURL)
+	gitlabWebhooks := core.NewGitLabWebhookService(gitlabRepo, taskService, txManager, wsHub, gitlabService)
 
 	// 4. Start Business Outbox Poller
 	bizPoller := outbox.NewPoller(txManager, rabbit, wsHub, outbox.PollerConfig{
@@ -77,19 +88,23 @@ func main() {
 	})
 	go bizPoller.Start(ctx)
 
-	// 5. Start RabbitMQ Consumer Pool
+	// 5. Start GitLab Webhook Worker
+	go gitlabWebhooks.RunWorker(ctx, time.Second, 20)
+
+	// 6. Start RabbitMQ Consumer Pool
 	empConsumer := consumer.NewEmployeeConsumer(rabbit, txManager)
 	if err := empConsumer.Start(ctx, 4); err != nil {
 		log.Fatalf("failed to start rabbitmq consumer pool: %v", err)
 	}
 
-	// 6. Setup HTTP Routes & Middlewares
+	// 7. Setup HTTP Routes & Middlewares
 	jwtValidator := middleware.NewJWTValidator(jwtSecret)
 	mux := http.NewServeMux()
 
 	bizHttp.NewProjectHandler(mux, projectService, jwtValidator)
 	bizHttp.NewTaskHandler(mux, taskService, jwtValidator)
 	bizHttp.NewAnalyticsHandler(mux, analyticsService, jwtValidator)
+	bizHttp.NewGitLabHandler(mux, gitlabService, gitlabWebhooks, jwtValidator)
 
 	// WebSocket Route
 	mux.HandleFunc("GET /ws", wsHub.HandleWS)
