@@ -201,3 +201,27 @@ export const getReviewStatus = async (taskId: number): Promise<ReviewStatus> => 
 };
 
 
+
+// Comments API
+
+export interface TaskComment {
+  id: number;
+  task_id: number;
+  user_id: number;
+  content: string;
+  created_at: string;
+}
+
+export const getTaskComments = async (taskId: number): Promise<TaskComment[]> => {
+  const response = await apiClient.request<{ comments: TaskComment[] }>(`/tasks/${taskId}/comments`, {
+    method: 'GET',
+  });
+  return response.comments || [];
+};
+
+export const addTaskComment = async (taskId: number, content: string): Promise<TaskComment> => {
+  return apiClient.request<TaskComment>(`/tasks/${taskId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+};
