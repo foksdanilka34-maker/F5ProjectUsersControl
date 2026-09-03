@@ -164,7 +164,10 @@ func (s *GitLabService) TestConnection(ctx context.Context, projectID int64) (*g
 
 func (s *GitLabService) GetTaskGit(ctx context.Context, taskID int64) (dto.TaskGitOverview, error) {
 	task, err := s.taskRepo.GetByID(ctx, taskID)
-	if err != nil || task == nil {
+	if err != nil {
+		return dto.TaskGitOverview{}, err
+	}
+	if task == nil {
 		return dto.TaskGitOverview{}, ErrNotFound
 	}
 
@@ -204,7 +207,10 @@ func (s *GitLabService) ProjectSummary(ctx context.Context, projectID int64) ([]
 
 func (s *GitLabService) CreateBranch(ctx context.Context, taskID int64) (dto.TaskGitLinkDTO, error) {
 	task, err := s.taskRepo.GetByID(ctx, taskID)
-	if err != nil || task == nil {
+	if err != nil {
+		return dto.TaskGitLinkDTO{}, err
+	}
+	if task == nil {
 		return dto.TaskGitLinkDTO{}, ErrNotFound
 	}
 
@@ -252,7 +258,10 @@ func (s *GitLabService) CreateBranch(ctx context.Context, taskID int64) (dto.Tas
 
 func (s *GitLabService) RetryPipeline(ctx context.Context, taskID, pipelineID int64) (dto.GitLabPipelineDTO, error) {
 	task, err := s.taskRepo.GetByID(ctx, taskID)
-	if err != nil || task == nil {
+	if err != nil {
+		return dto.GitLabPipelineDTO{}, err
+	}
+	if task == nil {
 		return dto.GitLabPipelineDTO{}, ErrNotFound
 	}
 
