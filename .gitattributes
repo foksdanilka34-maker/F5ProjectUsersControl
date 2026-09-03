@@ -1,0 +1,6 @@
+# Generated protobuf/gRPC code — excluded from GitHub language stats so the
+# "Languages" bar reflects hand-written code, not codegen output.
+backend/gen/go/** linguist-generated=true
+
+# npm lockfile — machine-generated, not hand-authored.
+frontend/package-lock.json linguist-generated=true
