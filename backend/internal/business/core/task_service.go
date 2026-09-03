@@ -607,6 +607,71 @@ func (s *TaskService) GetReviewStatus(ctx context.Context, id int64) (dto.Review
 	}, nil
 }
 
+func (s *TaskService) AddComment(ctx context.Context, taskID, userID int64, content string) (dto.TaskCommentDTO, error) {
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return dto.TaskCommentDTO{}, errors.New("content is required")
+	}
+
+	task, err := s.GetTask(ctx, taskID)
+	if err != nil {
+		return dto.TaskCommentDTO{}, err
+	}
+
+	comment := dto.TaskCommentDTO{
+		TaskID:    taskID,
+		UserID:    userID,
+		Content:   content,
+		CreatedAt: time.Now(),
+	}
+
+	err = s.txManager.WithinTx(ctx, func(r *repo.RepositoryRegistry) error {
+		id, err := r.Task().CreateComment(ctx, &comment)
+		if err != nil {
+			return err
+		}
+		comment.ID = id
+
+		eventPayload := dto.CommentEventPayload{
+			EventID:   uuid.New().String(),
+			TaskID:    taskID,
+			ProjectID: task.ProjectID,
+			CommentID: id,
+			UserID:    userID,
+			Content:   content,
+			Timestamp: time.Now(),
+		}
+		payloadBytes, _ := json.Marshal(eventPayload)
+		_, err = r.Outbox().Insert(ctx, "task.event.comment_added", payloadBytes)
+		return err
+	})
+	if err != nil {
+		return dto.TaskCommentDTO{}, err
+	}
+
+	if s.broadcaster != nil {
+		s.broadcaster.Broadcast("task:comment_added", comment)
+	}
+
+	return comment, nil
+}
+
+func (s *TaskService) ListComments(ctx context.Context, taskID int64) ([]dto.TaskCommentDTO, error) {
+	comments, err := s.repo.GetComments(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	visible := comments[:0]
+	for _, c := range comments {
+		if strings.HasPrefix(c.Content, ReviewAssignPrefix) || strings.HasPrefix(c.Content, ReviewApprovePrefix) {
+			continue
+		}
+		visible = append(visible, c)
+	}
+	return visible, nil
+}
+
 func (s *TaskService) SystemTransition(ctx context.Context, id int64, newStatus, reason string) (dto.TaskDTO, error) {
 	task, err := s.GetTask(ctx, id)
 	if err != nil {

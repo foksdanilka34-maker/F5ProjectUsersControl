@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   BarChart3,
+  Blocks,
   CheckCircle,
   CheckCircle2,
   Edit2,
@@ -31,6 +32,9 @@ import Avatar from '../components/Avatar';
 import ConfirmDialog from '../components/ConfirmDialog';
 import GitLabSettingsCard from '../components/GitLabSettingsCard';
 import TaskGitPanel from '../components/TaskGitPanel';
+import ExtensionsSettingsCard from '../components/ExtensionsSettingsCard';
+import TaskExtensionPanels from '../components/TaskExtensionPanels';
+import TaskComments from '../components/TaskComments';
 
 import { useAuth } from '../context/AuthContext';
 import { useWSEvent } from '../context/WebSocketContext';
@@ -58,6 +62,7 @@ import {
   pipelineStyle,
   type ProjectGitSummaryItem,
 } from '../services/gitlabService';
+import { listProjectExtensions, type ProjectExtension } from '../services/extensionsService';
 import { listProfiles } from '../services/employeeService';
 import type { ProfileDTO } from '../services/types';
 
@@ -102,6 +107,7 @@ export default function ProjectPage() {
 
   const canManage = user && ['manager', 'developer', 'director', 'admin'].includes(user.role);
   const isManagerOrHigher = user && ['manager', 'developer', 'director', 'admin'].includes(user.role);
+  const canRegisterExtensions = user && ['admin', 'director'].includes(user.role);
 
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -111,7 +117,8 @@ export default function ProjectPage() {
   const [metrics, setMetrics] = useState<ProjectMetrics | null>(null);
   const [gitSummary, setGitSummary] = useState<Record<number, ProjectGitSummaryItem>>({});
 
-  const [activeTab, setActiveTab] = useState<'kanban' | 'team' | 'stats' | 'settings'>('kanban');
+  const [activeTab, setActiveTab] = useState<string>('kanban');
+  const [tabExtensions, setTabExtensions] = useState<ProjectExtension[]>([]);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showMemberModal, setShowMemberModal] = useState(false);
@@ -151,13 +158,14 @@ export default function ProjectPage() {
     if (!projectId) return;
     setLoading(true);
     try {
-      const [projectData, tasksData, membersData, profilesData, metricsData, gitData] = await Promise.all([
+      const [projectData, tasksData, membersData, profilesData, metricsData, gitData, extensionsData] = await Promise.all([
         getProject(projectId),
         getTasks(projectId),
         getProjectMembers(projectId),
         listProfiles({ pageSize: 100 }),
         getProjectMetrics(projectId).catch(() => null),
         getProjectGitSummary(projectId).catch(() => [] as ProjectGitSummaryItem[]),
+        listProjectExtensions(projectId).catch(() => [] as ProjectExtension[]),
       ]);
       setProject(projectData);
       setTasks(tasksData || []);
@@ -165,6 +173,7 @@ export default function ProjectPage() {
       setAllProfiles(profilesData.profiles || []);
       setMetrics(metricsData);
       setGitSummary(Object.fromEntries(gitData.map((item) => [item.task_id, item])));
+      setTabExtensions(extensionsData.filter((e) => e.enabled && e.project_tab_url));
 
       setProjectName(projectData.name);
       setProjectDescription(projectData.description || '');
@@ -520,7 +529,7 @@ export default function ProjectPage() {
             <button
               key={key}
               type="button"
-              onClick={() => setActiveTab(key as typeof activeTab)}
+              onClick={() => setActiveTab(key)}
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
                 activeTab === key
                   ? 'bg-gray-900 text-white'
@@ -531,6 +540,25 @@ export default function ProjectPage() {
               {label}
             </button>
           ))}
+
+          {tabExtensions.map((ext) => {
+            const tabKey = `ext:${ext.key}`;
+            return (
+              <button
+                key={tabKey}
+                type="button"
+                onClick={() => setActiveTab(tabKey)}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                  activeTab === tabKey
+                    ? 'bg-gray-900 text-white'
+                    : 'border border-gray-200 bg-white text-gray-600 hover:text-emerald-600'
+                }`}
+              >
+                <Blocks className="h-4 w-4" />
+                {ext.project_tab_label || ext.name}
+              </button>
+            );
+          })}
         </div>
 
         {}
@@ -1105,8 +1133,35 @@ export default function ProjectPage() {
                 onSuccess={setSuccess}
               />
             </div>
+
+            <div className="mt-6">
+              <ExtensionsSettingsCard
+                projectId={projectId}
+                canManage={Boolean(isManagerOrHigher)}
+                canRegister={Boolean(canRegisterExtensions)}
+                onError={setError}
+                onSuccess={setSuccess}
+              />
+            </div>
           </div>
         )}
+
+        {}
+        {activeTab.startsWith('ext:') && (() => {
+          const ext = tabExtensions.find((e) => `ext:${e.key}` === activeTab);
+          if (!ext) return null;
+          return (
+            <div className="rounded-2xl border border-gray-100 bg-white p-2 shadow-sm">
+              <iframe
+                src={`${ext.base_url}${ext.project_tab_url}?project_id=${projectId}`}
+                title={ext.name}
+                className="w-full rounded-xl border-0"
+                style={{ height: '70vh' }}
+                sandbox="allow-scripts allow-same-origin allow-forms"
+              />
+            </div>
+          );
+        })()}
       </div>
 
       {}
@@ -1391,6 +1446,15 @@ export default function ProjectPage() {
                 canManage={Boolean(canManage)}
                 onError={setError}
                 onSuccess={setSuccess}
+              />
+
+              <TaskExtensionPanels taskId={selectedTask.id} projectId={projectId} />
+
+              <TaskComments
+                taskId={selectedTask.id}
+                getProfileName={getProfileName}
+                getProfile={getProfile}
+                onError={setError}
               />
             </div>
 

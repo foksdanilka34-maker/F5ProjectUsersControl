@@ -22,6 +22,7 @@ type RepositoryRegistry struct {
 	inbox  *InboxRepo
 	outbox *OutboxRepo
 	gitlab *GitLabRepo
+	ext    *ExtensionRepo
 }
 
 func (r *RepositoryRegistry) Project() *ProjectRepo     { return r.proj }
@@ -30,6 +31,7 @@ func (r *RepositoryRegistry) Analytics() *AnalyticsRepo { return r.an }
 func (r *RepositoryRegistry) Inbox() *InboxRepo         { return r.inbox }
 func (r *RepositoryRegistry) Outbox() *OutboxRepo       { return r.outbox }
 func (r *RepositoryRegistry) GitLab() *GitLabRepo       { return r.gitlab }
+func (r *RepositoryRegistry) Extension() *ExtensionRepo { return r.ext }
 
 type TxManager struct {
 	pool *pgxpool.Pool
@@ -53,6 +55,7 @@ func (m *TxManager) WithinTx(ctx context.Context, fn func(r *RepositoryRegistry)
 		inbox:  NewInboxRepo(tx),
 		outbox: NewOutboxRepo(tx),
 		gitlab: NewGitLabRepo(tx),
+		ext:    NewExtensionRepo(tx),
 	}
 
 	if err := fn(reg); err != nil {
