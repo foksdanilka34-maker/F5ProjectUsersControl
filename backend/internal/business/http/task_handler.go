@@ -23,6 +23,9 @@ type TaskService interface {
 	SubmitForReview(ctx context.Context, id int64) (dto.TaskDTO, error)
 	ApproveTask(ctx context.Context, id, userID int64) (dto.TaskDTO, error)
 	GetReviewStatus(ctx context.Context, id int64) (dto.ReviewStatusResponse, error)
+
+	AddComment(ctx context.Context, taskID, userID int64, content string) (dto.TaskCommentDTO, error)
+	ListComments(ctx context.Context, taskID int64) ([]dto.TaskCommentDTO, error)
 }
 
 type TaskHandler struct {
@@ -53,6 +56,9 @@ func (h *TaskHandler) registerRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /api/v1/tasks/{id}/review/submit", authMW(middleware.Chaos(http.HandlerFunc(h.SubmitForReview))))
 	mux.Handle("POST /api/v1/tasks/{id}/review/approve", authMW(middleware.Chaos(http.HandlerFunc(h.ApproveTask))))
 	mux.Handle("GET /api/v1/tasks/{id}/review", authMW(middleware.Chaos(http.HandlerFunc(h.GetReviewStatus))))
+
+	mux.Handle("GET /api/v1/tasks/{id}/comments", authMW(middleware.Chaos(http.HandlerFunc(h.ListComments))))
+	mux.Handle("POST /api/v1/tasks/{id}/comments", authMW(middleware.Chaos(http.HandlerFunc(h.AddComment))))
 }
 
 func (h *TaskHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
@@ -271,4 +277,55 @@ func (h *TaskHandler) GetReviewStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(res)
+}
+
+func (h *TaskHandler) ListComments(w http.ResponseWriter, r *http.Request) {
+	param := r.PathValue("id")
+	id, err := strconv.ParseInt(param, 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"invalid task id"}`, http.StatusBadRequest)
+		return
+	}
+
+	comments, err := h.service.ListComments(r.Context(), id)
+	if err != nil {
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"comments": comments})
+}
+
+func (h *TaskHandler) AddComment(w http.ResponseWriter, r *http.Request) {
+	param := r.PathValue("id")
+	id, err := strconv.ParseInt(param, 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"invalid task id"}`, http.StatusBadRequest)
+		return
+	}
+
+	userID, _ := r.Context().Value(middleware.UserIDKey).(int64)
+	if userID == 0 {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
+		return
+	}
+
+	comment, err := h.service.AddComment(r.Context(), id, userID, req.Content)
+	if err != nil {
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(comment)
 }
