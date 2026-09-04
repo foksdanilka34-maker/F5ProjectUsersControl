@@ -245,6 +245,8 @@ func writeExtensionError(w http.ResponseWriter, err error) {
 		http.Error(w, `{"error":"Расширение не установлено для этого проекта"}`, http.StatusForbidden)
 	case errors.Is(err, core.ErrInvalidExtensionAuth):
 		http.Error(w, `{"error":"invalid extension credentials"}`, http.StatusUnauthorized)
+	case errors.Is(err, core.ErrInvalidBaseURL):
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 	default:
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 	}

@@ -72,6 +72,15 @@ func (s *GitLabService) SaveIntegration(ctx context.Context, projectID int64, re
 		return nil, errors.New("gitlab_project_id is required")
 	}
 
+	baseURL := "https://gitlab.com"
+	if trimmed := strings.TrimSpace(req.BaseURL); trimmed != "" {
+		validated, err := validateBaseURL(trimmed)
+		if err != nil {
+			return nil, err
+		}
+		baseURL = validated
+	}
+
 	existing, err := s.repo.GetIntegration(ctx, projectID)
 	if err != nil {
 		return nil, err
@@ -79,7 +88,7 @@ func (s *GitLabService) SaveIntegration(ctx context.Context, projectID int64, re
 
 	integration := &dto.GitLabIntegration{
 		ProjectID:          projectID,
-		BaseURL:            strings.TrimRight(strings.TrimSpace(req.BaseURL), "/"),
+		BaseURL:            baseURL,
 		GitLabProjectID:    req.GitLabProjectID,
 		DefaultBranch:      strings.TrimSpace(req.DefaultBranch),
 		TaskKeyPrefix:      NormalizeTaskKeyPrefix(req.TaskKeyPrefix),
@@ -89,9 +98,6 @@ func (s *GitLabService) SaveIntegration(ctx context.Context, projectID int64, re
 		IsActive:           true,
 	}
 
-	if integration.BaseURL == "" {
-		integration.BaseURL = "https://gitlab.com"
-	}
 	if integration.DefaultBranch == "" {
 		integration.DefaultBranch = "main"
 	}
