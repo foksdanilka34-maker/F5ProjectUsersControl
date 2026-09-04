@@ -56,8 +56,13 @@ func NewExtensionService(repo ExtensionRepository, taskRepo TaskRepository, txMa
 
 func (s *ExtensionService) Register(ctx context.Context, req dto.SaveExtensionRequest) (*dto.ExtensionDTO, error) {
 	key := strings.TrimSpace(req.Key)
-	if key == "" || req.Name == "" || req.BaseURL == "" || req.SharedSecret == "" {
-		return nil, errors.New("key, name, base_url and shared_secret are required")
+	if key == "" || req.Name == "" || req.SharedSecret == "" {
+		return nil, errors.New("key, name and shared_secret are required")
+	}
+
+	baseURL, err := validateBaseURL(req.BaseURL)
+	if err != nil {
+		return nil, err
 	}
 
 	existing, err := s.repo.GetByKey(ctx, key)
@@ -84,7 +89,7 @@ func (s *ExtensionService) Register(ctx context.Context, req dto.SaveExtensionRe
 		Key:             key,
 		Name:            req.Name,
 		Description:     req.Description,
-		BaseURL:         strings.TrimRight(strings.TrimSpace(req.BaseURL), "/"),
+		BaseURL:         baseURL,
 		SharedSecretEnc: sealed,
 		TaskPanelURL:    optional(req.TaskPanelURL),
 		ProjectTabURL:   optional(req.ProjectTabURL),
