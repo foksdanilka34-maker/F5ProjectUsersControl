@@ -273,6 +273,8 @@ func writeGitLabError(w http.ResponseWriter, err error) {
 		http.Error(w, `{"error":"Интеграция с GitLab не настроена"}`, http.StatusConflict)
 	case errors.Is(err, core.ErrIntegrationNoToken):
 		http.Error(w, `{"error":"Не задан access token GitLab"}`, http.StatusConflict)
+	case errors.Is(err, core.ErrInvalidBaseURL):
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
 	case errors.As(err, &apiErr):
 		log.Println("gitlab api error:", err)
 		writeJSON(w, http.StatusBadGateway, map[string]any{
