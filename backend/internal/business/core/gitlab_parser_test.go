@@ -54,3 +54,45 @@ func TestNormalizeEventType(t *testing.T) {
 		}
 	}
 }
+
+func TestSlugify(t *testing.T) {
+	cases := []struct {
+		input string
+		want  string
+	}{
+		{"Привет Мир", "privet-mir"},
+		{"Task 123: Add feature!", "task-123-add-feature"},
+		{"--leading-and-trailing--", "leading-and-trailing"},
+		{"Multiple   Spaces   Here", "multiple-spaces-here"},
+		{"", ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.input, func(t *testing.T) {
+			if got := Slugify(tc.input); got != tc.want {
+				t.Fatalf("Slugify(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestBuildTaskKey(t *testing.T) {
+	cases := []struct {
+		prefix string
+		id     int64
+		want   string
+	}{
+		{"f5", 42, "F5-42"},
+		{"", 10, "F5-10"},
+		{"proj", 1, "PROJ-1"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.want, func(t *testing.T) {
+			if got := BuildTaskKey(tc.prefix, tc.id); got != tc.want {
+				t.Fatalf("BuildTaskKey(%q, %d) = %q, want %q", tc.prefix, tc.id, got, tc.want)
+			}
+		})
+	}
+}
+
