@@ -20,6 +20,7 @@ var translitTable = map[rune]string{
 	'я': "ya",
 }
 
+// NormalizeTaskKeyPrefix standardizes the task prefix, defaulting to "F5" if empty.
 func NormalizeTaskKeyPrefix(prefix string) string {
 	prefix = strings.TrimSpace(prefix)
 	if prefix == "" {
@@ -28,6 +29,7 @@ func NormalizeTaskKeyPrefix(prefix string) string {
 	return strings.ToUpper(prefix)
 }
 
+// BuildTaskKey returns a formatted task key such as "F5-42".
 func BuildTaskKey(prefix string, taskID int64) string {
 	return fmt.Sprintf("%s-%d", NormalizeTaskKeyPrefix(prefix), taskID)
 }
