@@ -28,7 +28,7 @@ import { useAuth } from '../context/AuthContext';
 import { useWebSocket } from '../context/WebSocketContext';
 import { getProfile, updateProfile } from '../services/employeeService';
 import { getEmployeeMetrics, type EmployeeMetrics } from '../services/analyticsService';
-import type { ProfileDTO } from '../services/types';
+import type { ProfileDTO, UpdateProfileRequest } from '../services/types';
 import { roleLabels } from '../lib/constants';
 
 export default function ProfilePage() {
@@ -125,7 +125,7 @@ export default function ProfilePage() {
     setSaving(true);
     setError(null);
     try {
-      const payload: Record<string, unknown> = {
+      const payload: UpdateProfileRequest = {
         first_name: firstName,
         last_name: lastName,
         email,
@@ -432,7 +432,7 @@ export default function ProfilePage() {
                             strokeWidth={2}
                           />
                           <Tooltip
-                            formatter={(value: number) => [`${value}%`]}
+                            formatter={(value: number | undefined) => [`${value ?? 0}%`]}
                             contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
                           />
                         </RadarChart>

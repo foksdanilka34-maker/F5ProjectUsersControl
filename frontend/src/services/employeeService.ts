@@ -51,7 +51,7 @@ export function createProfile(payload: CreateProfileRequest) {
   });
 }
 
-export function updateProfile(id: number, payload: Record<string, unknown>) {
+export function updateProfile(id: number, payload: UpdateProfileRequest) {
   return apiClient.request<ProfileDTO>(`${PROFILES_PATH}/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
