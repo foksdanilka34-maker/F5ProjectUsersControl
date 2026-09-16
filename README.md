@@ -143,9 +143,19 @@ npm run dev
 ---
 
 ## 🧪 Запуск тестов
+
+Unit-тесты бэкенда:
 ```bash
 make test
 ```
+
+QA-набор (`qa/`) — API-тесты (`requests`) и браузерные (Playwright + Selenium) на Python/pytest, отдельно от бэкенда и фронтенда. Тесты, для которых не поднят нужный сервис, аккуратно скипаются, а не падают:
+```bash
+make qa-setup   # один раз: venv + зависимости + браузер Playwright
+make qa-test    # gateway/employee/business — через make docker-up run-employee run-business run-gateway
+                # фронтенд — через cd frontend && npm run dev
+```
+Прогоняется и в CI на каждый push/PR в `master` — см. `.github/workflows/qa.yml` и `qa/README.md`.
 
 ---
 
