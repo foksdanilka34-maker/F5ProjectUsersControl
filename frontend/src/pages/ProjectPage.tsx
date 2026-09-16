@@ -885,7 +885,7 @@ export default function ProjectPage() {
                               ))}
                             </Pie>
                             <Tooltip
-                              formatter={(value: number | undefined, name: string) => [`${value ?? 0} задач`, name]}
+                              formatter={(value: number | undefined, name: string | undefined) => [`${value ?? 0} задач`, name ?? '']}
                               contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
                             />
                           </PieChart>
