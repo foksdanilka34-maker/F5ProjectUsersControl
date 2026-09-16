@@ -1,0 +1,5 @@
+pytest>=8.0,<9
+requests>=2.31,<3
+pytest-playwright>=0.5,<1
+selenium>=4.20,<5
+webdriver-manager>=4.0,<5

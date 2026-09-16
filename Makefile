@@ -1,4 +1,4 @@
-.PHONY: build build-all build-employee build-business build-gateway build-demo-extension run-employee run-business run-gateway run-demo-extension docker-up docker-down docker-logs fmt tidy test kill clean
+.PHONY: build build-all build-employee build-business build-gateway build-demo-extension run-employee run-business run-gateway run-demo-extension docker-up docker-down docker-logs fmt tidy test qa-setup qa-test kill clean
 
 build-all: build-employee build-business build-gateway build-demo-extension
 
@@ -28,6 +28,12 @@ run-demo-extension:
 
 test:
 	cd backend && go test -v -race ./...
+
+qa-setup:
+	cd qa && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/playwright install --with-deps chromium
+
+qa-test:
+	cd qa && .venv/bin/python -m pytest -v
 
 docker-up:
 	cd backend && docker compose up -d
