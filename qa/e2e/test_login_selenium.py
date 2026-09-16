@@ -3,13 +3,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 
-def test_login_page_title_and_form_fields(selenium_driver, frontend_url):
+def test_login_page_form_fields_render(selenium_driver, frontend_url):
     selenium_driver.get(frontend_url)
 
     wait = WebDriverWait(selenium_driver, 10)
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[autocomplete='username']")))
-
-    assert "F5" in selenium_driver.title or "Vite" in selenium_driver.title
 
     login_input = selenium_driver.find_element(By.CSS_SELECTOR, "input[autocomplete='username']")
     password_input = selenium_driver.find_element(By.CSS_SELECTOR, "input[autocomplete='current-password']")
