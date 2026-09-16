@@ -13,24 +13,18 @@ import {
   Trophy,
   Medal,
   AlertOctagon,
-  Activity,
-  Zap,
   Target,
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
-  Flame,
   ChevronLeft,
   ChevronRight,
   HeartPulse,
 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, Legend, ComposedChart, Line, ScatterChart, Scatter, ZAxis, ReferenceLine } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, ScatterChart, Scatter, ZAxis, ReferenceLine } from 'recharts';
 import Avatar from '../components/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { useWebSocket } from '../context/WebSocketContext';
 import { projectStatusLabels, projectStatusColors } from '../lib/constants';
 import { getProjects, type Project } from '../services/projectService';
-import { getDashboardStats, listEmployeeMetrics, listProjectMetrics, getProductivityTrends, type DashboardStats, type EmployeeMetricItem, type ProjectMetricItem, type TrendEntry } from '../services/analyticsService';
+import { getDashboardStats, listEmployeeMetrics, listProjectMetrics, type DashboardStats, type EmployeeMetricItem, type ProjectMetricItem } from '../services/analyticsService';
 import { listProfiles } from '../services/employeeService';
 import type { ProfileDTO } from '../services/types';
 
@@ -42,7 +36,6 @@ export default function DashboardPage() {
   const [profilesMap, setProfilesMap] = useState<Map<number, ProfileDTO>>(new Map());
   const [employeeMetricsList, setEmployeeMetricsList] = useState<EmployeeMetricItem[]>([]);
   const [projectMetricsList, setProjectMetricsList] = useState<ProjectMetricItem[]>([]);
-  const [trendEntries, setTrendEntries] = useState<TrendEntry[]>([]);
   const [analyticsTab, setAnalyticsTab] = useState<'employees' | 'projects'>('employees');
   const { user } = useAuth();
   const { subscribe } = useWebSocket();
@@ -98,11 +91,9 @@ export default function DashboardPage() {
       Promise.all([
         listEmployeeMetrics().catch(() => ({ metrics: [], total_count: 0 })),
         listProjectMetrics().catch(() => ({ metrics: [], total_count: 0 })),
-        getProductivityTrends().catch(() => ({ entries: [], period: '' })),
-      ]).then(([empRes, projRes, trendsRes]) => {
+      ]).then(([empRes, projRes]) => {
         setEmployeeMetricsList(empRes.metrics || []);
         setProjectMetricsList(projRes.metrics || []);
-        setTrendEntries(trendsRes.entries || []);
       });
     }
   }, [isManagerOrHigher, user?.id, loadStats]);
@@ -230,7 +221,7 @@ export default function DashboardPage() {
                               ))}
                             </Pie>
                             <Tooltip
-                              formatter={(value: number, name: string) => [`${value} задач`, name]}
+                              formatter={(value: number | undefined, name: string) => [`${value ?? 0} задач`, name]}
                               contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '12px' }}
                             />
                           </PieChart>
