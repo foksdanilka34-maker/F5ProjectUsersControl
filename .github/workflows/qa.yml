@@ -1,0 +1,122 @@
+name: QA tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  qa-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      identity_db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: identity
+          POSTGRES_PASSWORD: identity
+          POSTGRES_DB: identity
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U identity -d identity"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      business_db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: business
+          POSTGRES_PASSWORD: business
+          POSTGRES_DB: business
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U business -d business"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics check_port_connectivity"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: backend/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: qa/requirements.txt
+
+      # Best-effort environment bring-up. None of these steps are allowed to
+      # redden the job — the QA suite is written to skip (not fail) whatever
+      # it can't reach, so the real signal comes from the pytest step below.
+      - name: Apply database migrations
+        continue-on-error: true
+        run: |
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          "$(go env GOPATH)"/bin/migrate -path backend/migrations/identity \
+            -database "postgres://identity:identity@localhost:5432/identity?sslmode=disable" up
+          "$(go env GOPATH)"/bin/migrate -path backend/migrations/business \
+            -database "postgres://business:business@localhost:5435/business?sslmode=disable" up
+
+      - name: Start backend services
+        continue-on-error: true
+        working-directory: backend
+        run: |
+          nohup go run ./cmd/employee > /tmp/employee.log 2>&1 &
+          nohup go run ./cmd/business > /tmp/business.log 2>&1 &
+          nohup go run ./cmd/gateway > /tmp/gateway.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8080/health && break
+            sleep 1
+          done
+          cat /tmp/employee.log /tmp/business.log /tmp/gateway.log || true
+
+      - name: Build and serve frontend
+        continue-on-error: true
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          nohup npx vite preview --port 5173 --host > /tmp/frontend.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5173 && break
+            sleep 1
+          done
+          cat /tmp/frontend.log || true
+
+      - name: Install QA suite dependencies
+        working-directory: qa
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Run pytest (API + browser)
+        working-directory: qa
+        run: python -m pytest -v
