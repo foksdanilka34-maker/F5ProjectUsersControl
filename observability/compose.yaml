@@ -1,0 +1,82 @@
+# Стек наблюдаемости F5: метрики, логи, алерты, дашборды.
+# Сервисы F5 запускаются на хосте (make run-*), поэтому Prometheus и blackbox
+# ходят к ним через host.docker.internal, а Alloy читает их логи из ../logs.
+#
+#   make obs-up     — поднять стек
+#   make obs-down   — остановить
+name: f5-observability
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    # На Linux host.docker.internal нужно объявить явно; Docker Desktop делает это сам.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Внешняя проверка /health сервисов. Модуль http_2xx есть во встроенном конфиге образа.
+  blackbox:
+    image: prom/blackbox-exporter:v0.28.0
+    ports:
+      - "9115:9115"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  alertmanager:
+    image: prom/alertmanager:v0.34.1
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+
+  loki:
+    image: grafana/loki:3.7.8
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+
+  alloy:
+    image: grafana/alloy:v1.20.1
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - --disable-reporting
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      # Файлы логов сервисов F5 (LOG_DIR=../logs в Makefile).
+      - ../logs:/var/log/f5:ro
+      # Логи контейнеров инфраструктуры (Postgres, RabbitMQ) из backend/docker-compose.yml.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Позиции чтения, чтобы после перезапуска не отправлять логи повторно.
+      - alloy-data:/var/lib/alloy/data
+    ports:
+      - "12345:12345"
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:13.2.2
+    environment:
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+
+volumes:
+  prometheus-data:
+  loki-data:
+  alloy-data:

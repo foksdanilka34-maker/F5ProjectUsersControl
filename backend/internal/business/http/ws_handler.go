@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/observability"
 	"github.com/gorilla/websocket"
 )
 
@@ -57,12 +58,14 @@ func (h *WSHub) Run(ctx contextCancel) {
 			h.mu.Lock()
 			h.clients[client] = true
 			h.mu.Unlock()
+			observability.WebSocketClients.Set(float64(len(h.clients)))
 			log.Printf("[WebSocket] Client connected. Total clients: %d", len(h.clients))
 		case client := <-h.unregister:
 			h.mu.Lock()
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
+				observability.WebSocketClients.Set(float64(len(h.clients)))
 				log.Printf("[WebSocket] Client disconnected. Remaining: %d", len(h.clients))
 			}
 			h.mu.Unlock()

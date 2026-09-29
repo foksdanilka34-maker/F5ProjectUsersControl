@@ -16,6 +16,7 @@ import (
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/employee/http/middleware"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/employee/outbox"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/employee/repo"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/observability"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/postgres"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/rabbitmq"
 )
@@ -35,6 +36,13 @@ func main() {
 	accessTTL := getDurationEnv("ACCESS_TTL", 15*time.Minute)
 	refreshTTL := getDurationEnv("REFRESH_TTL", 7*24*time.Hour)
 
+	// JSON-логи в stdout и (если задан LOG_DIR) в файл для Alloy/Loki.
+	closeLogs, err := observability.SetupLogging("employee")
+	if err != nil {
+		log.Fatalf("failed to set up logging: %v", err)
+	}
+	defer closeLogs()
+
 	log.Printf("Starting Employee Service on %s...", httpAddr)
 
 	// 1. Connect Postgres
@@ -49,6 +57,7 @@ func main() {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer pool.Close()
+	observability.RegisterPgxPool(pool)
 
 	// 2. Connect RabbitMQ
 	rabbit, err := rabbitmq.Connect(rabbitURL)
@@ -96,11 +105,18 @@ func main() {
 
 	rateLimiter := middleware.NewTokenBucketLimiter(100, 200) // 100 req/sec, burst 200
 
-	handler := middleware.RequestID(
-		middleware.CORS(
-			middleware.RateLimiter(rateLimiter)(mux),
+	api := middleware.RequestID(
+		observability.Instrument(
+			middleware.CORS(
+				middleware.RateLimiter(rateLimiter)(mux),
+			),
 		),
 	)
+
+	// /metrics — вне цепочки middleware: опрос Prometheus не попадает в метрики и логи запросов.
+	handler := http.NewServeMux()
+	handler.Handle("GET /metrics", observability.MetricsHandler())
+	handler.Handle("/", api)
 
 	server := &http.Server{
 		Addr:         httpAddr,

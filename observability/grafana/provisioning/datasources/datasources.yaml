@@ -1,0 +1,35 @@
+# Источники данных создаются при старте Grafana. uid фиксированы:
+# на них ссылаются панели дашборда и ссылки между источниками.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      # request_id в строке лога становится ссылкой «Все логи этого запроса» —
+      # по нему видно путь запроса через gateway и сервис.
+      # $$ — экранирование $, иначе Grafana подставит переменную окружения.
+      derivedFields:
+        - name: request_id
+          matcherRegex: '"request_id":"([^"]+)"'
+          datasourceUid: loki
+          url: '{service_name=~".+"} |= "$${__value.raw}"'
+          urlDisplayLabel: Все логи этого запроса
+
+  - name: Alertmanager
+    type: alertmanager
+    uid: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    jsonData:
+      implementation: prometheus

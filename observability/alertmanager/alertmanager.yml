@@ -1,0 +1,20 @@
+# Alertmanager группирует алерты, подавляет дубли и решает, кому отправить.
+
+route:
+  receiver: tickets # по умолчанию — в очередь тикетов
+  group_by: [alertname, job]
+  routes:
+    - matchers: [severity="critical"]
+      receiver: oncall
+
+# Получатели без интеграций: алерты видны в UI Alertmanager и в Grafana.
+# Для реальных уведомлений добавьте telegram_configs, slack_configs, webhook_configs и т. п.
+receivers:
+  - name: tickets
+  - name: oncall
+
+# Пока горит critical, одноимённый warning того же сервиса не отправляется.
+inhibit_rules:
+  - source_matchers: [severity="critical"]
+    target_matchers: [severity="warning"]
+    equal: [alertname, job]

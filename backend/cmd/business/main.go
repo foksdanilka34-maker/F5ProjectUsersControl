@@ -18,6 +18,7 @@ import (
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/outbox"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/repo"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/crypto"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/observability"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/postgres"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/rabbitmq"
 )
@@ -37,6 +38,13 @@ func main() {
 	gitlabTokenKey := getEnv("GITLAB_TOKEN_KEY", jwtSecret)
 	publicURL := getEnv("PUBLIC_BASE_URL", "http://localhost:8080")
 
+	// JSON-логи в stdout и (если задан LOG_DIR) в файл для Alloy/Loki.
+	closeLogs, err := observability.SetupLogging("business")
+	if err != nil {
+		log.Fatalf("failed to set up logging: %v", err)
+	}
+	defer closeLogs()
+
 	log.Printf("Starting Business Service on %s...", httpAddr)
 
 	// 1. Connect Postgres
@@ -51,6 +59,7 @@ func main() {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer pool.Close()
+	observability.RegisterPgxPool(pool)
 
 	// 2. Connect RabbitMQ
 	rabbit, err := rabbitmq.Connect(rabbitURL)
@@ -131,11 +140,18 @@ func main() {
 
 	rateLimiter := middleware.NewTokenBucketLimiter(150, 300)
 
-	handler := middleware.RequestID(
-		middleware.CORS(
-			middleware.RateLimiter(rateLimiter)(mux),
+	api := middleware.RequestID(
+		observability.Instrument(
+			middleware.CORS(
+				middleware.RateLimiter(rateLimiter)(mux),
+			),
 		),
 	)
+
+	// /metrics — вне цепочки middleware: опрос Prometheus не попадает в метрики и логи запросов.
+	handler := http.NewServeMux()
+	handler.Handle("GET /metrics", observability.MetricsHandler())
+	handler.Handle("/", api)
 
 	server := &http.Server{
 		Addr:         httpAddr,

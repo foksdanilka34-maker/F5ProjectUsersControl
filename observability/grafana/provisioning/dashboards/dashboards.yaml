@@ -1,0 +1,9 @@
+# Grafana загружает дашборды из JSON-файлов в каталоге path.
+# Изменения из UI не сохраняются: правьте JSON или используйте «Save as» / экспорт.
+apiVersion: 1
+
+providers:
+  - name: f5
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

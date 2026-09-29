@@ -1,0 +1,59 @@
+// Сбор логов для Loki.
+//
+// 1. Сервисы F5 (gateway, employee, business) запускаются на хосте и пишут JSON-логи
+//    в ../logs/<service>.log (LOG_DIR). Файлы смонтированы в /var/log/f5.
+// 2. Контейнеры инфраструктуры из backend/docker-compose.yml (Postgres, RabbitMQ)
+//    пишут в stdout — их читаем через Docker API.
+//
+// В Loki у всех строк одна индексируемая метка — service_name. Поля с высокой
+// кардинальностью (request_id, user_id, path) остаются внутри JSON-строки.
+
+// --- Файлы логов сервисов F5 ---
+
+local.file_match "f5" {
+  path_targets = [
+    {"__path__" = "/var/log/f5/gateway.log", "service_name" = "gateway"},
+    {"__path__" = "/var/log/f5/employee.log", "service_name" = "employee"},
+    {"__path__" = "/var/log/f5/business.log", "service_name" = "business"},
+  ]
+}
+
+loki.source.file "f5" {
+  targets    = local.file_match.f5.targets
+  forward_to = [loki.write.local.receiver]
+}
+
+// --- Контейнеры инфраструктуры ---
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Оставляем только проект backend (docker compose в каталоге backend/),
+// имя compose-сервиса (identity_db, business_db, rabbitmq) становится service_name.
+discovery.relabel "infra" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    regex         = "backend"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service_name"
+  }
+}
+
+loki.source.docker "infra" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.infra.output
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

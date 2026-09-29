@@ -8,6 +8,7 @@ import (
 
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/dto"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/repo"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/observability"
 )
 
 type EventPublisher interface {
@@ -130,9 +131,11 @@ func (p *Poller) processRecord(ctx context.Context, record dto.OutboxRecord) {
 
 	_ = p.txManager.WithinTx(ctx, func(r *repo.RepositoryRegistry) error {
 		if err != nil {
+			observability.OutboxEvents.WithLabelValues(record.EventType, "failed").Inc()
 			log.Printf("[Business Outbox Poller] Failed to publish %s (%s): %v", record.ID, record.EventType, err)
 			return r.Outbox().MarkFailed(ctx, record.ID, err.Error())
 		}
+		observability.OutboxEvents.WithLabelValues(record.EventType, "published").Inc()
 		return r.Outbox().MarkPublished(ctx, record.ID)
 	})
 }

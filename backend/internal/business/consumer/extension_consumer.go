@@ -13,6 +13,7 @@ import (
 
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/dto"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/repo"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/observability"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/rabbitmq"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -77,6 +78,7 @@ func (c *ExtensionConsumer) handleMessage(ctx context.Context, msg amqp.Delivery
 func (c *ExtensionConsumer) deliver(ctx context.Context, ext dto.ExtensionDTO, category string, payload []byte) {
 	secret, err := c.sealer.Open(ext.SharedSecretEnc)
 	if err != nil {
+		observability.ExtensionDeliveries.WithLabelValues(ext.Key, "failed").Inc()
 		log.Printf("[Extension Dispatch Consumer] Failed to decrypt secret for %s: %v", ext.Key, err)
 		return
 	}
@@ -86,6 +88,7 @@ func (c *ExtensionConsumer) deliver(ctx context.Context, ext dto.ExtensionDTO, c
 		"data":  json.RawMessage(payload),
 	})
 	if err != nil {
+		observability.ExtensionDeliveries.WithLabelValues(ext.Key, "failed").Inc()
 		log.Printf("[Extension Dispatch Consumer] Failed to build envelope for %s: %v", ext.Key, err)
 		return
 	}
@@ -99,6 +102,7 @@ func (c *ExtensionConsumer) deliver(ctx context.Context, ext dto.ExtensionDTO, c
 
 	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, ext.BaseURL+"/webhooks", bytes.NewReader(envelope))
 	if err != nil {
+		observability.ExtensionDeliveries.WithLabelValues(ext.Key, "failed").Inc()
 		log.Printf("[Extension Dispatch Consumer] Failed to build request for %s: %v", ext.Key, err)
 		return
 	}
@@ -108,16 +112,19 @@ func (c *ExtensionConsumer) deliver(ctx context.Context, ext dto.ExtensionDTO, c
 
 	resp, err := c.http.Do(req)
 	if err != nil {
+		observability.ExtensionDeliveries.WithLabelValues(ext.Key, "failed").Inc()
 		log.Printf("[Extension Dispatch Consumer] Delivery to %s (%s) failed: %v", ext.Key, ext.BaseURL, err)
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
+		observability.ExtensionDeliveries.WithLabelValues(ext.Key, "rejected").Inc()
 		log.Printf("[Extension Dispatch Consumer] Delivery to %s rejected with status %d", ext.Key, resp.StatusCode)
 		return
 	}
 
+	observability.ExtensionDeliveries.WithLabelValues(ext.Key, "delivered").Inc()
 	log.Printf("[Extension Dispatch Consumer] Delivered %s to %s", category, ext.Key)
 }
 
