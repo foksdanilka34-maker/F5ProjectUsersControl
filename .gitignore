@@ -10,6 +10,8 @@
 
 backend/environment
 /build
+# JSON-логи сервисов (LOG_DIR), их читает Alloy
+/logs/
 environment/
 
 # Test binary, build with `go test -c`

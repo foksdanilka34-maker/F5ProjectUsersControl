@@ -103,6 +103,7 @@ curl -X POST http://localhost:8080/api/v1/extensions   -H "Authorization: Bearer
 * **База данных**: **PostgreSQL** (изолированные хранилища данных).
 * **Frontend**: **React 19**, **TypeScript**, **Vite**, **Tailwind CSS**.
 * **Инфраструктура**: **Docker & Docker Compose**.
+* **Наблюдаемость**: **Prometheus**, **Loki**, **Grafana Alloy**, **Grafana**, **Alertmanager** — метрики, структурированные JSON-логи с request_id и алерты.
 
 ---
 
@@ -119,6 +120,7 @@ make docker-up
 | --- | --- | --- |
 | `GITLAB_TOKEN_KEY` | значение `JWT_SECRET` | ключ шифрования access-токенов GitLab и секретов расширений |
 | `PUBLIC_BASE_URL` | `http://localhost:8080` | внешний адрес шлюза, из него собирается URL вебхука GitLab |
+| `LOG_DIR` | не задан (`../logs` в `make run-*`) | каталог, куда сервисы дублируют JSON-логи для сбора в Loki |
 
 ### 3. Запуск сервисов бэкенда
 ```bash
@@ -139,6 +141,18 @@ npm install
 npm run dev
 ```
 Интерфейс откроется по адресу: **`http://localhost:5173`**.
+
+---
+
+## 📈 Наблюдаемость (метрики, логи, алерты)
+
+```bash
+make obs-up   # Prometheus, Loki, Alloy, Grafana, Alertmanager
+```
+
+Дашборд **F5 Services**: **`http://localhost:3000/d/f5-services`** (admin / admin).
+Каждый сервис отдаёт метрики на `/metrics`, пишет JSON-логи с `request_id` (один и тот же в gateway и сервисе) и `user_id`. Отдельно отслеживаются фоновые процессы: outbox, вебхуки GitLab, доставка расширениям.
+Подробности, учебные сбои и runbooks алертов — в [observability/README.md](observability/README.md).
 
 ---
 

@@ -1,0 +1,79 @@
+# Правила алертов F5. Prometheus вычисляет их каждые 15 секунд и отправляет
+# сработавшие в Alertmanager. for — сколько условие должно держаться до firing.
+# runbook_url ведёт в раздел observability/README.md с порядком действий.
+groups:
+  - name: f5-http
+    rules:
+      # Одно имя, два уровня: при critical Alertmanager подавляет одноимённый warning.
+      - alert: F5HighErrorRate
+        expr: |
+          sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))
+            / sum by (job) (rate(http_requests_total[5m])) > 0.01
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }}: доля 5xx {{ $value | humanizePercentage }} (порог 1%)"
+          runbook_url: "https://github.com/foksdanilka34-maker/F5ProjectUsersControl/blob/master/observability/README.md#f5higherrorrate"
+
+      - alert: F5HighErrorRate
+        expr: |
+          sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))
+            / sum by (job) (rate(http_requests_total[5m])) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }}: доля 5xx {{ $value | humanizePercentage }} (порог 5%)"
+          runbook_url: "https://github.com/foksdanilka34-maker/F5ProjectUsersControl/blob/master/observability/README.md#f5higherrorrate"
+
+      - alert: F5HighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (job, route, le) (rate(http_request_duration_seconds_bucket[5m]))
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} {{ $labels.route }}: P95 = {{ $value | humanizeDuration }} (порог 500 мс)"
+          runbook_url: "https://github.com/foksdanilka34-maker/F5ProjectUsersControl/blob/master/observability/README.md#f5highlatencyp95"
+
+      - alert: F5ServiceDown
+        expr: probe_success{job="health"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service }}: /health не отвечает больше минуты"
+          runbook_url: "https://github.com/foksdanilka34-maker/F5ProjectUsersControl/blob/master/observability/README.md#f5servicedown"
+
+  - name: f5-background
+    rules:
+      # Задача сохранилась, но событие не ушло в RabbitMQ: другие сервисы и расширения его не увидят.
+      - alert: F5OutboxPublishFailures
+        expr: sum by (job, event_type) (increase(outbox_events_total{result="failed"}[5m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }}: outbox не может опубликовать {{ $labels.event_type }}"
+          runbook_url: "https://github.com/foksdanilka34-maker/F5ProjectUsersControl/blob/master/observability/README.md#f5outboxpublishfailures"
+
+      - alert: F5GitLabWebhookFailures
+        expr: sum by (event_type) (increase(gitlab_webhook_events_total{result="failed"}[15m])) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Вебхуки GitLab {{ $labels.event_type }} не обрабатываются"
+          runbook_url: "https://github.com/foksdanilka34-maker/F5ProjectUsersControl/blob/master/observability/README.md#f5gitlabwebhookfailures"
+
+      - alert: F5DBPoolSaturated
+        expr: pgxpool_acquired_conns / pgxpool_max_conns > 0.9
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }}: пул соединений с БД занят на {{ $value | humanizePercentage }}"
+          runbook_url: "https://github.com/foksdanilka34-maker/F5ProjectUsersControl/blob/master/observability/README.md#f5dbpoolsaturated"

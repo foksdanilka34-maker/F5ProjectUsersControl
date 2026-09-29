@@ -13,6 +13,7 @@ import (
 
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/dto"
 	"github.com/foksdanilka34-maker/F5ProjectUsersControl/internal/business/repo"
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/observability"
 )
 
 var ErrInvalidWebhookToken = errors.New("invalid gitlab webhook token")
@@ -121,9 +122,11 @@ func (s *GitLabWebhookService) processBatch(ctx context.Context, batchSize int) 
 		procErr := s.processEvent(ctx, event)
 		_ = s.txManager.WithinTx(ctx, func(r *repo.RepositoryRegistry) error {
 			if procErr != nil {
+				observability.GitLabWebhookEvents.WithLabelValues(event.EventType, "failed").Inc()
 				log.Printf("[GitLab Webhook Worker] Failed to process %s (%s): %v", event.ID, event.EventType, procErr)
 				return r.GitLab().MarkWebhookFailed(ctx, event.ID, procErr.Error())
 			}
+			observability.GitLabWebhookEvents.WithLabelValues(event.EventType, "processed").Inc()
 			return r.GitLab().MarkWebhookProcessed(ctx, event.ID)
 		})
 	}

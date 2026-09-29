@@ -1,0 +1,47 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - alerts.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+# Каждый сервис — отдельный job: в метриках он виден как метка job="gateway" и т. д.
+# Сервисы запущены на хосте, отсюда host.docker.internal.
+scrape_configs:
+  - job_name: gateway
+    static_configs:
+      - targets: ["host.docker.internal:8080"]
+
+  - job_name: employee
+    static_configs:
+      - targets: ["host.docker.internal:8081"]
+
+  - job_name: business
+    static_configs:
+      - targets: ["host.docker.internal:8082"]
+
+  # Внешняя проверка /health через blackbox exporter: probe_success 1 или 0.
+  # Метка service — чтобы в алерте было видно, какой сервис не отвечает.
+  - job_name: health
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: ["http://host.docker.internal:8080/health"]
+        labels: { service: gateway }
+      - targets: ["http://host.docker.internal:8081/health"]
+        labels: { service: employee }
+      - targets: ["http://host.docker.internal:8082/health"]
+        labels: { service: business }
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115

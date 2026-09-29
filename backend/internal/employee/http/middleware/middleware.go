@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/foksdanilka34-maker/F5ProjectUsersControl/pkg/observability"
 	"github.com/google/uuid"
 )
 
@@ -70,6 +71,7 @@ func Auth(validator TokenValidator) func(http.Handler) http.Handler {
 				return
 			}
 
+			observability.SetUserID(r.Context(), userID)
 			ctx := context.WithValue(r.Context(), UserIDKey, userID)
 			ctx = context.WithValue(ctx, UserRoleKey, role)
 			next.ServeHTTP(w, r.WithContext(ctx))

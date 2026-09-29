@@ -1,4 +1,4 @@
-.PHONY: build build-all build-employee build-business build-gateway build-demo-extension run-employee run-business run-gateway run-demo-extension docker-up docker-down docker-logs fmt tidy test kill clean
+.PHONY: build build-all build-employee build-business build-gateway build-demo-extension run-employee run-business run-gateway run-demo-extension docker-up docker-down docker-logs obs-up obs-down obs-logs fmt tidy test kill clean
 
 build-all: build-employee build-business build-gateway build-demo-extension
 
@@ -15,13 +15,13 @@ build-demo-extension:
 	cd backend && go build -o ../build/demo_extension ./cmd/demo-extension
 
 run-employee:
-	cd backend && go run ./cmd/employee/main.go
+	cd backend && LOG_DIR=../logs go run ./cmd/employee/main.go
 
 run-business:
-	cd backend && go run ./cmd/business/main.go
+	cd backend && LOG_DIR=../logs go run ./cmd/business/main.go
 
 run-gateway:
-	cd backend && go run ./cmd/gateway/main.go
+	cd backend && LOG_DIR=../logs go run ./cmd/gateway/main.go
 
 run-demo-extension:
 	cd backend && go run ./cmd/demo-extension/main.go
@@ -37,6 +37,16 @@ docker-down:
 
 docker-logs:
 	cd backend && docker compose logs -f
+
+# Наблюдаемость: Prometheus, Loki, Alloy, Grafana, Alertmanager (см. observability/README.md)
+obs-up:
+	mkdir -p logs && docker compose -f observability/compose.yaml up -d
+
+obs-down:
+	docker compose -f observability/compose.yaml down
+
+obs-logs:
+	docker compose -f observability/compose.yaml logs -f
 
 fmt:
 	cd backend && go fmt ./...
