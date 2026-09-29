@@ -154,6 +154,8 @@ make obs-up   # Prometheus, Loki, Alloy, Grafana, Alertmanager
 Каждый сервис отдаёт метрики на `/metrics`, пишет JSON-логи с `request_id` (один и тот же в gateway и сервисе) и `user_id`. Отдельно отслеживаются фоновые процессы: outbox, вебхуки GitLab, доставка расширениям.
 Подробности, учебные сбои и runbooks алертов — в [observability/README.md](observability/README.md).
 
+Скрипты для диагностики (`scripts/`): `healthcheck.sh` — состояние окружения, `trace.sh <request_id>` — все логи запроса, `outbox-status.sh` — застрявшие события outbox и вебхуки GitLab, `snapshot.sh` — архив «улик» для тикета. Подробнее — [scripts/README.md](scripts/README.md).
+
 ---
 
 ## 🧪 Запуск тестов
